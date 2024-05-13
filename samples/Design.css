@@ -1,0 +1,242 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f6f8;
+    color: #333;
+}
+
+.container {
+    background-color: #ffffff;
+    margin: 10vh auto;
+    padding: 20px;
+    width: 90%;
+    max-width: 500px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+#result {
+    width: 100%;
+    height: 120px; /* Initial height */
+    resize: none; /* Disable user resizing */
+    overflow-y: auto; /* Add vertical scrollbar if needed */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+    font-size: 16px;
+}
+
+h1 {
+    color: #0a47a9;
+    font-size: 32px;
+}
+
+label {
+    display: block;
+    margin: 15px 0 5px;
+    font-size: 16px;
+}
+
+input, select, button, textarea {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+    font-size: 15px;
+    height: 40px;
+}
+
+input {
+  font-size: 15px;
+}
+
+button {
+    background-color: #21325b;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+button:hover {
+    background-color: #083a7f;
+}
+
+footer {
+    background-color: #21325b;
+    color: white;
+    text-align: center;
+    padding: 10px;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    font-size: 16px;
+}
+
+@media (pointer:coarse) and (orientation:portrait){
+  body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f6f8;
+      color: #333;
+  }
+  
+  .container {
+      background-color: #ffffff;
+      margin: 10vh auto;
+      padding: 20px;
+      width: 90%;
+      max-width: 800px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  #result {
+      width: 100%;
+      height: 400px; /* Initial height */
+      resize: none; /* Disable user resizing */
+      overflow-y: auto; /* Add vertical scrollbar if needed */
+      box-sizing: border-box; /* Include padding and border in the element's total width and height */
+      font-size: 25px;
+  }
+  
+  
+  h1 {
+      color: #0a47a9;
+      font-size: 32px;
+  }
+  
+  label {
+      display: block;
+      margin: 15px 0 5px;
+      font-size: 16px;
+  }
+  
+  input, select, button, textarea {
+      width: 100%;
+      height: 60px;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+  }
+  
+  input {
+    font-size: 25px;
+  }
+  
+  select{
+    height: 35px;
+    font-size: 22px;
+  }
+  
+  button {
+      background-color: #21325b;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 22px;
+  }
+  
+  button:hover {
+      background-color: #083a7f;
+  }
+  
+  footer {
+      background-color: #21325b;
+      color: white;
+      text-align: left;
+      padding: 60px;
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      font-size: 16px;
+  }
+}
+@media (pointer:coarse) and (orientation:landscape){
+  body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f6f8;
+      color: #333;
+  }
+
+  .container {
+      background-color: #ffffff;
+      margin: 2vh auto;
+      padding: 20px;
+      width: 90%;
+      max-width: 800px;
+      max-height: 400px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+
+  #result {
+      width: 100%;
+      height: 80px; /* Initial height */
+      resize: none; /* Disable user resizing */
+      overflow-y: auto; /* Add vertical scrollbar if needed */
+      box-sizing: border-box; /* Include padding and border in the element's total width and height */
+      font-size: 12px;
+  }
+
+
+  h1 {
+      color: #0a47a9;
+      font-size: 22px;
+  }
+
+  label {
+      display: block;
+      margin: 10px 0 2px;
+      font-size: 12px;
+  }
+
+  input, select, button, textarea {
+      width: 100%;
+      height: 40px;
+      padding: 5px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+  }
+
+  input {
+    font-size: 16px;
+    height: 30px;
+  }
+
+  select{
+    height: 25px;
+    font-size: 16px;
+  }
+
+  button {
+      background-color: #21325b;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+  }
+
+  button:hover {
+      background-color: #083a7f;
+  }
+
+  footer {
+      background-color: #21325b;
+      color: white;
+      text-align: left;
+      padding: 10px;
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      font-size: 10px;
+  }
+}
