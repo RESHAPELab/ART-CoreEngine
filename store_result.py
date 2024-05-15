@@ -35,6 +35,22 @@ def add_to_csv(csv_file, key_name, label):
             writer.writerow([key_name, label])
 
 
+def store_file(csv_file, file_name, domains, subdomains):
+    found = in_csv(csv_file, file_name)
+
+    if not found:
+        with open(csv_file, 'a', newline='') as file:
+            file.seek(0, os.SEEK_END)  # Move pointer to the end of file
+            writer = csv.writer(file)
+            if file.tell() == 0:  # Check if file is empty
+                writer.writerow(['filename', 'domains', 'subdomains'])  # Write header row if file is empty
+            domains_str = ', '.join(domains)
+            subdomains_str = ', '.join(subdomains)
+            if subdomains_str == "":
+                subdomains_str = "None Used"
+            writer.writerow([file_name, domains_str, subdomains_str])
+
+
 # Example usage:
 # csv_file = 'data.csv'
 # key_name = input("Enter key name to check and possibly add: ")
@@ -42,3 +58,10 @@ def add_to_csv(csv_file, key_name, label):
 #
 # add_to_csv(csv_file, key_name, description)
 # print(get_from_csv('function_storage.csv', 'java.util.List'))
+
+# csv_file = 'test.csv'
+# file_name = 'java.util.test'
+# domains = ['UI', 'DB', 'etc.']
+# subdomains = ['UI-event', 'DB-connection', 'etc']
+#
+# store_file(csv_file, file_name, domains, subdomains)

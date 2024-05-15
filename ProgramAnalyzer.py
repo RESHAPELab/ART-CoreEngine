@@ -18,6 +18,7 @@ import tokens as tokenExtract
 import csv_pull
 from g4f.client import Client
 import store_result
+import csv_push
 
 client = Client()
 
@@ -268,11 +269,14 @@ if __name__ == "__main__":
     # ast = json.load(fp)
     # fp.close()
 
-    input_files = csv_pull.pull_csv('./issues_data2.csv', 'PR Files')
+    input_files = csv_pull.pull_csv('issues_data2 test.csv', 'PR Files')
+    # input_files = ['samples/AutosaveManager.java']
     for file in input_files:
         file = "./jabref-5.0-alpha/" + file.strip(" ")
         # if not os.path.exists(file_path):
         result = (generateAST(file))
+        domains = []
+        subdomains = []
         if result != 'null' and result is not None:
             pgrm = JavaProgram(result)
             classNames = pgrm.getClasses()  # converts all class names to full names.
@@ -291,6 +295,8 @@ if __name__ == "__main__":
                     print(label)
                 else:
                     label = store_result.get_from_csv('function_storage.csv', class_name)
+                if label not in domains:
+                    domains.append(label)
                 if methods:
                     method_list = list(methods)
                     for method in method_list:
@@ -298,14 +304,49 @@ if __name__ == "__main__":
                             sub_label = askGPT_FunctionDescription(class_name, method, label, 'Merged_API_Sub_Domains_Descriptions.json')
                             store_result.add_to_csv('api_storage.csv', class_name + "-" + str(method), label + "-" + sub_label)
                             print(sub_label)
+                            sub_label = label + "-" + sub_label
+                        else:
+                            sub_label = store_result.get_from_csv('api_storage.csv', class_name + "-" + method)
+                        if sub_label not in subdomains:
+                            subdomains.append(sub_label)
             print("*" * 20)
             funcs = pgrm.getFunctions()
             #print("\t" + str(funcs))
             print("##" * 20)
+            store_result.store_file('file_data.csv', file.strip('./jabref-5.0-alpha/') + "a", domains, subdomains)
+            # result = csv_push.find_values_by_filename('file_data.csv', file.strip('./jabref-5.0-alpha/') + "a")
+            # if isinstance(result, tuple):
+            #     domains, subdomains = result
+            #     print("{" + file.strip('./jabref-5.0-alpha/') + "a" + ": [" + domains + "], [" + subdomains + "]}")
+            # else:
+            #     print(result)
         else:
             print(file + " not found")
         # else:
         #     print(file + " already converted")
+
+    column_data = csv_pull.read_full_column('issues_data2 test.csv', 'PR Files')
+    results = []
+
+    for file in column_data:
+        # Convert the string to an actual array
+        array = eval(file)
+        array_of_javas = []
+        for input in array:
+            if input.endswith(".java"):
+                array_of_javas.append(input)
+
+        array_of_results = []
+        for java_file in array_of_javas:
+            result = csv_push.find_values_by_filename('file_data.csv', java_file)
+            if isinstance(result, tuple):
+                domains, subdomains = result
+                array_of_results.append("{" + java_file + ": [" + domains + "], [" + subdomains + "]}")
+            else:
+                array_of_results.append(result)
+        results.append(array_of_results)
+
+    csv_pull.update_csv_with_results('issues_data2 test.csv', 'PR Files', results)
 
     # pgrm = JavaProgram(ast)
     # classNames = pgrm.getClasses() # converts all class names to full names.
