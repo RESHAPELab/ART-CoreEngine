@@ -126,6 +126,7 @@ def populateDictionary(walkPointer):
         return dataDictionaryLocal
 
 def generateAST(filename):
+
     file_end = filename.strip().split('.')[-1]
     language_library = ""
     # return dictionary AST.
@@ -159,54 +160,68 @@ def generateAST(filename):
     parser = Parser()
     parser.set_language(file_language)
 
-    file_path, file_name = filename.rsplit('/', 1)
+    # file_path, file_name = filename.rsplit('/', 1)
+
+    file = open(filename,'rb')
+    tree = parser.parse(file.read())
+    file.close()
+
+    treeWalk = tree.walk()
+
+    # run recursive loop
+    return populateDictionary(treeWalk)
+
+
+# maybe create a separate function that pulls the files from github?
 
     # print("File Path: " + file_path)
     # print("File Name: " + file_name)
-    code_pull = github_pull.get_github_file_content('JabRef', 'jabref', file_path, file_name)
+    # code_pull = github_pull.get_github_file_content('JabRef', 'jabref', file_path, file_name)
 
-    if code_pull is not None or code_pull:
-        print("YIPPEE")
-        saveFile = open("generatedFiles/code_pulled.java", 'w')
-        saveFile.write(code_pull)
-        saveFile.close()
+    # if code_pull is not None or code_pull:
+    #     print("YIPPEE")
+    #     saveFile = open("generatedFiles/code_pulled.java", 'w')
+    #     saveFile.write(code_pull)
+    #     saveFile.close()
 
-        file = open('generatedFiles/code_pulled.java','rb')
-        tree = parser.parse(file.read())
-        file.close()
+    #     file = open('generatedFiles/code_pulled.java','rb')
+    #     tree = parser.parse(file.read())
+    #     file.close()
 
-        treeWalk = tree.walk()
+    #     treeWalk = tree.walk()
 
-        # run recursive loop
-        return populateDictionary(treeWalk)
+    #     # run recursive loop
+    #     return populateDictionary(treeWalk)
 
-    else:
-        try:
-            file = open("./jabref-5.0-alpha/" + filename.strip(' '), 'rb')
-            tree = parser.parse(file.read())
-            file.close()
+    # else:
+    #     try:
+    #         file = open("./jabref-5.0-alpha/" + filename.strip(' '), 'rb')
+    #         tree = parser.parse(file.read())
+    #         file.close()
 
-        except Exception as e:
-            return
+    #     except Exception as e:
+    #         return
 
-        treeWalk = tree.walk()
-        # run recursive loop
-        return populateDictionary(treeWalk)
+    #     treeWalk = tree.walk()
+    #     # run recursive loop
+    #     return populateDictionary(treeWalk)
 
 
-input_files = csv_pull.pull_csv('./issues_data2.csv', 'PR Files')
-for file in input_files:
-    file_name = file.strip().split('/')[-1]
-    file_path = "./generatedFiles/" + str(file_name) + "_ast.json"
-    if not os.path.exists(file_path):
-        result = jsonIt(generateAST(file))
-        if result != 'null':
-            with open(file_path, 'w') as f:
-                f.write(str(result))
-        else:
-            print(file + " not found")
-    else:
-        print(file + " already converted")
+# maybe create a separate function that does this?
+
+# input_files = csv_pull.pull_csv('./issues_data2.csv', 'PR Files')
+# for file in input_files:
+#     file_name = file.strip().split('/')[-1]
+#     file_path = "./generatedFiles/" + str(file_name) + "_ast.json"
+#     if not os.path.exists(file_path):
+#         result = jsonIt(generateAST(file))
+#         if result != 'null':
+#             with open(file_path, 'w') as f:
+#                 f.write(str(result))
+#         else:
+#             print(file + " not found")
+#     else:
+#         print(file + " already converted")
 
 
 # if __name__ == "__main__":

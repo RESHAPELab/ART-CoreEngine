@@ -1,13 +1,21 @@
 import json
 
 # Load JSON data from file
-filename = './generatedFiles/saved.ast.json'
-with open(filename, 'r') as file:
-    data = json.load(file)
+# filename = './generatedFiles/saved.ast.json'
+# with open(filename, 'r') as file:
+#     data = json.load(file)
 
 # Function to recursively search for identifiers starting by searching for "local_variable_declaration" then going to its child "identifiers"
 def pullToken(jsonDirect, key="type_identifier"):
+    """Finds the class names in a java file. "Tokens"
 
+    Args:
+        jsonDirect (dict): AST Tree JSON fragment
+        key (str, optional): Search key. Defaults to "type_identifier".
+
+    Returns:
+        list: List of tokens matching the key.
+    """
     tokens = []
 
     if isinstance(jsonDirect, dict):
@@ -103,5 +111,5 @@ def pullImportPython(jsonDirect, key="dotted_name"):
 
 
 
-found_tokens = pullToken(data)
-print(found_tokens)
+# found_tokens = pullToken(data)
+# print(found_tokens)

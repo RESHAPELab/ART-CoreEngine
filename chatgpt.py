@@ -1,5 +1,11 @@
 from g4f.client import Client
 
+####
+#
+#  This file is old! I think this will be completely replaced (and deleted) by Hunters Taxonomy algorithm. 
+#
+####
+
 client = Client()
 messages = [
     {"role": "system",
