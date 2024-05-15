@@ -82,3 +82,8 @@ classify_apis_and_methods(AST_data, apis)
 # the main thing is that we are going to be testing this on thounsands of files so it needs to somehow run simutously we dont want them to have
 # to select one file at a time, that is where dylan comes in with creating the ASTs for the changed files
 # Heres what I think we can do, improve this and then basically write another python file that passes in all the ASTs into this and it should work well
+
+
+# Status Update: (5/14/2024)
+# Cleaned up the big algorithm and created a JavaProgram class where one can extract the functions and classnames from a java file. 
+# This is in the ProgramAnalyzer.py file (currently on the dev branch.... the taxonomy branch will be merged into the dev branch).

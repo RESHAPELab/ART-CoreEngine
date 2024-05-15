@@ -10,12 +10,17 @@
 
 import json
 from openai import OpenAI
+from dotenv import load_dotenv # do a pip install dotenv
+import os
+
+load_dotenv()
+
 #QUESTIONS
 #How can I help or alter what I am doing for the classifications as well as change things to help the predictions team
 
 # Initialize the OpenAI client
-OpenAI.api_key = 'YOUR_API_KEY'  # Replace with your actual API key
-client = OpenAI()
+OpenAI.api_key = os.getenv("OPENAI_API_KEY")  # Replace with your actual API key
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 #Load File
 def load_data(filename):
@@ -123,9 +128,9 @@ def main():
     api_name = "java.sql.Connection;"
     domain , domainAndDescription  = classify_API(API_file, api_name)
     print(domain)
-    function_name = "createStatement()"
     print(domainAndDescription)
 
+    function_name = "createStatement()"
     #When calling the classify function we need the api_domain that the api is apart of. This is because we are getting a sub domain for the function.
     # For example... api_name java.sql.connection falls under the domain "Database (DB), if the function_name is createStatement the sub_domain 
     # will be one of the ones under the Database (DB) domain, so it would be Quert Execution according to AI
