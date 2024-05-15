@@ -1,0 +1,62 @@
+key,label
+org.jabref.logic.importer.fileformat.BibtexParser,Parser
+org.jabref.logic.importer.ImportFormatPreferences,Software Development and IT Operations
+org.jabref.model.entry.BibEntry,Data Structure
+java.io.FileNotFoundException,Error Handling
+T,Software Development and IT Operations
+java.net.URL,Network
+FetcherException,Error Handling
+java.net.URISyntaxException,Error Handling
+java.io.InputStream,Input-Output
+java.io.IOException,Error Handling
+org.slf4j.Logger,Logging
+Parser,Parser
+java.io.BufferedInputStream,Input-Output
+java.util.List,Data Structure
+ParseException,Error Handling
+java.net.MalformedURLException,Error Handling
+IdFetcher,Utility
+IdParserFetcher,Parser
+java.util.Optional,Data Structure
+org.jabref.model.entry.identifier.Identifier,Data Structure
+org.jabref.model.util.FileUpdateMonitor,Software Development and IT Operationsorg.apache.http.client.utils.URIBuilder,Network
+CopyFilesDialogView,User Interface
+String,Software Development and IT Operations
+StringBuilder,Data Structure
+CopyFilesDialogViewModel,User Interface
+org.jabref.gui.DialogService,User Interface
+javafx.scene.control.CheckBox,User Interface
+javafx.scene.layout.GridPane,Computer Graphics
+org.jabref.preferences.JabRefPreferences,Software Development and IT Operations
+org.jabref.gui.autocompleter.AutoCompletePreferences,Software Development and IT Operations
+javafx.scene.control.TextField,User Interface
+javafx.scene.control.Label,User Interface
+javafx.scene.control.RadioButton,User Interface
+org.jabref.gui.entryeditor.FileDragDropPreferenceType,Utility
+javafx.scene.control.ToggleGroup,User Interface
+javafx.scene.Node,Computer Graphics
+PreferencesTab,User Interface
+boolean,Utility
+org.jabref.gui.push.PushToApplicationAction,Software Development and IT Operations
+org.jabref.gui.actions.ActionFactory,Software Development and IT Operations
+javafx.scene.layout.BorderPane,Computer Graphics
+SidePaneComponent,User Interface
+org.jabref.logic.undo.UndoChangeEvent,Event Handling
+org.jabref.gui.actions.Actions,Software Development and IT Operations
+javafx.scene.control.Tab,User Interface
+org.jabref.gui.search.GlobalSearchBar,Search
+javafx.scene.control.ToolBar,User Interface
+org.jabref.gui.menus.FileHistoryMenu,User Interface
+javafx.scene.layout.HBox,User Interface
+org.jabref.logic.undo.UndoRedoEvent,Event Handling
+org.jabref.model.database.BibDatabaseContext,Databases
+org.jabref.gui.exporter.SaveDatabaseAction,Databases
+javafx.scene.control.Button,User Interface
+java.nio.file.Path,Input-Output
+org.jabref.logic.undo.AddUndoableActionEvent,Event Handling
+java.io.File,Input-Output
+javafx.scene.control.ProgressBar,User Interface
+javafx.scene.layout.Pane,Computer Graphics
+BasePanel,User Interface
+org.jabref.logic.importer.ParserResult,Parser
+WaitForSaveFinishedDialog,Software Development and IT Operations
