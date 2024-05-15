@@ -1,5 +1,6 @@
 
 
 __pycache__/
-generatedFiles/saved.ast.json
+generatedFiles/
+!generatedFiles/LLMcache.json
 tree-sitter-java/libtree-sitter-java.so
