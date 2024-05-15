@@ -132,29 +132,31 @@ class JavaProgram():
         if(self.completeTable is None):
             self.getCompleteSymbolTable()
         
-        functions = set()
+        functions = {}
         for className in self.completeTable:
             data = self.completeTable[className]
-            if(data["full"] == 0):
-                continue # unknown class! Not in JavaSDK.
 
             methodsGeneral = []
             for varl in data["varlist"]:
                 for m in varl["methods"]:
                     methodsGeneral.append(m)
             
-            print(methodsGeneral)
-            print(self.methods)
-            input("Are the same? ")
-            
             fullName = "Unknown"
             if(data["full"] != 0):
                 for fN in data["full"]:
                     for mN in methodsGeneral:
-                        functions.add(f"{fN}::{mN}")
+                        if(f"{fN}::{mN['method']}" in functions):
+                            functions[f"{fN}::{mN['method']}"].append(mN["line"])
+                        else:
+                            functions[f"{fN}::{mN['method']}"] = [mN["line"]]
             else:
                 for mN in methodsGeneral:
-                    functions.add(f"{fullName}::{mN}")
+                    if(f"Unknown::{mN['method']}" in functions):
+                        functions[f"Unknown::{mN['method']}"].append(mN["line"])
+                    else:
+                        functions[f"Unknown::{mN['method']}"] = [mN["line"]]
+
+        return functions
     
     
 
@@ -162,18 +164,19 @@ if __name__ == "__main__":
 
 
     # get AST from JSON.
-    generateAST("samples/PreviewViewer.java")
-    fp = open("generatedFiles/saved.ast.json")
-    ast = json.load(fp)
-    fp.close()
+    ast = generateAST("samples/PreviewViewer.java")
+    # fp = open("generatedFiles/saved.ast.json")
+    # ast = json.load(fp)
+    # fp.close()
 
     pgrm = JavaProgram(ast)
     classNames = pgrm.getClasses() # converts all class names to full names.
     print(classNames)
-
     print("*"*20)
-
     symbols = pgrm.getCompleteSymbolTable()
     print(symbols)
+    print("*"*20)
+    funcs = pgrm.getFunctions()
+    print(funcs)
     
 
