@@ -27,11 +27,12 @@ class JavaProgram():
         """
         self.ast = javaAST
 
-        self.classNames = None
+        self.classes = None
         self.methods = None
         self.symbols = None
+        self.completeTable = None
     
-    def getClassnames(self):
+    def getClasses(self):
         """Takes the classnames from the file, matches it to imports, and returns all the full-name class names.
 
         Returns:
@@ -62,7 +63,7 @@ class JavaProgram():
             else:
                 result[token] = 0
         
-        self.classNames = result
+        self.classes = result
         return result
     
     def populateSymbolTable(self):
@@ -82,14 +83,14 @@ class JavaProgram():
             dict: Data Structure of compiled symbols, methods, and classes.
         """
 
-        if(self.classNames is None):
-            self.getClassnames()
+        if(self.classes is None):
+            self.getClasses()
         if(self.symbols is None or self.methods is None):
             self.populateSymbolTable()
 
         out = {}
-        for className in self.classNames:
-            out[className] = {"full" : self.classNames[className], "varlist" : []}
+        for className in self.classes:
+            out[className] = {"full" : self.classes[className], "varlist" : []}
 
             for num, variable in enumerate(self.symbols):
                 if(variable["class"] != className):
@@ -123,8 +124,38 @@ class JavaProgram():
                     methodOut.append(method)
 
                 out[className]["varlist"].append({"variable":variable, "methods": methodOut})
+        
+        self.completeTable = out
         return out
 
+    def getFunctions(self):
+        if(self.completeTable is None):
+            self.getCompleteSymbolTable()
+        
+        functions = set()
+        for className in self.completeTable:
+            data = self.completeTable[className]
+            if(data["full"] == 0):
+                continue # unknown class! Not in JavaSDK.
+
+            methodsGeneral = []
+            for varl in data["varlist"]:
+                for m in varl["methods"]:
+                    methodsGeneral.append(m)
+            
+            print(methodsGeneral)
+            print(self.methods)
+            input("Are the same? ")
+            
+            fullName = "Unknown"
+            if(data["full"] != 0):
+                for fN in data["full"]:
+                    for mN in methodsGeneral:
+                        functions.add(f"{fN}::{mN}")
+            else:
+                for mN in methodsGeneral:
+                    functions.add(f"{fullName}::{mN}")
+    
     
 
 if __name__ == "__main__":
@@ -137,7 +168,7 @@ if __name__ == "__main__":
     fp.close()
 
     pgrm = JavaProgram(ast)
-    classNames = pgrm.getClassnames() # converts all class names to full names.
+    classNames = pgrm.getClasses() # converts all class names to full names.
     print(classNames)
 
     print("*"*20)
