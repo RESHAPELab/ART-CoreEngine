@@ -29,9 +29,9 @@ def pull_csv(file_path, column_name):
 
     for column in column_data:
         for item in column:
-            if item.endswith(".java'"):
-                cleaned_item = item.replace('[', '').replace(']', '').replace("'", "")
-                change_files.add(cleaned_item)
+            item = item.replace('[', '').replace(']', '').replace("'", "")
+            if item.endswith(".java"):
+                change_files.add(item)
     return change_files
 
 def update_csv_with_results(file_path, column_name, results):
