@@ -6,6 +6,14 @@ import AI_Taxonomy
 #Overview about issues and improvements below
 # Method and Function are the same comments and code
 
+#####
+# Old file, now, merged with the ProgramAnalyzer.py file. Please see that.
+# This file later to be deleted.
+#
+# This file served as a basic AST Analyzer, which is now fully incorporated into the JavaProgram
+# class in the ProgramAnalyzer.py file. 
+#####
+
 def load_data(filename):
     with open(filename, 'r') as file:
         return json.load(file)
