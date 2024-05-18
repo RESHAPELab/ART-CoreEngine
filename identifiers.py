@@ -1,9 +1,16 @@
 import json
 
 # Load JSON data from file
-filename = './generatedFiles/saved.ast.json'
-with open(filename, 'r') as file:
-    data = json.load(file)
+# filename = './generatedFiles/saved.ast.json'
+# with open(filename, 'r') as file:
+#     data = json.load(file)
+
+
+########
+# Is this to find variables? 
+# I think this file is now old and can be safely deleted,
+# As this is now included in the symbolTable.py program.
+########
 
 # Function to recursively search for identifiers starting by searching for "local_variable_declaration" then going to its child "identifiers"
 def pullIdentifierJava(jsonDirect, key="local_variable_declaration", keyChild="identifier"):
@@ -56,5 +63,5 @@ def pullIdentifierPython(jsonDirect, key="assignment", keyChild="identifier"):
 
     return found_identifiers
 
-found_identifiers = pullIdentifierPython(data)
-print(found_identifiers)
+# found_identifiers = pullIdentifierPython(data)
+# print(found_identifiers)
