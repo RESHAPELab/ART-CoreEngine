@@ -170,8 +170,8 @@ def main():
     """Main function to execute the script"""
     #-----------------------
     #Removed anything in () after the main name of the labels just incase openAI forgot to put it in the response
-    API_listing_file = 'labels.json' #Dont change, specefic file needed in folder
-    sub_domain_listing_file = 'Merged_API_Sub_Domains_Descriptions.json' #Dont Change, Specefic File Needed in Folder
+    API_listing_file = 'domain_labels.json' #Dont change, specefic file needed in folder
+    sub_domain_listing_file = 'subdomain_labels.json' #Dont Change, Specefic File Needed in Folder
     #-----------------------
 
     api_domain_listing = load_data(API_listing_file)
