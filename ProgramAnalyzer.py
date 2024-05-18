@@ -295,7 +295,7 @@ if __name__ == "__main__":
 
     exit()
 
-    input_files = csv_pull.pull_csv('issues_data2 test.csv', 'PR Files')
+    input_files = csv_pull.pull_csv('generatedFiles/issues_data2 test.csv', 'PR Files')
     # input_files = ['samples/AutosaveManager.java']
     for file in input_files:
         file = "./jabref-5.0-alpha/" + file.strip(" ")
@@ -315,31 +315,31 @@ if __name__ == "__main__":
             connections = pgrm.extract_classes_and_methods(symbols)
             for class_name, methods in connections.items():
                 print(f"\tClass: {class_name} - Methods: {methods}")
-                if not store_result.in_csv('function_storage.csv', class_name):
+                if not store_result.in_csv('generatedFiles/function_storage.csv', class_name):
                     label = askGPT_ClassDescription('labels.json', class_name)
-                    store_result.add_to_csv('function_storage.csv', class_name, label)
+                    store_result.add_to_csv('generatedFiles/function_storage.csv', class_name, label)
                     print(label)
                 else:
-                    label = store_result.get_from_csv('function_storage.csv', class_name)
+                    label = store_result.get_from_csv('generatedFiles/function_storage.csv', class_name)
                 if label not in domains:
                     domains.append(label)
                 if methods:
                     method_list = list(methods)
                     for method in method_list:
-                        if not store_result.in_csv('api_storage.csv', class_name + "-" + method):
+                        if not store_result.in_csv('generatedFiles/api_storage.csv', class_name + "-" + method):
                             sub_label = askGPT_FunctionDescription(class_name, method, label, 'Merged_API_Sub_Domains_Descriptions.json')
-                            store_result.add_to_csv('api_storage.csv', class_name + "-" + str(method), label + "-" + sub_label)
+                            store_result.add_to_csv('generatedFiles/api_storage.csv', class_name + "-" + str(method), label + "-" + sub_label)
                             print(sub_label)
                             sub_label = label + "-" + sub_label
                         else:
-                            sub_label = store_result.get_from_csv('api_storage.csv', class_name + "-" + method)
+                            sub_label = store_result.get_from_csv('generatedFiles/api_storage.csv', class_name + "-" + method)
                         if sub_label not in subdomains:
                             subdomains.append(sub_label)
             print("*" * 20)
             funcs = pgrm.getFunctions()
             #print("\t" + str(funcs))
             print("##" * 20)
-            store_result.store_file('file_data.csv', file.strip('./jabref-5.0-alpha/') + "a", domains, subdomains)
+            store_result.store_file('generatedFiles/file_data.csv', file.strip('./jabref-5.0-alpha/') + "a", domains, subdomains)
             # result = csv_push.find_values_by_filename('file_data.csv', file.strip('./jabref-5.0-alpha/') + "a")
             # if isinstance(result, tuple):
             #     domains, subdomains = result
@@ -351,7 +351,7 @@ if __name__ == "__main__":
         # else:
         #     print(file + " already converted")
 
-    column_data = csv_pull.read_full_column('issues_data2 test.csv', 'PR Files')
+    column_data = csv_pull.read_full_column('generatedFiles/issues_data2 test.csv', 'PR Files')
     results = []
 
     for file in column_data:
@@ -364,7 +364,7 @@ if __name__ == "__main__":
 
         array_of_results = []
         for java_file in array_of_javas:
-            result = csv_push.find_values_by_filename('file_data.csv', java_file)
+            result = csv_push.find_values_by_filename('generatedFiles/file_data.csv', java_file)
             if isinstance(result, tuple):
                 domains, subdomains = result
                 array_of_results.append("{" + java_file + ": [" + domains + "], [" + subdomains + "]}")
@@ -372,7 +372,7 @@ if __name__ == "__main__":
                 array_of_results.append(result)
         results.append(array_of_results)
 
-    csv_pull.update_csv_with_results('issues_data2 test.csv', 'PR Files', results)
+    csv_pull.update_csv_with_results('generatedFiles/issues_data2 test.csv', 'PR Files', results)
 
     # pgrm = JavaProgram(ast)
     # classNames = pgrm.getClasses() # converts all class names to full names.
