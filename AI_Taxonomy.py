@@ -146,6 +146,27 @@ class AIClassifier():
         sub_domain, description = self.parse_domain_description(response)
         
         return sub_domain, description, response
+
+    def classify_class_and_function(self, fullname : str):
+        """Classify class and function from the full name at once.
+
+        Args:
+            fullname (str): Class and function full name, like this: java.swing.JFrame::open
+
+        Returns:
+            str: domain of class
+            str: description of domain of class
+            str: response of domain of class
+            str: subdomain of function
+            str: subdescription of function
+            str: subresponse of function
+        """
+        api_name = fullname.split("::")[0]
+        domain, description, response  = self.classify_API(api_name)
+        function_name = fullname.split("::")[1]
+        subdomain, subdescription, subresponse  = self.classify_function(api_name, function_name, domain)
+        return domain, description, response, subdomain, subdescription, subresponse
+
         
         
 #Load File

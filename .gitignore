@@ -1,2 +1,8 @@
+
+
+__pycache__/
+generatedFiles/
+!generatedFiles/LLMcache.json
+tree-sitter-java/libtree-sitter-java.so
 .env
 __pycache__/
