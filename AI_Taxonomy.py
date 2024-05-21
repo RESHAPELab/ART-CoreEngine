@@ -8,10 +8,14 @@
 #in this main file i included variable to show one text example if someone wanted to run the main
 
 
+import datetime
 import json
 from openai import OpenAI
 from dotenv import load_dotenv # do a pip install dotenv
 import os
+import random
+
+from DatabaseManager import DatabaseManager
 
 load_dotenv()
 
@@ -27,10 +31,15 @@ class AIClassifier():
             api_domain_label_listing (dict): From labels.json
             subdomain_label_listing (dict): From Merged_API_Sub_Domains_Descriptions.json
         """
+
+        # csv
+        LOG_FILE = "./generatedFiles/ai_log.csv"
+
         OpenAI.api_key = os.getenv("OPENAI_API_KEY")
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         self.api_label_listing = api_domain_label_listing
         self.subdomain_label_listing = subdomain_label_listing
+        self.LOG_FILE = LOG_FILE
 
     def parse_domain_description(self, text : str):
         """Extracts the domain and description from an OpenAI Query Response
@@ -58,6 +67,7 @@ class AIClassifier():
         return text.strip(), "No description found"
 
     def classify_API(self, api : str):
+        return random.choice(["cat","dog","bird","rabbit","hen","pig","cow"])
         """Classifies a classname "API" into a domain.
 
         Args:
@@ -68,6 +78,11 @@ class AIClassifier():
             str: description
             str: complete AI response
         """
+
+        # LOG
+        with open(self.LOG_FILE, 'a') as file:
+            file.write(f"{datetime.datetime.now()},API,{api}")
+
         #Storing and approving past classfications in a database. THis would take manual work at first but maybe we can add a functon to the program design where#
         # the user validates the AIs reponse such as upvoting it
 
@@ -97,9 +112,13 @@ class AIClassifier():
 
         domain, description = self.parse_domain_description(response)
         
+        with open(self.LOG_FILE, 'a') as file:
+            file.write(f",{domain}\n")
+
         return domain, description, response
 
     def classify_function(self, api_name : str, function_name : str, api_domain : str):
+        return random.choice(["grain","rice","seed","carrots","straw","grass","wheat"])
         """Classify a function into a subdomain, given classname and class domain.
 
         Args:
@@ -112,9 +131,15 @@ class AIClassifier():
             str: description
             str: response
         """
+        # LOG
+        with open(self.LOG_FILE, 'a') as file:
+            file.write(f"{datetime.datetime.now()},FUNC,{api_name},{function_name},{api_domain}")
 
         if not(api_domain in self.subdomain_label_listing):
-            return f"No sub-domain for function '{function_name}'."
+            out = f"No sub-domain for function '{function_name}'."
+            with open(self.LOG_FILE, 'a') as file:
+                file.write(f",{out}\n")
+            return out
 
         sub_domains_descriptions = []
         for item in self.subdomain_label_listing[api_domain]:
@@ -145,6 +170,9 @@ class AIClassifier():
 
         sub_domain, description = self.parse_domain_description(response)
         
+        with open(self.LOG_FILE, 'a') as file:
+               file.write(f",{sub_domain}\n")
+
         return sub_domain, description, response
 
     def classify_class_and_function(self, fullname : str):
@@ -167,7 +195,50 @@ class AIClassifier():
         subdomain, subdescription, subresponse  = self.classify_function(api_name, function_name, domain)
         return domain, description, response, subdomain, subdescription, subresponse
 
+
+class AICachedClassifier(AIClassifier):
+    def __init__(self, api_domain_label_listing : dict, subdomain_label_listing : dict, db : DatabaseManager):
+        self.db = db
+        super().__init__(api_domain_label_listing, subdomain_label_listing)
+    
+    def classify_API(self, api : str):
+        cache_result = self.db.cache_classify_API(api)
+        if(cache_result is None):
+            domain, _a , _b = super().classify_API(api)
+            self.db.store_class_classification(api, domain) 
+            return domain     
+        else:
+            return cache_result
         
+    def classify_function(self, api_name: str, function_name: str, api_domain: str):
+        cache_result = self.db.cache_classify_function(api_name, function_name)
+        if(cache_result is None):
+            subdomain, _a , _b = super().classify_function(api_name, function_name, api_domain)
+            self.db.store_function_classification(api_name, function_name, subdomain)      
+            return subdomain
+        else:
+            return cache_result
+    
+    def classify_class_and_function(self, fullname: str):
+        """Classify class and function from the full name at once.
+
+        Args:
+            fullname (str): Class and function full name, like this: java.swing.JFrame::open
+
+        Returns:
+            str: domain of class
+            str: description of domain of class
+            str: response of domain of class
+            str: subdomain of function
+            str: subdescription of function
+            str: subresponse of function
+        """
+        api_name = fullname.split("::")[0]
+        domain  = self.classify_API(api_name)
+        function_name = fullname.split("::")[1]
+        subdomain  = self.classify_function(api_name, function_name, domain)
+        return domain, subdomain
+    
         
 #Load File
 def load_data(filename : str):
