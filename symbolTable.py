@@ -4,7 +4,12 @@ import json
 
 
 class SymbolTable():
-    def __init__(self, ast):
+    def __init__(self, ast : dict):
+        """Create Symbol Table Object
+
+        Args:
+            ast (dict): AST of Java Program.
+        """
         self.ast = ast
         self.symbols = []
         self.methodTable = []
@@ -17,6 +22,11 @@ class SymbolTable():
     # type_identifier -- variable_declarator (brother)
 
     def findSymbols(self):
+        """Find all symbols (variables) used in the program
+
+        Returns:
+            list[dict]: Symbol Dictionary. [{class, name, line}, ...] 
+        """
         # LRP
         self.__findSymbol(self.ast)
         return self.symbols
@@ -97,6 +107,11 @@ class SymbolTable():
         # that's it! Nothing here.
     
     def getMethods(self):
+        """Find all methods and invocations used in the program
+
+        Returns:
+            list[dict]: Method Dictionary. [{name (variable name), method, line}, ...] 
+        """
         self.__getMethod(self.ast)
         return self.methodTable
 
@@ -137,57 +152,3 @@ class SymbolTable():
             self.__getMethod(n)
         
         # that's it! Nothing here.
-
-
-
-
-"""
-Goal:
-1. title - String
-2. max - String
-3. progressBar - JProgressBar
-
-"""
-
-
-"""
-    program(String element, String item)
-    formal_parameter
-        type_identifier, identifier
-
-    private JProgressBar progressBar;
-        field_declaration
-            type_identifier, variable_declarator       
-
-    Border item = Special.something();
-        local_variable_declaration
-            type_identifier, variable_declarator
-    
-            
-    ignore class and method declaration
-    
-"""
-
-"""
-    Getting methods used.
-    method_invocation
-        identifier(name), '.' ,identifier
-    OR  field_access (System.out), '.', identifier
-
-    
-    If the symbol is not found, maybe it is a static method?
-    Check the imports.
-
-"""
-
-if __name__ == "__main__":
-    fp = open("generatedFiles/saved.ast.json")
-    ast = json.load(fp)
-    fp.close()
-
-    st = SymbolTable(ast)
-    st.getMethods()
-    st.findSymbols()
-    print(st.methodTable)
-    print("====\n")
-    print(st.symbols)

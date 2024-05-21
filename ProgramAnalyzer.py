@@ -11,6 +11,7 @@
 # Search on docs for the token.
 
 import json
+from AI_Taxonomy import AIClassifier, load_data
 from generateAST import generateAST
 import os
 from symbolTable import SymbolTable
@@ -19,8 +20,6 @@ import csv_pull
 from g4f.client import Client
 import store_result
 import csv_push
-import database_init
-from AI_Taxonomy import AIClassifier, load_data
 
 client = Client()
 
@@ -73,11 +72,11 @@ class JavaProgram():
         
         self.classes = result
         return result
-
+    
     def populateSymbolTable(self):
         pgrmTables = SymbolTable(self.ast)
-        self.symbols = pgrmTables.findSymbols()  # gets all classes with variable names.
-        self.methods = pgrmTables.getMethods()  # gets all methods from variable name.
+        self.symbols = pgrmTables.findSymbols() # gets all classes with variable names.
+        self.methods = pgrmTables.getMethods() # gets all methods from variable name.
 
     def getCompleteSymbolTable(self):
         """Match methods and symbols and class names into a combined data structure.
@@ -264,18 +263,40 @@ def askGPT_FunctionDescription(api_name, function_name, api_domain, sub_domain_f
 
 if __name__ == "__main__":
 
-    database_init.start()
-    if (not (os.path.isdir("generatedFiles"))):
+    if(not(os.path.isdir("generatedFiles"))):
         os.makedirs("generatedFiles")
-
+    
     # get AST from JSON.
-    # ast = generateAST("samples/PreviewViewer.java")
+    ast = generateAST("samples/PreviewViewer.java")
     # fp = open("generatedFiles/saved.ast.json")
     # ast = json.load(fp)
     # fp.close()
 
-    input_files = csv_pull.pull_csv('issues_data2 test.csv', 'PR Files')
-    #input_files = ['src/main/java/org/gui/search/GlobalSearchBar.java']
+    jp = JavaProgram(ast)
+    cl = jp.getClasses()
+    fn = jp.getFunctions()
+
+    print(cl)
+    functions = list(fn.keys())
+
+    #-----------------------
+    API_listing_file = 'domain_labels.json' 
+    sub_domain_listing_file = 'subdomain_labels.json'
+    #-----------------------
+
+    api_domain_listing = load_data(API_listing_file)
+    sub_domain_listing = load_data(sub_domain_listing_file)
+
+    classifier = AIClassifier(api_domain_listing, sub_domain_listing)
+    
+    print(functions[0])
+    print(classifier.classify_class_and_function(functions[0]))
+
+
+    exit()
+
+    input_files = csv_pull.pull_csv('generatedFiles/issues_data2 test.csv', 'PR Files')
+    # input_files = ['samples/AutosaveManager.java']
     for file in input_files:
         file = "./jabref-5.0-alpha/" + file.strip(" ")
         # if not os.path.exists(file_path):
@@ -288,37 +309,37 @@ if __name__ == "__main__":
             print("##" * 20)
             print("START: " + file)
             #print("\t" + str(classNames))
-            print("*" * 20)
+            #print("*" * 20)
             symbols = pgrm.getCompleteSymbolTable()
             #print("\t" + str(symbols))
             connections = pgrm.extract_classes_and_methods(symbols)
             for class_name, methods in connections.items():
-                print(f"Class: {class_name} - Methods: {methods}")
-                if not store_result.in_csv('./generatedFiles/api_storage.db', class_name):
+                print(f"\tClass: {class_name} - Methods: {methods}")
+                if not store_result.in_csv('generatedFiles/function_storage.csv', class_name):
                     label = askGPT_ClassDescription('labels.json', class_name)
-                    store_result.add_to_csv('./generatedFiles/api_storage.db', class_name, label)
-                    print("\t" + label)
+                    store_result.add_to_csv('generatedFiles/function_storage.csv', class_name, label)
+                    print(label)
                 else:
-                    label = store_result.get_from_csv('./generatedFiles/api_storage.db', class_name)
-                # if label not in domains:
-                domains.append(label)
+                    label = store_result.get_from_csv('generatedFiles/function_storage.csv', class_name)
+                if label not in domains:
+                    domains.append(label)
                 if methods:
                     method_list = list(methods)
                     for method in method_list:
-                        if not store_result.in_csv('./generatedFiles/function_storage.db', class_name + "-" + method):
+                        if not store_result.in_csv('generatedFiles/api_storage.csv', class_name + "-" + method):
                             sub_label = askGPT_FunctionDescription(class_name, method, label, 'Merged_API_Sub_Domains_Descriptions.json')
-                            store_result.add_to_csv('./generatedFiles/function_storage.db', class_name + "-" + str(method), label + "-" + sub_label)
-                            print("\t\t" + sub_label)
+                            store_result.add_to_csv('generatedFiles/api_storage.csv', class_name + "-" + str(method), label + "-" + sub_label)
+                            print(sub_label)
                             sub_label = label + "-" + sub_label
                         else:
-                            sub_label = store_result.get_from_csv('./generatedFiles/function_storage.db', class_name + "-" + method)
-                        #if sub_label not in subdomains:
-                        subdomains.append(sub_label)
+                            sub_label = store_result.get_from_csv('generatedFiles/api_storage.csv', class_name + "-" + method)
+                        if sub_label not in subdomains:
+                            subdomains.append(sub_label)
             print("*" * 20)
             funcs = pgrm.getFunctions()
             #print("\t" + str(funcs))
             print("##" * 20)
-            store_result.store_file('./generatedFiles/file_data.db', file.strip('./jabref-5.0-alpha/') + "a", domains, subdomains)
+            store_result.store_file('generatedFiles/file_data.csv', file.strip('./jabref-5.0-alpha/') + "a", domains, subdomains)
             # result = csv_push.find_values_by_filename('file_data.csv', file.strip('./jabref-5.0-alpha/') + "a")
             # if isinstance(result, tuple):
             #     domains, subdomains = result
@@ -330,7 +351,7 @@ if __name__ == "__main__":
         # else:
         #     print(file + " already converted")
 
-    column_data = csv_pull.read_full_column('issues_data2 test.csv', 'PR Files')
+    column_data = csv_pull.read_full_column('generatedFiles/issues_data2 test.csv', 'PR Files')
     results = []
 
     for file in column_data:
@@ -338,31 +359,20 @@ if __name__ == "__main__":
         array = eval(file)
         array_of_javas = []
         for input in array:
-            if input.endswith(".java") and store_result.in_file('./generatedFiles/file_data.db', input):
+            if input.endswith(".java"):
                 array_of_javas.append(input)
 
-        try:
-            if array_of_javas is not None and array_of_javas != []:
-                domains, subdomains, counts = csv_pull.grab_values_at_files(array_of_javas)
-                csv_push.update_original_csv('issues_data2 test.csv', domains, subdomains, counts)
+        array_of_results = []
+        for java_file in array_of_javas:
+            result = csv_push.find_values_by_filename('generatedFiles/file_data.csv', java_file)
+            if isinstance(result, tuple):
+                domains, subdomains = result
+                array_of_results.append("{" + java_file + ": [" + domains + "], [" + subdomains + "]}")
             else:
-                csv_push.update_original_csv('issues_data2 test.csv', [file + " NOT FOUND"], "", ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""])
-                print("Does not have " + file)
-        except Exception:
-            print("All rows already filled")
+                array_of_results.append(result)
+        results.append(array_of_results)
 
-
-
-        # for java_file in array_of_javas:
-        #     result = csv_push.find_values_by_filename('file_data.db', java_file)
-        #     if isinstance(result, tuple):
-        #         domains, subdomains = result
-        #         array_of_results.append("{" + java_file + ": [" + domains + "], [" + subdomains + "]}")
-        #     else:
-        #         array_of_results.append(result)
-        # results.append(array_of_results)
-
-    #csv_pull.update_csv_with_results('issues_data2 test.csv', 'PR Files', results)
+    csv_pull.update_csv_with_results('generatedFiles/issues_data2 test.csv', 'PR Files', results)
 
     # pgrm = JavaProgram(ast)
     # classNames = pgrm.getClasses() # converts all class names to full names.

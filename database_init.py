@@ -1,7 +1,12 @@
+import datetime
 import sqlite3
+import csv
+import sys
+from typing import Callable
+import tqdm # pip install tqdm
 
 
-def start():
+def start(new_setup_func : Callable):
     conn = sqlite3.connect("./generatedFiles/function_storage.db")
     cur = conn.cursor()
     cur.execute('''
@@ -19,6 +24,95 @@ def start():
     conn.commit()
     cur.close()
     conn.close()
+
+    conn = sqlite3.connect("./generatedFiles/main.db")
+    cur = conn.cursor()
+    cur.execute("DROP TABLE pull_requests")
+    cur.execute("DROP TABLE files_changed")
+    cur.execute("DROP TABLE pull_request_comments")
+    cur.execute("DROP TABLE settings")
+    cur.execute("DROP TABLE files_downloaded")
+    cur.execute("""
+                      CREATE TABLE IF NOT EXISTS "files_changed" (
+                        "rowID"	INTEGER PRIMARY KEY AUTOINCREMENT,
+                        "filename"	TEXT,
+                        "processed" TEXT,
+                        "commit_hash" TEXT
+                    )
+                      """)
+    cur.execute("""
+                      CREATE TABLE IF NOT EXISTS "pull_request_comments" (
+                            "rowID"	INTEGER PRIMARY KEY AUTOINCREMENT,
+                            "comment"	TEXT NOT NULL,
+                            "user"	TEXT
+                        )
+                      """)
+    cur.execute("""
+                      CREATE TABLE IF NOT EXISTS "settings" (
+                        "rowID"	INTEGER PRIMARY KEY AUTOINCREMENT,
+                        "key"	TEXT UNIQUE NOT NULL,
+                        "value"	TEXT NOT NULL
+                    )
+                      """)
+    cur.execute("""
+                      CREATE TABLE IF NOT EXISTS "pull_requests" (
+                        "rowID"	INTEGER PRIMARY KEY AUTOINCREMENT,
+                        "pullNumber"	INTEGER NOT NULL,
+                        "title"	TEXT NOT NULL,
+                        "descriptionText"	TEXT,
+                        "created"	TEXT NOT NULL,
+                        "closed"	TEXT,
+                        "userlogin"	TEXT,
+                        "author"	TEXT
+                    )
+                      """)
+    cur.execute("""
+                    CREATE TABLE IF NOT EXISTS "api_cache" (
+                    "classname"	TEXT,
+                    "domain"	TEXT,
+                    "descriptionText" TEXT,
+                    "response" TEXT,
+                    PRIMARY KEY("classname")
+                    )               
+                """)
+    
+    cur.execute("""
+                    CREATE TABLE IF NOT EXISTS "function_cache" (
+                    "function_name"	TEXT,
+                    "subdomain"	TEXT,
+                    "descriptionText" TEXT,
+                    "response" TEXT
+                )
+                """)
+    cur.execute("""
+                CREATE TABLE IF NOT EXISTS "files_downloaded" (
+                    "rowID"	INTEGER PRIMARY KEY AUTOINCREMENT,
+                    "filepath"	TEXT,
+                    "hash"	TEXT,
+                    "ending" TEXT
+                )
+                """ 
+                )
+    conn.commit()
+    cur.execute("SELECT value FROM settings WHERE key = 'setup'")
+    row = cur.fetchone()
+    if(row is None):
+        print("New main.db generated")
+        cur.execute("ALTER TABLE pull_request_comments ADD COLUMN pullNumber INTEGER REFERENCES pull_requests(pullNumber)")
+        cur.execute("ALTER TABLE files_changed ADD COLUMN pullNumber INTEGER REFERENCES pull_requests(pullNumber)")
+        #cur.execute("ALTER TABLE function_cache ADD COLUMN classname TEXT REFERENCES api_cache(classname)")
+        cur.execute("INSERT INTO settings (key, value) VALUES ('setup', ?)",(datetime.datetime.now(),))
+        conn.commit()
+        cur.close()
+        conn.close()
+        new_setup_func()
+    else:
+        print(f"Using main.db generated from {row[0]}")
+        conn.commit()
+        cur.close()
+        conn.close()
+
+    
 
     conn = sqlite3.connect("./generatedFiles/file_data.db")
     cur = conn.cursor()
@@ -93,3 +187,4 @@ def start():
     conn.commit()
     cur.close()
     conn.close()
+
