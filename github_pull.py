@@ -1,7 +1,19 @@
 import requests
 
 
-def get_github_single_file(repo_owner, repo_name, commit, file_path, download_to):
+def get_github_single_file(repo_owner : str, repo_name : str, commit : str, file_path : str, download_to : str):
+    """Download file from github
+
+    Args:
+        repo_owner (str): Repo Owner
+        repo_name (str): Repo Name
+        commit (str): Commit
+        file_path (str): File path with file name
+        download_to (str): download location. Relative to CWD
+
+    Raises:
+        ValueError: Network or Download Failure.
+    """
     base_url = f"https://raw.githubusercontent.com/{repo_owner}/{repo_name}"
     url = f"{base_url}/{commit}/{file_path}"
 

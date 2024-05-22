@@ -1,18 +1,12 @@
 #
 # main.py
 #
-# By Benjamin Carter, TJ Potter, and Brent McLennan.
+# By Benjamin Carter, Dylan Johnson, and Hunter Jenkins
 #  
-# This function parses an AST and displays all the type identifiers from the AST.
-# The user can then select an identifier and view its documentation using the Java Docs.
-
-# Read the java code from the JSON.
-# Get list of tokens available to search for and their line numbers.
-# Search on docs for the token.
+# This program constitutes the main of the CoreEngine
 
 import glob
 import json
-import shutil
 import sys
 
 import tqdm
@@ -24,7 +18,6 @@ import os
 from symbolTable import SymbolTable
 import tokens as tokenExtract
 import csv_pull
-from g4f.client import Client
 import store_result
 import csv_push
 import database_init
@@ -33,7 +26,6 @@ RED_COLOR = "\033[1m\033[38;5;9m"
 YELLOW_COLOR = "\033[1m\033[38;5;11m"
 RESET_COLOR = "\033[0m"
 
-client = Client()
 
 class JavaProgram():
     """Class represents a Java AST Tree.
@@ -46,26 +38,36 @@ class JavaProgram():
         """
         self.ast = javaAST
 
+        # Cached Responses
+        self.reset()
+    
+    def reset(self):
+        """Reset internal caches"""
         self.classes = None
+        self.plain_classes = None
         self.methods = None
         self.symbols = None
         self.completeTable = None
-    
+        self.functions = None
+
     def getClasses(self):
         """Get classes in program
 
         Returns:
             set[str]: Set of all classes in program
         """
-        plain_classes = set()
+        if(not(self.plain_classes) is None):
+            return self.plain_classes
+
+        self.plain_classes = set()
         class_options = self.getClassOptions()
         for class_name in class_options:
             node = class_options[class_name]
             if node == 0:
                 continue
             for x in node:
-                plain_classes.add(x)
-        return plain_classes
+                self.plain_classes.add(x)
+        return self.plain_classes
 
     def getClassOptions(self):
         """Takes the classnames from the file, matches it to imports, and returns all the full-name class names.
@@ -74,6 +76,10 @@ class JavaProgram():
             list: Data structure with the tokens
                   matched to the full class name based off of imports.
         """
+
+        if(not(self.classes is None)):
+            return self.classes
+
         ast = self.ast
 
         tokens = set(tokenExtract.pullToken(ast))
@@ -102,17 +108,14 @@ class JavaProgram():
         return result
 
     def populateSymbolTable(self):
+        """Pre-generate symbols and methods
+        """
         pgrmTables = SymbolTable(self.ast)
         self.symbols = pgrmTables.findSymbols()  # gets all classes with variable names.
         self.methods = pgrmTables.getMethods()  # gets all methods from variable name.
 
     def getCompleteSymbolTable(self):
         """Match methods and symbols and class names into a combined data structure.
-
-        Args:
-            tokenList (dict): Token (class name) data structure.
-            symbols (dict): Symbol (variable name) data structure.
-            methods (dict): Method (method name) data structure.
 
         Returns:
             dict: Data Structure of compiled symbols, methods, and classes.
@@ -122,6 +125,9 @@ class JavaProgram():
             self.getClassOptions()
         if(self.symbols is None or self.methods is None):
             self.populateSymbolTable()
+        
+        if(not(self.completeTable is None)):
+            return self.completeTable
 
         out = {}
         for className in self.classes:
@@ -164,9 +170,18 @@ class JavaProgram():
         return out
 
     def getFunctions(self):
+        """Return all the functions used in the program
+
+        Returns:
+            dict[str : list]: function_name : [line numbers]
+        """
+        if(not(self.functions is None)):
+            return self.functions
+        
         if(self.completeTable is None):
             self.getCompleteSymbolTable()
         
+
         functions = {}
         for className in self.completeTable:
             data = self.completeTable[className]
@@ -190,24 +205,44 @@ class JavaProgram():
                         functions[f"Unknown::{mN['method']}"].append(mN["line"])
                     else:
                         functions[f"Unknown::{mN['method']}"] = [mN["line"]]
-
+        
+        self.functions = functions
         return functions
 
     # Function to extract and print class names and methods
-    def extract_classes_and_methods(self):
+    def extract_classes_and_methods(self) -> tuple[set[str], dict]:
+        """Function to extract and print class names and methods
+
+        Returns:
+            set: classes
+            dict: functions
+        """
         return self.getClasses(), self.getFunctions()
 
     
 def processFiles(ai : AICachedClassifier, db : DatabaseManager):
+    """Process files that have not been processed yet
+
+    Args:
+        ai (AICachedClassifier): AI Classifier Engine
+        db (DatabaseManager): Database Engine
+    """
+    MAX_COUNT = 20 # adjust for how many files to process when function called!!!
+
     files = db.get_unprocessed_files()
-    MAX_COUNT = 20 # adjust for how many files to run!
     count = 0
     files_done = set()
+
+    # Go file by file
     for fileElement in tqdm.tqdm(files):
+        # extract file path and commit_hash
         file = fileElement[0]
         commit_hash = fileElement[1]
+
+        # verify if there are no repeat files!
         if((file, commit_hash) in files_done):
-            continue
+            print(file, commit_hash)
+            raise ValueError("Repeat! Fails assert! Log Bug Report!")
         files_done.add((file,commit_hash))
 
         # download from GitHub
@@ -221,12 +256,14 @@ def processFiles(ai : AICachedClassifier, db : DatabaseManager):
             continue
         print("Downloaded: ", commit_hash, file)
         
+        # generated AST.
         try:
             result = generateAST(saveLocation)
         except:
             db.mark_file_as_processed(file,commit_hash,status="unsupported lang")
             continue
         
+        # parse AST
         pgrm = JavaProgram(result)
         try:
             plain_classes = pgrm.getClasses()  # converts all class names to full names.
@@ -235,6 +272,8 @@ def processFiles(ai : AICachedClassifier, db : DatabaseManager):
             print(f"{RED_COLOR}ERROR PARSING JAVA PROGRAM {saveLocation}. Please submit bug ticket! Send the file '{saveLocation}' in the bug ticket{RESET_COLOR}",file=sys.stderr)
             db.mark_file_as_processed(file,commit_hash,status="ERROR in Java Parsing")
             continue
+
+        # classify api's
         local_domain_cache = {}
         for class_name in plain_classes:
             domain = ai.classify_API(class_name)
@@ -242,6 +281,7 @@ def processFiles(ai : AICachedClassifier, db : DatabaseManager):
             db.store_class_classification(class_name, domain)
         db.save()
 
+        # classify functions
         for function in functions:
             tokens = function.split("::")
             class_name = tokens[0]
@@ -253,6 +293,7 @@ def processFiles(ai : AICachedClassifier, db : DatabaseManager):
             subdomain = ai.classify_function(class_name, function_name, class_domain)
             db.store_function_classification(class_name, function_name, subdomain)
         
+        # mark as processed and continue
         db.mark_file_as_processed(file, commit_hash)
         db.save()
         count += 1
@@ -262,6 +303,8 @@ def processFiles(ai : AICachedClassifier, db : DatabaseManager):
         
 
 if __name__ == "__main__":
+
+    # Setup!
     if (not (os.path.isdir("generatedFiles"))):
         os.makedirs("generatedFiles")
 
@@ -269,21 +312,19 @@ if __name__ == "__main__":
     if (not (os.path.isdir("downloadedFiles"))):
         os.makedirs("downloadedFiles")
     os.chdir("../")
-    
-    
-    # put instructions here that you want run on first initialization (after DB)
-
-    # get PRs from github.
-    # call the JSONToCSV.py file
 
     def setupDB():
+        """Put instructions here that you want run on first initialization (after folders are made)
+        """
+        # Clear download directory
         for file in glob.glob("generatedFiles/downloadedFiles/*"):
             os.remove(file)
 
-        database_init.populate_db_with_mining_CSV("generatedFiles/jabref_output_V3.csv")
+        database_init.populate_db_with_mining_data("generatedFiles/jabref_output_V3.csv")
 
     database_init.start(setupDB)
 
+    # Create Database Connection
     db = DatabaseManager()
     #-----------------------
     API_listing_file = 'domain_labels.json' 
@@ -295,6 +336,7 @@ if __name__ == "__main__":
 
     classifier = AICachedClassifier(api_domain_listing, sub_domain_listing, db)
 
+    print("Processing files")
     processFiles(classifier, db)
     
     db.save()

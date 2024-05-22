@@ -7,7 +7,12 @@ import pandas as pd
 
 #----------- SQL TO CSV --------------------------
 
-def create_and_populate_db(db_path):
+def create_and_populate_db(db_path : str):
+    """Create an example database file
+
+    Args:
+        db_path (str): database file
+    """
     # Connect to SQLite database
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
@@ -28,7 +33,14 @@ def create_and_populate_db(db_path):
     conn.commit()
     conn.close()
 
-def sqlite_to_csv(db_path, table_name, output_csv_path):
+def sqlite_to_csv(db_path : str, table_name : str, output_csv_path : str):
+    """Export table at database path to csv file
+
+    Args:
+        db_path (str): _description_
+        table_name (str): _description_
+        output_csv_path (str): _description_
+    """
     # Connect to the SQLite database
     conn = sqlite3.connect(db_path)
     

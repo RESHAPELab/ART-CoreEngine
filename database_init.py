@@ -6,6 +6,8 @@ import tqdm # pip install tqdm
 
 
 def start(new_setup_func : Callable):
+    """Set up Databases with tables. Define database structure
+    """
     conn = sqlite3.connect("./generatedFiles/function_storage.db")
     cur = conn.cursor()
     cur.execute('''
@@ -191,8 +193,9 @@ def start(new_setup_func : Callable):
     conn.close()
 
 
-def populate_db_with_mining_CSV(csvPath):
-
+def populate_db_with_mining_data():
+    """Go through the mining data "datamining.pkl" and add it to the database. Data import.
+    """
     conn = sqlite3.connect("./generatedFiles/main.db")
     cur = conn.cursor()
 
@@ -200,8 +203,11 @@ def populate_db_with_mining_CSV(csvPath):
     data = pickle.load(file)
     file.close()
 
+    filesAdded = set()
+
     for row in tqdm.tqdm(data):
-        issue = row[1]
+        # Get elements from the rows
+        issueNumber = row[1]
         pullR_check = row[2]
         if(pullR_check is not True):
             continue
@@ -216,19 +222,25 @@ def populate_db_with_mining_CSV(csvPath):
         commit_hashes = row[13]
         commit_hash = row[14]
         
-        vals = (issue, issueText, issueDescription, created, closed, userlog, author,commit_hash)
+        # Insert into tables.
+        vals = (issueNumber, issueText, issueDescription, created, closed, userlog, author,commit_hash)
         cur.execute("INSERT INTO pull_requests (pullNumber, title, descriptionText, created, closed, userlogin, author, most_recent_commit) VALUES (?,?,?,?,?,?,?,?)", vals)
         for comment in comments:
             if(comment == ''):
                 continue
-            cur.execute("INSERT INTO pull_request_comments (pullNumber, comment) VALUES (?,?)",(issue, comment))
+            cur.execute("INSERT INTO pull_request_comments (pullNumber, comment) VALUES (?,?)",(issueNumber, comment))
         for fileChange in set(filesChanged):
             if(fileChange == ''):
                 continue
-            cur.execute("INSERT INTO files_changed (pullNumber, filename, commit_hash) VALUES (?, ?, ?)", (issue, fileChange, commit_hash))
+            search = f"{commit_hash}:{fileChange}"
+            if(search not in filesAdded): # no duplicates!
+                cur.execute("INSERT INTO files_changed (pullNumber, filename, commit_hash) VALUES (?, ?, ?)", (issueNumber, fileChange, commit_hash))
+                filesAdded.add(search)
+            else:
+                cur.execute("UPDATE files_changed SET pullNumber=? WHERE filename = ? AND commit_hash = ?", (issueNumber, fileChange, commit_hash))
         if(commit_hash != ''):
             for commit in commit_hashes:
-                cur.execute("INSERT INTO pull_request_commits (pullNumber, commit_hash) VALUES (?,?)",(issue,commit))
+                cur.execute("INSERT INTO pull_request_commits (pullNumber, commit_hash) VALUES (?,?)",(issueNumber,commit))
         
         
     conn.commit()

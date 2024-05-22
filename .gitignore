@@ -8,7 +8,10 @@ jabref-5.0-alpha/
 .env
 __pycache__/
 
+!tree-sitter-java/script/run-javaparser/target/
 .code-workspace
+
+*.code-workspace
 
 .db
 .csv

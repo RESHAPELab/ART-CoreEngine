@@ -17,6 +17,17 @@ import random
 
 from DatabaseManager import DatabaseManager
 
+# Do True to use fake domains (animals and animal-feed) 
+# Do False to use actual AI
+
+# Please ask/double check before setting it to false. We really don't need 
+# the real data until the very end. (On final export to predictions team)
+USE_DEBUG_VALUES = True
+
+# Features logging,
+# If you want to see the AI calls in real time, run 
+# `tail -n 100 -f generatedFiles/ai_log.csv`
+
 load_dotenv()
 
 # The comments below the function signatures are called docstrings
@@ -96,19 +107,22 @@ class AIClassifier():
         f"Return like this domain - description, only the name of the selected domain and a brief description of this domain. "
         f"API details: {api}. Context: {text}. Do not include any additional information or reasoning in your response.")
 
+        response = None
+        if not(USE_DEBUG_VALUES):
+            # Query the OpenAI API
+            completion = self.client.chat.completions.create(
+                model="gpt-3.5-turbo-0125",
+                messages=[
+                    {"role": "user", "content": question}
+                ]
+            )
+            # Accessing the chat response correctly
+            response = completion.choices[0].message.content # Assuming this is the correct path based on your API response structure
 
-        # # Query the OpenAI API
-        # completion = self.client.chat.completions.create(
-        #     model="gpt-3.5-turbo-0125",
-        #     messages=[
-        #         {"role": "user", "content": question}
-        #     ]
-        # )
-        # # Accessing the chat response correctly
-        # response = completion.choices[0].message.content # Assuming this is the correct path based on your API response structure
-
-        # use this for random testing so it does not cost anything!
-        response = random.choice(["cat","dog","bird","rabbit","hen","pig","cow"])
+        else:
+            # use this for random testing so it does not cost anything!
+            response = random.choice(["cat","dog","bird","rabbit","hen","pig","cow"])
+        
         ##print(response)
         
         domain, description = self.parse_domain_description(response)
@@ -160,19 +174,21 @@ class AIClassifier():
             f"Please provide only the name of the most appropriate subdomain and the description of it, without any additional details or explanation."
         )
 
-        # # Query the OpenAI API
-        # completion = self.client.chat.completions.create(
-        #     model="gpt-3.5-turbo-0125",
-        #     messages=[
-        #         {"role": "user", "content": prompt_text}
-        #     ]
-        # )
-        # #print(completion.choices[0].message.content)
-        # response = completion.choices[0].message.content # Assuming this is the correct path based on your API response structure
+        if not(USE_DEBUG_VALUES):
+            # Query the OpenAI API
+            completion = self.client.chat.completions.create(
+                model="gpt-3.5-turbo-0125",
+                messages=[
+                    {"role": "user", "content": prompt_text}
+                ]
+            )
+            #print(completion.choices[0].message.content)
+            response = completion.choices[0].message.content # Assuming this is the correct path based on your API response structure
+        else:
+            # use this for random testing so it does not cost anything!
+            response = random.choice(["grain","rice","seed","carrots","straw","grass","wheat"])
 
         ##print(response)
-        # use this for random testing so it does not cost anything!
-        response = random.choice(["grain","rice","seed","carrots","straw","grass","wheat"])
 
         sub_domain, description = self.parse_domain_description(response)
         
@@ -203,11 +219,33 @@ class AIClassifier():
 
 
 class AICachedClassifier(AIClassifier):
+    """The same thing as AIClassifier, but each call is wrapped by a cache request.
+
+    This avoids overusing the AI
+
+    Inherits:
+        AIClassifier
+    """
     def __init__(self, api_domain_label_listing : dict, subdomain_label_listing : dict, db : DatabaseManager):
+        """Set up AI Classifier with Cache Support
+
+        Args:
+            api_domain_label_listing (dict): Dictionary Listing of all possible api (class) domains
+            subdomain_label_listing (dict): Dictionary Listing of all possible subdomains
+            db (DatabaseManager): Database Handler Object
+        """
         self.db = db
         super().__init__(api_domain_label_listing, subdomain_label_listing)
     
-    def classify_API(self, api : str):
+    def classify_API(self, api : str) -> str:
+        """Classify api/classname into a domain as defined by the domain label listing
+
+        Args:
+            api (str): API name
+
+        Returns:
+            str: domain of API
+        """
         cache_result = self.db.cache_classify_API(api)
         if(cache_result is None):
             domain, _a , _b = super().classify_API(api)
@@ -216,7 +254,17 @@ class AICachedClassifier(AIClassifier):
         else:
             return cache_result
         
-    def classify_function(self, api_name: str, function_name: str, api_domain: str):
+    def classify_function(self, api_name: str, function_name: str, api_domain: str) -> str:
+        """Classify function into a subdomain given class and class domain
+
+        Args:
+            api_name (str): API name / Class name
+            function_name (str): Function name
+            api_domain (str): Domain of the API as found by classify_API()
+
+        Returns:
+            str: subdomain of function
+        """
         cache_result = self.db.cache_classify_function(api_name, function_name)
         if(cache_result is None):
             subdomain, _a , _b = super().classify_function(api_name, function_name, api_domain)
@@ -225,7 +273,7 @@ class AICachedClassifier(AIClassifier):
         else:
             return cache_result
     
-    def classify_class_and_function(self, fullname: str):
+    def classify_class_and_function(self, fullname: str) -> tuple[str, str]:
         """Classify class and function from the full name at once.
 
         Args:
@@ -233,11 +281,7 @@ class AICachedClassifier(AIClassifier):
 
         Returns:
             str: domain of class
-            str: description of domain of class
-            str: response of domain of class
             str: subdomain of function
-            str: subdescription of function
-            str: subresponse of function
         """
         api_name = fullname.split("::")[0]
         domain  = self.classify_API(api_name)
@@ -247,7 +291,7 @@ class AICachedClassifier(AIClassifier):
     
         
 #Load File
-def load_data(filename : str):
+def load_data(filename : str) -> dict:
     """Load JSON Dict from filename
 
     Args:
@@ -264,8 +308,9 @@ def load_data(filename : str):
 #the model and ai request without there being bottleneck to a specefic language
 
 
-def main():
-    """Main function to execute the script"""
+def main() -> None:
+    """Testing Script"""
+
     #-----------------------
     #Removed anything in () after the main name of the labels just incase openAI forgot to put it in the response
     API_listing_file = 'domain_labels.json' #Dont change, specefic file needed in folder
