@@ -320,7 +320,7 @@ if __name__ == "__main__":
         for file in glob.glob("generatedFiles/downloadedFiles/*"):
             os.remove(file)
 
-        database_init.populate_db_with_mining_data("generatedFiles/jabref_output_V3.csv")
+        database_init.populate_db_with_mining_data()
 
     database_init.start(setupDB)
 
