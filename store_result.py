@@ -3,7 +3,48 @@ import os
 import sqlite3
 import json
 from collections import Counter
+import pandas as pd
 
+#----------- SQL TO CSV --------------------------
+
+def create_and_populate_db(db_path):
+    # Connect to SQLite database
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    # Create table
+    cursor.execute('''CREATE TABLE IF NOT EXISTS example_table (
+                        id INTEGER PRIMARY KEY,
+                        name TEXT,
+                        age INTEGER
+                    )''')
+    
+    # Insert data
+    cursor.execute("INSERT INTO example_table (name, age) VALUES ('Alice', 30)")
+    cursor.execute("INSERT INTO example_table (name, age) VALUES ('Bob', 25)")
+    cursor.execute("INSERT INTO example_table (name, age) VALUES ('Charlie', 35)")
+    
+    # Commit changes and close connection
+    conn.commit()
+    conn.close()
+
+def sqlite_to_csv(db_path, table_name, output_csv_path):
+    # Connect to the SQLite database
+    conn = sqlite3.connect(db_path)
+    
+    # Load the table into a pandas DataFrame
+    query = f"SELECT * FROM {table_name}"
+    df = pd.read_sql_query(query, conn)
+    
+    # Export the DataFrame to a CSV file
+    df.to_csv(output_csv_path, index=False)  # index=False to avoid writing row numbers
+
+    # Close the connection
+    conn.close()
+
+    print(f"Table {table_name} has been exported to {output_csv_path}")
+
+#--------------CSV/DB CODE------------------------
 
 # CONVERT TO IN DATABASE
 def in_csv(csv_file, key_name):
@@ -434,3 +475,19 @@ def store_file(csv_file, file_name, domains, subdomains):
 # subdomains = ['UI-event', 'DB-connection', 'etc']
 #
 # store_file(csv_file, file_name, domains, subdomains)
+
+
+# Example usage of SQL to CSV
+
+# # Path to your SQLite database
+# db_path = 'example.db'
+
+# # Create and populate the database
+# create_and_populate_db(db_path)
+
+# # Export the table to a CSV
+# sqlite_to_csv(db_path, 'example_table', 'output.csv')
+
+# # Load and print the CSV to verify
+# df = pd.read_csv('output.csv')
+# print(df)
