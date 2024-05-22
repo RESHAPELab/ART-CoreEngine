@@ -11,6 +11,10 @@ __pycache__/
 !tree-sitter-java/script/run-javaparser/target/
 .code-workspace
 
+# Ignore submodules for now.
+.gitmodules
+ART-Mining/
+
 *.code-workspace
 __MACOSX/
 
