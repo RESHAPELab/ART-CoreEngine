@@ -12,6 +12,7 @@ __pycache__/
 .code-workspace
 
 *.code-workspace
+__MACOSX/
 
 .db
 .csv
