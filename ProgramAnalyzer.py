@@ -321,6 +321,7 @@ if __name__ == "__main__":
             os.remove(file)
 
         database_init.populate_db_with_mining_data()
+        database_init.setup_caches()
 
     database_init.start(setupDB)
 

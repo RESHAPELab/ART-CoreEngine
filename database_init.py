@@ -1,8 +1,10 @@
 import datetime
+import os
 import pickle
 import sqlite3
 from typing import Callable
 import tqdm # pip install tqdm
+from DatabaseManager import DatabaseManager 
 
 
 def start(new_setup_func : Callable):
@@ -97,7 +99,7 @@ def start(new_setup_func : Callable):
                 """ 
                 )
     conn.commit()
-    cur.execute("SELECT value FROM settings WHERE key = 'setup'")
+    cur.execute("SELECT value FROM settings WHERE key = 'create'")
     row = cur.fetchone()
     if(row is None):
         print("New main.db generated")
@@ -105,7 +107,7 @@ def start(new_setup_func : Callable):
         cur.execute("ALTER TABLE pull_request_commits ADD COLUMN pullNumber INTEGER REFERENCES pull_requests(pullNumber)")
         cur.execute("ALTER TABLE files_changed ADD COLUMN pullNumber INTEGER REFERENCES pull_requests(pullNumber)")
         cur.execute("ALTER TABLE function_cache ADD COLUMN classname TEXT REFERENCES api_cache(classname)")
-        cur.execute("INSERT INTO settings (key, value) VALUES ('setup', ?)",(datetime.datetime.now(),))
+        cur.execute("INSERT INTO settings (key, value) VALUES ('create', ?)",(datetime.datetime.now(),))
         conn.commit()
         cur.close()
         conn.close()
@@ -113,10 +115,19 @@ def start(new_setup_func : Callable):
     else:
         print(f"Using main.db generated from {row[0]}")
         conn.commit()
+    
+        cur.execute("SELECT value FROM settings WHERE key = 'setup'")
+        row = cur.fetchone()
         cur.close()
         conn.close()
+        if(row is None):
+            print("main.db is corrupted, regenerating")
+            db = DatabaseManager()
+            db.save_caches()
+            db.close()
+            os.unlink("./generatedFiles/main.db")
+            return start(new_setup_func)
 
-    
 
     conn = sqlite3.connect("./generatedFiles/file_data.db")
     cur = conn.cursor()
@@ -192,6 +203,12 @@ def start(new_setup_func : Callable):
     cur.close()
     conn.close()
 
+def setup_caches():
+    """Import caches from backup.
+    """
+    db = DatabaseManager()
+    db.load_caches()
+    db.close()
 
 def populate_db_with_mining_data():
     """Go through the mining data "datamining.pkl" and add it to the database. Data import.
@@ -242,9 +259,10 @@ def populate_db_with_mining_data():
             for commit in commit_hashes:
                 cur.execute("INSERT INTO pull_request_commits (pullNumber, commit_hash) VALUES (?,?)",(issueNumber,commit))
         
-        
+
+    cur.execute("INSERT INTO settings (key, value) VALUES ('setup', ?)",(datetime.datetime.now(),))
     conn.commit()
     cur.close()
     conn.close()
-
+    
 
