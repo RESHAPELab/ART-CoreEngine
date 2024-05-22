@@ -10,7 +10,10 @@
 # Get list of tokens available to search for and their line numbers.
 # Search on docs for the token.
 
+import glob
 import json
+import shutil
+import sys
 
 import tqdm
 from AI_Taxonomy import AICachedClassifier, load_data
@@ -25,6 +28,10 @@ from g4f.client import Client
 import store_result
 import csv_push
 import database_init
+
+RED_COLOR = "\033[1m\033[38;5;9m"
+YELLOW_COLOR = "\033[1m\033[38;5;11m"
+RESET_COLOR = "\033[0m"
 
 client = Client()
 
@@ -193,7 +200,7 @@ class JavaProgram():
     
 def processFiles(ai : AICachedClassifier, db : DatabaseManager):
     files = db.get_unprocessed_files()
-    MAX_COUNT = 20
+    MAX_COUNT = 20 # adjust for how many files to run!
     count = 0
     files_done = set()
     for fileElement in tqdm.tqdm(files):
@@ -206,14 +213,28 @@ def processFiles(ai : AICachedClassifier, db : DatabaseManager):
         # download from GitHub
         saveLocation = db.manageDownload(file, commit_hash)
 
-        print(commit_hash, file, saveLocation)
-        github_pull.get_github_single_file("JabRef","jabref",commit_hash, file,saveLocation)
+        try:
+            github_pull.get_github_single_file("JabRef","jabref",commit_hash, file,saveLocation)
+        except ValueError as e:
+            print(f"{YELLOW_COLOR}Error downloading file {commit_hash, file}. Likely requires a different commit. Please check. \n Error: {e}{RESET_COLOR}",file=sys.stderr)
+            db.mark_file_as_processed(file,commit_hash,status="Error downloading")
+            continue
+        print("Downloaded: ", commit_hash, file)
         
-        result = generateAST(saveLocation)
+        try:
+            result = generateAST(saveLocation)
+        except:
+            db.mark_file_as_processed(file,commit_hash,status="unsupported lang")
+            continue
+        
         pgrm = JavaProgram(result)
-        plain_classes = pgrm.getClasses()  # converts all class names to full names.
-        functions = pgrm.getFunctions().keys()
-        
+        try:
+            plain_classes = pgrm.getClasses()  # converts all class names to full names.
+            functions = pgrm.getFunctions().keys()
+        except:
+            print(f"{RED_COLOR}ERROR PARSING JAVA PROGRAM {saveLocation}. Please submit bug ticket! Send the file '{saveLocation}' in the bug ticket{RESET_COLOR}",file=sys.stderr)
+            db.mark_file_as_processed(file,commit_hash,status="ERROR in Java Parsing")
+            continue
         local_domain_cache = {}
         for class_name in plain_classes:
             domain = ai.classify_API(class_name)
@@ -225,7 +246,7 @@ def processFiles(ai : AICachedClassifier, db : DatabaseManager):
             tokens = function.split("::")
             class_name = tokens[0]
             if(class_name == "Unknown"):
-                pass
+                continue
             function_name = tokens[1]
 
             class_domain = local_domain_cache[class_name]
@@ -256,6 +277,9 @@ if __name__ == "__main__":
     # call the JSONToCSV.py file
 
     def setupDB():
+        for file in glob.glob("generatedFiles/downloadedFiles/*"):
+            os.remove(file)
+
         database_init.populate_db_with_mining_CSV("generatedFiles/jabref_output_V3.csv")
 
     database_init.start(setupDB)

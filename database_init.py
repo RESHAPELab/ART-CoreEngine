@@ -1,4 +1,5 @@
 import datetime
+import pickle
 import sqlite3
 import csv
 import sys
@@ -27,16 +28,17 @@ def start(new_setup_func : Callable):
 
     conn = sqlite3.connect("./generatedFiles/main.db")
     cur = conn.cursor()
-    cur.execute("DROP TABLE pull_requests")
-    cur.execute("DROP TABLE files_changed")
-    cur.execute("DROP TABLE pull_request_comments")
-    cur.execute("DROP TABLE settings")
-    cur.execute("DROP TABLE files_downloaded")
     cur.execute("""
                       CREATE TABLE IF NOT EXISTS "files_changed" (
                         "rowID"	INTEGER PRIMARY KEY AUTOINCREMENT,
                         "filename"	TEXT,
                         "processed" TEXT,
+                        "commit_hash" TEXT
+                    )
+                      """)
+    cur.execute("""
+                      CREATE TABLE IF NOT EXISTS "pull_request_commits" (
+                        "rowID"	INTEGER PRIMARY KEY AUTOINCREMENT,
                         "commit_hash" TEXT
                     )
                       """)
@@ -63,7 +65,8 @@ def start(new_setup_func : Callable):
                         "created"	TEXT NOT NULL,
                         "closed"	TEXT,
                         "userlogin"	TEXT,
-                        "author"	TEXT
+                        "author"	TEXT,
+                        "most_recent_commit" TEXT
                     )
                       """)
     cur.execute("""
@@ -99,8 +102,9 @@ def start(new_setup_func : Callable):
     if(row is None):
         print("New main.db generated")
         cur.execute("ALTER TABLE pull_request_comments ADD COLUMN pullNumber INTEGER REFERENCES pull_requests(pullNumber)")
+        cur.execute("ALTER TABLE pull_request_commits ADD COLUMN pullNumber INTEGER REFERENCES pull_requests(pullNumber)")
         cur.execute("ALTER TABLE files_changed ADD COLUMN pullNumber INTEGER REFERENCES pull_requests(pullNumber)")
-        #cur.execute("ALTER TABLE function_cache ADD COLUMN classname TEXT REFERENCES api_cache(classname)")
+        cur.execute("ALTER TABLE function_cache ADD COLUMN classname TEXT REFERENCES api_cache(classname)")
         cur.execute("INSERT INTO settings (key, value) VALUES ('setup', ?)",(datetime.datetime.now(),))
         conn.commit()
         cur.close()
@@ -194,15 +198,14 @@ def populate_db_with_mining_CSV(csvPath):
     conn = sqlite3.connect("./generatedFiles/main.db")
     cur = conn.cursor()
 
-    file = open(csvPath)
-    csv.field_size_limit(sys.maxsize)
-    reader = csv.reader(file)
-    firstLine = next(reader)
+    file = open("./generatedFiles/datamining.pkl",'rb')
+    data = pickle.load(file)
+    file.close()
 
-    for row in tqdm.tqdm(reader):
+    for row in tqdm.tqdm(data):
         issue = row[1]
         pullR_check = row[2]
-        if(pullR_check != "True"):
+        if(pullR_check is not True):
             continue
         issueText = row[3]
         issueDescription = row[4]
@@ -212,19 +215,31 @@ def populate_db_with_mining_CSV(csvPath):
         author = row[10]
         comments = row[11]
         filesChanged = row[12]
-        commit_hashes = ["main"] # TODO with real hashes!!!!!
-        commit_hash = commit_hashes[0]
+        commit_hashes = row[13]
+        commit_hash = row[14]
         
-        vals = (issue, issueText, issueDescription, created, closed, userlog, author)
-        cur.execute("INSERT INTO pull_requests (pullNumber, title, descriptionText, created, closed, userlogin, author) VALUES (?,?,?,?,?,?,?)", vals)
-        for comment in comments.split(" | "):
+        vals = (issue, issueText, issueDescription, created, closed, userlog, author,commit_hash)
+        cur.execute("INSERT INTO pull_requests (pullNumber, title, descriptionText, created, closed, userlogin, author, most_recent_commit) VALUES (?,?,?,?,?,?,?,?)", vals)
+        for comment in comments:
+            if(comment == ''):
+                continue
             cur.execute("INSERT INTO pull_request_comments (pullNumber, comment) VALUES (?,?)",(issue, comment))
-        for fileChange in set(filesChanged.split(" | ")):
+        for fileChange in set(filesChanged):
+            if(fileChange == ''):
+                continue
             cur.execute("INSERT INTO files_changed (pullNumber, filename, commit_hash) VALUES (?, ?, ?)", (issue, fileChange, commit_hash))
-        
+        if(commit_hash != ''):
+            for commit in commit_hashes:
+                cur.execute("INSERT INTO pull_request_commits (pullNumber, commit_hash) VALUES (?,?)",(issue,commit))
         
         
     conn.commit()
     cur.close()
     conn.close()
-    file.close()
+
+
+if __name__ == "__main__":
+    def setupDB():
+        populate_db_with_mining_CSV("generatedFiles/jabref_output_V3.csv")
+
+    start(setupDB)

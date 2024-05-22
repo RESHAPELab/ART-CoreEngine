@@ -3,8 +3,6 @@
 import os
 import sqlite3
 
-import tqdm
-
 
 class DatabaseManager():
     def __init__(self, dbfile : str = "./generatedFiles/main.db", cachefile : str ="./generatedFiles/cache.db"):
@@ -50,7 +48,7 @@ class DatabaseManager():
         cur.execute("SELECT subdomain FROM function_cache WHERE classname = ? AND function_name = ?",(class_name,function_name))
         row = cur.fetchone()
         if(row is None):
-            cur.execute("INSERT INTO function_cache (classname, subdomain) VALUES (?,?)",(class_name, sub_domain))
+            cur.execute("INSERT INTO function_cache (classname, function_name, subdomain) VALUES (?,?,?)",(class_name, function_name, sub_domain))
             return True
         else:
             return False
@@ -73,9 +71,9 @@ class DatabaseManager():
 
         return f"generatedFiles/downloadedFiles/{index}{ending}"
 
-    def mark_file_as_processed(self, file, commit):
+    def mark_file_as_processed(self, file, commit, status='y'):
         cur = self.conn.cursor()
-        cur.execute(f"UPDATE files_changed SET processed='y' WHERE filename={file} AND commit_hash={commit}")
+        cur.execute(f"UPDATE files_changed SET processed=? WHERE filename=? AND commit_hash=?",(status,file,commit))
 
     def cache_classify_API(self, api : str):
         cur = self.conn.cursor()

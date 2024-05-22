@@ -67,7 +67,6 @@ class AIClassifier():
         return text.strip(), "No description found"
 
     def classify_API(self, api : str):
-        return random.choice(["cat","dog","bird","rabbit","hen","pig","cow"])
         """Classifies a classname "API" into a domain.
 
         Args:
@@ -98,18 +97,20 @@ class AIClassifier():
         f"API details: {api}. Context: {text}. Do not include any additional information or reasoning in your response.")
 
 
-        # Query the OpenAI API
-        completion = self.client.chat.completions.create(
-            model="gpt-3.5-turbo-0125",
-            messages=[
-                {"role": "user", "content": question}
-            ]
-        )
-        # Accessing the chat response correctly
-        response = completion.choices[0].message.content # Assuming this is the correct path based on your API response structure
+        # # Query the OpenAI API
+        # completion = self.client.chat.completions.create(
+        #     model="gpt-3.5-turbo-0125",
+        #     messages=[
+        #         {"role": "user", "content": question}
+        #     ]
+        # )
+        # # Accessing the chat response correctly
+        # response = completion.choices[0].message.content # Assuming this is the correct path based on your API response structure
 
+        # use this for random testing so it does not cost anything!
+        response = random.choice(["cat","dog","bird","rabbit","hen","pig","cow"])
         ##print(response)
-
+        
         domain, description = self.parse_domain_description(response)
         
         with open(self.LOG_FILE, 'a') as file:
@@ -118,7 +119,6 @@ class AIClassifier():
         return domain, description, response
 
     def classify_function(self, api_name : str, function_name : str, api_domain : str):
-        return random.choice(["grain","rice","seed","carrots","straw","grass","wheat"])
         """Classify a function into a subdomain, given classname and class domain.
 
         Args:
@@ -135,11 +135,14 @@ class AIClassifier():
         with open(self.LOG_FILE, 'a') as file:
             file.write(f"{datetime.datetime.now()},FUNC,{api_name},{function_name},{api_domain}")
 
+        if(api_domain in ["cat","dog","bird","rabbit","hen","pig","cow"]):
+            api_domain = random.choice(list(self.subdomain_label_listing.keys()))
+
         if not(api_domain in self.subdomain_label_listing):
             out = f"No sub-domain for function '{function_name}'."
             with open(self.LOG_FILE, 'a') as file:
                 file.write(f",{out}\n")
-            return out
+            return out, None, None
 
         sub_domains_descriptions = []
         for item in self.subdomain_label_listing[api_domain]:
@@ -156,17 +159,20 @@ class AIClassifier():
             f"Choose the most relevant classification from these available sub-domain options: \n{sub_domains_descriptions_str}. "
             f"Please provide only the name of the most appropriate subdomain and the description of it, without any additional details or explanation."
         )
-        # Query the OpenAI API
-        completion = self.client.chat.completions.create(
-            model="gpt-3.5-turbo-0125",
-            messages=[
-                {"role": "user", "content": prompt_text}
-            ]
-        )
-        #print(completion.choices[0].message.content)
-        response = completion.choices[0].message.content # Assuming this is the correct path based on your API response structure
+
+        # # Query the OpenAI API
+        # completion = self.client.chat.completions.create(
+        #     model="gpt-3.5-turbo-0125",
+        #     messages=[
+        #         {"role": "user", "content": prompt_text}
+        #     ]
+        # )
+        # #print(completion.choices[0].message.content)
+        # response = completion.choices[0].message.content # Assuming this is the correct path based on your API response structure
 
         ##print(response)
+        # use this for random testing so it does not cost anything!
+        response = random.choice(["grain","rice","seed","carrots","straw","grass","wheat"])
 
         sub_domain, description = self.parse_domain_description(response)
         

@@ -11,7 +11,7 @@ def get_github_single_file(repo_owner, repo_name, commit, file_path, download_to
         f.write(response.content)
         f.close()
     else:
-        raise ValueError("Network Failed to Download File!")
+        raise ValueError(f"Network Failed to Download File! Code: {response.status_code}")
 
     
 

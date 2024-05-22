@@ -8,6 +8,8 @@ jabref-5.0-alpha/
 .env
 __pycache__/
 
+.code-workspace
+
 .db
 .csv
 
