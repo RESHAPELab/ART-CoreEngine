@@ -1,8 +1,6 @@
 import datetime
 import pickle
 import sqlite3
-import csv
-import sys
 from typing import Callable
 import tqdm # pip install tqdm
 
@@ -238,8 +236,3 @@ def populate_db_with_mining_CSV(csvPath):
     conn.close()
 
 
-if __name__ == "__main__":
-    def setupDB():
-        populate_db_with_mining_CSV("generatedFiles/jabref_output_V3.csv")
-
-    start(setupDB)
