@@ -154,6 +154,49 @@ class DatabaseManager():
         else:
             return row[0]
 
+    def mark_file_api_use(self, file : str, commit_hash : str, class_name : str) -> bool:
+        """Mark file using a certain API
+
+        Args:
+            file (str): File path
+            commit_hash (str): Commit Hash
+            class_name (str): Class API
+
+        Returns:
+            bool: True if added. False if already added.
+        """
+        cur = self.conn.cursor()
+        params = (file, commit_hash, class_name)
+        cur.execute(f"SELECT rowID FROM api_file_register WHERE filename = ? AND commit_hash = ? AND classname = ? AND function_name IS NULL",params)
+        row = cur.fetchone()
+        if(row is None):
+            cur.execute("INSERT INTO api_file_register (filename, commit_hash, classname) VALUES (?,?,?)",params)
+            return True
+        else:
+            return False
+        
+    def mark_file_api_subdomain_use(self, file : str, commit_hash : str, class_name : str, function_name : str) -> bool:
+        """Mark file using a certain function.
+
+        Args:
+            file (str): File path
+            commit_hash (str): Commit Hash
+            class_name (str): Class API
+            function_name (str): Function
+
+        Returns:
+            bool: True if added. False if already added.
+        """
+        cur = self.conn.cursor()
+        params = (file, commit_hash, class_name, function_name)
+        cur.execute(f"SELECT rowID FROM api_file_register WHERE filename = ? AND commit_hash = ? AND classname = ? AND function_name = ?",params)
+        row = cur.fetchone()
+        if(row is None):
+            cur.execute("INSERT INTO api_file_register (filename, commit_hash, classname,function_name) VALUES (?,?,?,?)",params)
+            return True
+        else:
+            return False
+
     def save(self):
         """Commit all changes to file
         """

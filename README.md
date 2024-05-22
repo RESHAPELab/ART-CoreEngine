@@ -17,6 +17,7 @@ Download this from the google drive or run ART-Mining's JSONToCSV.py script
 - `main.db` This is the main database file that manages all the run artifacts. Deleting this file will prompt complete environment regeneration.
 - `ai_cache_results.db` This will be a backup persistent database. DO NOT DELETE.
 - `downloadedFiles/*` Everything in this is temporary. It will automatically be deleted on deletion of main.db. This stores all the processed files from the program.
+- `core_engine_output.csv` This is for predictions team.
 
 > :warning: **Warning**<br>
 SAVE AND BACKUP both `ai_log.csv` and `ai_cache_results.db` as this keeps track of AI artifacts. Deleting this file can result in having to redo OpenAI calls, costing money!

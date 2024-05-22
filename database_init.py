@@ -1,4 +1,5 @@
 import datetime
+import json
 import os
 import pickle
 import sqlite3
@@ -38,6 +39,11 @@ def start(new_setup_func : Callable):
                         "commit_hash" TEXT
                     )
                       """)
+    cur.execute("""
+                    CREATE TABLE IF NOT EXISTS "api_file_register" (
+                        "rowID"	INTEGER PRIMARY KEY AUTOINCREMENT
+                    )
+                """)
     cur.execute("""
                       CREATE TABLE IF NOT EXISTS "pull_request_commits" (
                         "rowID"	INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -79,8 +85,7 @@ def start(new_setup_func : Callable):
                     "response" TEXT,
                     PRIMARY KEY("classname")
                     )               
-                """)
-    
+                """) 
     cur.execute("""
                     CREATE TABLE IF NOT EXISTS "function_cache" (
                     "function_name"	TEXT,
@@ -98,6 +103,49 @@ def start(new_setup_func : Callable):
                 )
                 """ 
                 )
+    
+    # Data structure for export... this defines the output table. It is an SQL view to use 
+    # all the power SQL has. query_generator generates the 1/0 columns.
+    cur.execute(f"""
+                CREATE VIEW IF NOT EXISTS outputTable AS
+                    SELECT 
+                        a.pullNumber as "PR #",
+                        'True' as "Pull Request",
+                        a.title as "issue text",
+                        a.descriptionText as "issue description",
+                        a.created as "created_at",
+                        a.closed as "closed_at",
+                        a.userlogin as "userlogin",
+                        a.author as "author_name",
+                        a.most_recent_commit as "most_recent_commit",
+                        b.filename as "filename",
+                        b.commit_hash as "file_commit",
+                        
+                        --- core engine fields
+                
+                        c.classname as "api",
+                        c.function_name as "function_name",
+                        d.domain as "api_domain",
+                        f.subdomain as "subdomain",
+                        
+                        {query_generator()}
+                        
+                    FROM 
+                        pull_requests as a,
+                        files_changed as b,
+                        api_file_register as c,
+                        api_cache as d,
+                        function_cache as f
+                    WHERE
+                        a.pullNumber = b.pullNumber AND
+                        b.filename = c.filename AND
+                        b.commit_hash = c.commit_hash AND
+                        c.function_name = f.function_name AND
+                        c.classname = f.classname AND
+                        c.classname = d.classname  
+                ;
+                """)
+
     conn.commit()
     cur.execute("SELECT value FROM settings WHERE key = 'create'")
     row = cur.fetchone()
@@ -107,6 +155,10 @@ def start(new_setup_func : Callable):
         cur.execute("ALTER TABLE pull_request_commits ADD COLUMN pullNumber INTEGER REFERENCES pull_requests(pullNumber)")
         cur.execute("ALTER TABLE files_changed ADD COLUMN pullNumber INTEGER REFERENCES pull_requests(pullNumber)")
         cur.execute("ALTER TABLE function_cache ADD COLUMN classname TEXT REFERENCES api_cache(classname)")
+        cur.execute("ALTER TABLE api_file_register ADD COLUMN filename TEXT REFERENCES files_changed(filename)")
+        cur.execute("ALTER TABLE api_file_register ADD COLUMN commit_hash TEXT REFERENCES files_changed(commit_hash)")
+        cur.execute("ALTER TABLE api_file_register ADD COLUMN classname TEXT REFERENCES api_cache(class_name)")
+        cur.execute("ALTER TABLE api_file_register ADD COLUMN function_name TEXT REFERENCES function_cache(function_name)")
         cur.execute("INSERT INTO settings (key, value) VALUES ('create', ?)",(datetime.datetime.now(),))
         conn.commit()
         cur.close()
@@ -265,4 +317,27 @@ def populate_db_with_mining_data():
     cur.close()
     conn.close()
     
+
+def query_generator():
+    """Generate the 1/0 columns for each label.
+
+    Returns:
+        str: SQL query to be injected into the CREATE VIEW statement.
+    """
+
+    subdomain_label_file = "subdomain_labels.json"
+
+    with open(subdomain_label_file) as f:
+        labels = json.load(f)
+    out = ""
+    for label in labels:
+        sub_labels = labels[label]
+        
+        out += f"(CASE WHEN d.domain = '{label}' THEN 1 ELSE 0 END) as '{label}'"
+        for sub_label in sub_labels:
+            out += ",\n"
+            out += f"(CASE WHEN d.domain = '{label}' AND f.subdomain = '{list(sub_label.keys())[0]}' THEN 1 ELSE 0 END) as '{label}-{list(sub_label.keys())[0]}'"
+        out += ",\n" 
+    return out[:-2]
+
 

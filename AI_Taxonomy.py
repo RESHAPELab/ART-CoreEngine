@@ -122,6 +122,8 @@ class AIClassifier():
         else:
             # use this for random testing so it does not cost anything!
             response = random.choice(["cat","dog","bird","rabbit","hen","pig","cow"])
+            # Use "real" dummy data... instead of animals, use the actual label names
+            response = random.choice(list(self.subdomain_label_listing.keys()))
         
         ##print(response)
         
@@ -159,10 +161,12 @@ class AIClassifier():
             return out, None, None
 
         sub_domains_descriptions = []
+        sub_domain_selection = []
         for item in self.subdomain_label_listing[api_domain]:
             for sub_domain, description in item.items():
                 #print(f"  - {sub_domain}: {description}")
                 sub_domains_descriptions.append(f"{sub_domain}: {description}")
+                sub_domain_selection.append(sub_domain)
         
         # Join all sub-domain descriptions into a single string for the query
         sub_domains_descriptions_str = "\n ".join(sub_domains_descriptions)
@@ -187,6 +191,8 @@ class AIClassifier():
         else:
             # use this for random testing so it does not cost anything!
             response = random.choice(["grain","rice","seed","carrots","straw","grass","wheat"])
+            # Use "real" dummy data... instead of animal food, use the actual label names
+            response = random.choice(sub_domain_selection)
 
         ##print(response)
 

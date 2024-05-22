@@ -279,6 +279,7 @@ def processFiles(ai : AICachedClassifier, db : DatabaseManager):
             domain = ai.classify_API(class_name)
             local_domain_cache[class_name] = domain
             db.store_class_classification(class_name, domain)
+            db.mark_file_api_use(file, commit_hash, class_name)
         db.save()
 
         # classify functions
@@ -292,6 +293,7 @@ def processFiles(ai : AICachedClassifier, db : DatabaseManager):
             class_domain = local_domain_cache[class_name]
             subdomain = ai.classify_function(class_name, function_name, class_domain)
             db.store_function_classification(class_name, function_name, subdomain)
+            db.mark_file_api_subdomain_use(file, commit_hash, class_name, function_name)
         
         # mark as processed and continue
         db.mark_file_as_processed(file, commit_hash)
@@ -342,3 +344,8 @@ if __name__ == "__main__":
     
     db.save()
     db.close()
+
+    # EXPORT! Requires DB to be closed.
+    print("Exporting....")
+    store_result.sqlite_to_csv("./generatedFiles/main.db","outputTable","./generatedFiles/core_engine_output.csv")
+
