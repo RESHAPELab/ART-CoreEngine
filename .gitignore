@@ -2,7 +2,7 @@
 
 __pycache__/
 generatedFiles/LLMcache.json
-generatedFiles/
+generatedFiles/*
 tree-sitter-java/libtree-sitter-java.so
 jabref-5.0-alpha/
 .env
@@ -14,10 +14,12 @@ __pycache__/
 .gitmodules
 ART-Mining/
 
+!generatedFiles/ai_result_backup.db
+
 *.code-workspace
 __MACOSX/
 
-.db
+# .db
 .csv
 
 # Byte-compiled / optimized / DLL files

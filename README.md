@@ -20,7 +20,10 @@ Download this from the google drive or run ART-Mining's JSONToCSV.py script
 - `core_engine_output.csv` This is for predictions team.
 
 > :warning: **Warning**<br>
-SAVE AND BACKUP both `ai_log.csv` and `ai_cache_results.db` as this keeps track of AI artifacts. Deleting this file can result in having to redo OpenAI calls, costing money!
+SAVE AND BACKUP both `ai_log.csv` and `ai_result_backup.db` in the `generatedFiles` directory as this keeps track of AI artifacts. Deleting this file can result in having to redo OpenAI calls, costing money!
+
+> :info: **Info**<br>
+If you want to restart the analysis, delete **ONLY** the `main.db` file in the `generatedFiles` directory.
 
 ## Build Instructions:
 
@@ -32,6 +35,7 @@ Also, you can run it on your local machine.
 4. run `./onClone.sh`
 5. set the `.env` file in the root of the repository to be this: `OPENAI_API_KEY=abcdefg.....`
 6. You should be good to go now: `python3 ProgramAnalyzer.py`
-7.  View output in `generatedFiles/main.db`
+7. Output saved in `generatedFiles/main.db`
+8. View output as CSV for the predictions team in `generatedFiles/core_engine_output.csv`
 
 To view the output, you may have to copy `main.db` to a temp directory and then open it there. Use DB Browser from https://sqlitebrowser.org/

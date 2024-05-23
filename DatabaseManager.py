@@ -13,7 +13,7 @@ from typing import Iterable
 class DatabaseManager():
     """Database Manager class. Holds operating functions consisting with the database.
     """
-    def __init__(self, dbfile : str = "./generatedFiles/main.db", cachefile : str ="./generatedFiles/cache.db"):
+    def __init__(self, dbfile : str = "./generatedFiles/main.db", cachefile : str ="./generatedFiles/ai_result_backup.db"):
         """Construct and open connection to database.
 
         Args:
@@ -21,6 +21,8 @@ class DatabaseManager():
             cachefile (str, optional): _description_. Defaults to "./generatedFiles/cache.db".
         """
         self.conn = sqlite3.connect(dbfile)
+        self.cache_file = cachefile
+        self.cache_update = False
     
     def add_pull_request(self, row : list):
         # TODO
@@ -59,6 +61,7 @@ class DatabaseManager():
         if(row is None):
             cur.execute("INSERT INTO api_cache (classname, domain) VALUES (?,?)",(class_name, domain))
             cur.execute("INSERT INTO function_cache (classname, function_name, subdomain) VALUES (?,'N/A','N/A')",(class_name,))
+            self.cache_update = True
             return True
         else:
             return False
@@ -87,6 +90,7 @@ class DatabaseManager():
         row = cur.fetchone()
         if(row is None):
             cur.execute("INSERT INTO function_cache (classname, function_name, subdomain) VALUES (?,?,?)",(class_name, function_name, sub_domain))
+            self.cache_update = True
             return True
         else:
             return False
@@ -202,6 +206,9 @@ class DatabaseManager():
         """Commit all changes to file
         """
         self.conn.commit()
+        if(self.cache_update):
+            self.save_caches()
+            self.cache_update = False
 
     def close(self):
         """Close database connection
@@ -211,12 +218,61 @@ class DatabaseManager():
     def save_caches(self):
         """Copy cache tables to separate cache DB's as backup.
         """
-        # TODO
-        pass
+        backup_connection = sqlite3.connect(self.cache_file)
+        backup = backup_connection.cursor()
+        
+        cur = self.conn.cursor()
+        cur.execute("SELECT classname, domain, descriptionText, response FROM api_cache")
+        rows = cur.fetchall()
+        for row in rows:
+            backup.execute("SELECT classname, domain FROM apis WHERE classname = ?",(row[0],))
+            test = backup.fetchone()
+            if(test is None):
+                backup.execute("INSERT INTO apis (classname, domain) VALUES (?, ?)",(row[0], row[1]))
+            else:
+                pass # assume backup is right! Differing domains.
+
+
+        backup_connection.commit()
+
+        cur.execute("SELECT classname, function_name, subdomain FROM function_cache")
+        rows = cur.fetchall()
+        for row in rows:
+            backup.execute("SELECT classname, function_name, subdomain FROM functions WHERE classname = ? AND function_name = ?",(row[0], row[1]))
+            test = backup.fetchone()
+            if(test is None):
+                backup.execute("INSERT INTO functions (classname, function_name, subdomain) VALUES (?, ?, ?)",(row[0], row[1], row[2]))
+            else:
+                pass # assume backup is right! Differing subdomains.
+
+        backup_connection.commit()
+        backup.close()
+        backup_connection.close()
 
     def load_caches(self):
-        """Load cache tables from cache DB's as backup.
+        """Load cache tables from cache DB's backup.
         """
-        # TODO
-        pass
+        backup_connection = sqlite3.connect(self.cache_file)
+        backup = backup_connection.cursor()
+        
+        cur = self.conn.cursor()
+        backup.execute("SELECT classname, domain FROM apis")
+        rows = backup.fetchall()
+        for row in rows:
+            cur.execute("SELECT classname, domain FROM api_cache WHERE classname = ? AND domain = ?",(row[0], row[1]))
+            test = cur.fetchone()
+            if(test is None):
+                cur.execute("INSERT INTO api_cache (classname, domain) VALUES (?, ?)",(row[0], row[1]))
+        
+        backup.execute("SELECT classname, function_name, subdomain FROM functions")
+        rows = backup.fetchall()
+        for row in rows:
+            cur.execute("SELECT classname, function_name, subdomain FROM function_cache WHERE classname = ? AND function_name = ? AND subdomain = ?",(row[0], row[1], row[2]))
+            test = cur.fetchone()
+            if(test is None):
+                cur.execute("INSERT INTO function_cache (classname, function_name, subdomain) VALUES (?, ?, ?)",(row[0], row[1], row[2]))
+
+        self.conn.commit()
+        backup.close()
+        backup_connection.close()
         
