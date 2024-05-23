@@ -13,7 +13,7 @@ __pycache__/
 # Ignore submodules for now.
 .gitmodules
 ART-Mining/
-
+nohup.out
 !generatedFiles/ai_result_backup.db
 
 *.code-workspace
