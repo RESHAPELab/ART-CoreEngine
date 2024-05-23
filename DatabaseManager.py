@@ -58,6 +58,7 @@ class DatabaseManager():
         row = cur.fetchone()
         if(row is None):
             cur.execute("INSERT INTO api_cache (classname, domain) VALUES (?,?)",(class_name, domain))
+            cur.execute("INSERT INTO function_cache (classname, function_name, subdomain) VALUES (?,'N/A','N/A')",(class_name,))
             return True
         else:
             return False
@@ -167,10 +168,10 @@ class DatabaseManager():
         """
         cur = self.conn.cursor()
         params = (file, commit_hash, class_name)
-        cur.execute(f"SELECT rowID FROM api_file_register WHERE filename = ? AND commit_hash = ? AND classname = ? AND function_name IS NULL",params)
+        cur.execute(f"SELECT rowID FROM api_file_register WHERE filename = ? AND commit_hash = ? AND classname = ? AND function_name = 'N/A'",params)
         row = cur.fetchone()
         if(row is None):
-            cur.execute("INSERT INTO api_file_register (filename, commit_hash, classname) VALUES (?,?,?)",params)
+            cur.execute("INSERT INTO api_file_register (filename, commit_hash, classname, function_name) VALUES (?,?,?,'N/A')",params)
             return True
         else:
             return False
