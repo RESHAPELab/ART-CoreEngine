@@ -8,10 +8,25 @@
 #in this main file i included variable to show one text example if someone wanted to run the main
 
 
+import datetime
 import json
 from openai import OpenAI
 from dotenv import load_dotenv # do a pip install dotenv
 import os
+import random
+
+from DatabaseManager import DatabaseManager
+
+# Do True to use fake domains (animals and animal-feed) 
+# Do False to use actual AI
+
+# Please ask/double check before setting it to false. We really don't need 
+# the real data until the very end. (On final export to predictions team)
+USE_DEBUG_VALUES = False
+
+# Features logging,
+# If you want to see the AI calls in real time, run 
+# `tail -n 100 -f generatedFiles/ai_log.csv`
 
 load_dotenv()
 
@@ -27,10 +42,15 @@ class AIClassifier():
             api_domain_label_listing (dict): From labels.json
             subdomain_label_listing (dict): From Merged_API_Sub_Domains_Descriptions.json
         """
+
+        # csv
+        LOG_FILE = "./generatedFiles/ai_log.csv"
+
         OpenAI.api_key = os.getenv("OPENAI_API_KEY")
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         self.api_label_listing = api_domain_label_listing
         self.subdomain_label_listing = subdomain_label_listing
+        self.LOG_FILE = LOG_FILE
 
     def parse_domain_description(self, text : str):
         """Extracts the domain and description from an OpenAI Query Response
@@ -68,6 +88,11 @@ class AIClassifier():
             str: description
             str: complete AI response
         """
+
+        # LOG
+        with open(self.LOG_FILE, 'a') as file:
+            file.write(f"{datetime.datetime.now()},API,{api}")
+
         #Storing and approving past classfications in a database. THis would take manual work at first but maybe we can add a functon to the program design where#
         # the user validates the AIs reponse such as upvoting it
 
@@ -82,21 +107,31 @@ class AIClassifier():
         f"Return like this domain - description, only the name of the selected domain and a brief description of this domain. "
         f"API details: {api}. Context: {text}. Do not include any additional information or reasoning in your response.")
 
+        response = None
+        if not(USE_DEBUG_VALUES):
+            # Query the OpenAI API
+            completion = self.client.chat.completions.create(
+                model="gpt-3.5-turbo-0125",
+                messages=[
+                    {"role": "user", "content": question}
+                ]
+            )
+            # Accessing the chat response correctly
+            response = completion.choices[0].message.content # Assuming this is the correct path based on your API response structure
 
-        # Query the OpenAI API
-        completion = self.client.chat.completions.create(
-            model="gpt-3.5-turbo-0125",
-            messages=[
-                {"role": "user", "content": question}
-            ]
-        )
-        # Accessing the chat response correctly
-        response = completion.choices[0].message.content # Assuming this is the correct path based on your API response structure
-
+        else:
+            # use this for random testing so it does not cost anything!
+            response = random.choice(["cat","dog","bird","rabbit","hen","pig","cow"])
+            # Use "real" dummy data... instead of animals, use the actual label names
+            response = random.choice(list(self.subdomain_label_listing.keys()))
+        
         ##print(response)
-
+        
         domain, description = self.parse_domain_description(response)
         
+        with open(self.LOG_FILE, 'a') as file:
+            file.write(f",{domain}\n")
+
         return domain, description, response
 
     def classify_function(self, api_name : str, function_name : str, api_domain : str):
@@ -112,15 +147,26 @@ class AIClassifier():
             str: description
             str: response
         """
+        # LOG
+        with open(self.LOG_FILE, 'a') as file:
+            file.write(f"{datetime.datetime.now()},FUNC,{api_name},{function_name},{api_domain}")
+
+        if(api_domain in ["cat","dog","bird","rabbit","hen","pig","cow"]):
+            api_domain = random.choice(list(self.subdomain_label_listing.keys()))
 
         if not(api_domain in self.subdomain_label_listing):
-            return f"No sub-domain for function '{function_name}'."
+            out = f"No sub-domain for function '{function_name}'."
+            with open(self.LOG_FILE, 'a') as file:
+                file.write(f",{out}\n")
+            return out, None, None
 
         sub_domains_descriptions = []
+        sub_domain_selection = []
         for item in self.subdomain_label_listing[api_domain]:
             for sub_domain, description in item.items():
                 #print(f"  - {sub_domain}: {description}")
                 sub_domains_descriptions.append(f"{sub_domain}: {description}")
+                sub_domain_selection.append(sub_domain)
         
         # Join all sub-domain descriptions into a single string for the query
         sub_domains_descriptions_str = "\n ".join(sub_domains_descriptions)
@@ -131,20 +177,30 @@ class AIClassifier():
             f"Choose the most relevant classification from these available sub-domain options: \n{sub_domains_descriptions_str}. "
             f"Please provide only the name of the most appropriate subdomain and the description of it, without any additional details or explanation."
         )
-        # Query the OpenAI API
-        completion = self.client.chat.completions.create(
-            model="gpt-3.5-turbo-0125",
-            messages=[
-                {"role": "user", "content": prompt_text}
-            ]
-        )
-        #print(completion.choices[0].message.content)
-        response = completion.choices[0].message.content # Assuming this is the correct path based on your API response structure
+
+        if not(USE_DEBUG_VALUES):
+            # Query the OpenAI API
+            completion = self.client.chat.completions.create(
+                model="gpt-3.5-turbo-0125",
+                messages=[
+                    {"role": "user", "content": prompt_text}
+                ]
+            )
+            #print(completion.choices[0].message.content)
+            response = completion.choices[0].message.content # Assuming this is the correct path based on your API response structure
+        else:
+            # use this for random testing so it does not cost anything!
+            response = random.choice(["grain","rice","seed","carrots","straw","grass","wheat"])
+            # Use "real" dummy data... instead of animal food, use the actual label names
+            response = random.choice(sub_domain_selection)
 
         ##print(response)
 
         sub_domain, description = self.parse_domain_description(response)
         
+        with open(self.LOG_FILE, 'a') as file:
+               file.write(f",{sub_domain}\n")
+
         return sub_domain, description, response
 
     def classify_class_and_function(self, fullname : str):
@@ -167,10 +223,81 @@ class AIClassifier():
         subdomain, subdescription, subresponse  = self.classify_function(api_name, function_name, domain)
         return domain, description, response, subdomain, subdescription, subresponse
 
+
+class AICachedClassifier(AIClassifier):
+    """The same thing as AIClassifier, but each call is wrapped by a cache request.
+
+    This avoids overusing the AI
+
+    Inherits:
+        AIClassifier
+    """
+    def __init__(self, api_domain_label_listing : dict, subdomain_label_listing : dict, db : DatabaseManager):
+        """Set up AI Classifier with Cache Support
+
+        Args:
+            api_domain_label_listing (dict): Dictionary Listing of all possible api (class) domains
+            subdomain_label_listing (dict): Dictionary Listing of all possible subdomains
+            db (DatabaseManager): Database Handler Object
+        """
+        self.db = db
+        super().__init__(api_domain_label_listing, subdomain_label_listing)
+    
+    def classify_API(self, api : str) -> str:
+        """Classify api/classname into a domain as defined by the domain label listing
+
+        Args:
+            api (str): API name
+
+        Returns:
+            str: domain of API
+        """
+        cache_result = self.db.cache_classify_API(api)
+        if(cache_result is None):
+            domain, _a , _b = super().classify_API(api)
+            self.db.store_class_classification(api, domain) 
+            return domain     
+        else:
+            return cache_result
         
+    def classify_function(self, api_name: str, function_name: str, api_domain: str) -> str:
+        """Classify function into a subdomain given class and class domain
+
+        Args:
+            api_name (str): API name / Class name
+            function_name (str): Function name
+            api_domain (str): Domain of the API as found by classify_API()
+
+        Returns:
+            str: subdomain of function
+        """
+        cache_result = self.db.cache_classify_function(api_name, function_name)
+        if(cache_result is None):
+            subdomain, _a , _b = super().classify_function(api_name, function_name, api_domain)
+            self.db.store_function_classification(api_name, function_name, subdomain)      
+            return subdomain
+        else:
+            return cache_result
+    
+    def classify_class_and_function(self, fullname: str) -> tuple[str, str]:
+        """Classify class and function from the full name at once.
+
+        Args:
+            fullname (str): Class and function full name, like this: java.swing.JFrame::open
+
+        Returns:
+            str: domain of class
+            str: subdomain of function
+        """
+        api_name = fullname.split("::")[0]
+        domain  = self.classify_API(api_name)
+        function_name = fullname.split("::")[1]
+        subdomain  = self.classify_function(api_name, function_name, domain)
+        return domain, subdomain
+    
         
 #Load File
-def load_data(filename : str):
+def load_data(filename : str) -> dict:
     """Load JSON Dict from filename
 
     Args:
@@ -187,8 +314,9 @@ def load_data(filename : str):
 #the model and ai request without there being bottleneck to a specefic language
 
 
-def main():
-    """Main function to execute the script"""
+def main() -> None:
+    """Testing Script"""
+
     #-----------------------
     #Removed anything in () after the main name of the labels just incase openAI forgot to put it in the response
     API_listing_file = 'domain_labels.json' #Dont change, specefic file needed in folder

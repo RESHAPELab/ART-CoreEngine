@@ -2,13 +2,24 @@
 
 __pycache__/
 generatedFiles/LLMcache.json
-generatedFiles/
+generatedFiles/*
 tree-sitter-java/libtree-sitter-java.so
 jabref-5.0-alpha/
 .env
 __pycache__/
 
-.db
+.code-workspace
+
+# Ignore submodules for now.
+.gitmodules
+ART-Mining/
+
+!generatedFiles/ai_result_backup.db
+
+*.code-workspace
+__MACOSX/
+
+# .db
 .csv
 
 # Byte-compiled / optimized / DLL files
@@ -173,3 +184,5 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+
+!tree-sitter-java/script/run-javaparser/target/
