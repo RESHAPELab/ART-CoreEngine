@@ -10,10 +10,14 @@
 
 import datetime
 import json
+import lzma
 from openai import OpenAI
 from dotenv import load_dotenv # do a pip install dotenv
 import os
 import random
+import tiktoken # pip install tiktoken
+import lzma
+import pickle
 
 from DatabaseManager import DatabaseManager
 
@@ -51,6 +55,7 @@ class AIClassifier():
         self.api_label_listing = api_domain_label_listing
         self.subdomain_label_listing = subdomain_label_listing
         self.LOG_FILE = LOG_FILE
+        self.tokenizer = tiktoken.get_encoding("cl100k_base")
 
     def parse_domain_description(self, text : str):
         """Extracts the domain and description from an OpenAI Query Response
@@ -107,9 +112,14 @@ class AIClassifier():
         f"Return like this domain - description, only the name of the selected domain and a brief description of this domain. "
         f"API details: {api}. Context: {text}. Do not include any additional information or reasoning in your response.")
 
+        response_tokens = []
+        context_tokens = []
         response = None
         if not(USE_DEBUG_VALUES):
             # Query the OpenAI API
+           
+            context_tokens = self.tokenizer.encode(question)
+
             completion = self.client.chat.completions.create(
                 model="gpt-3.5-turbo-0125",
                 messages=[
@@ -118,7 +128,7 @@ class AIClassifier():
             )
             # Accessing the chat response correctly
             response = completion.choices[0].message.content # Assuming this is the correct path based on your API response structure
-
+            response_tokens = self.tokenizer.encode(response)
         else:
             # use this for random testing so it does not cost anything!
             response = random.choice(["cat","dog","bird","rabbit","hen","pig","cow"])
@@ -130,9 +140,15 @@ class AIClassifier():
         domain, description = self.parse_domain_description(response)
         
         with open(self.LOG_FILE, 'a') as file:
-            file.write(f",{domain}\n")
+            file.write(f",{domain},{len(context_tokens)},{len(response_tokens)}\n")
 
-        return domain, description, response
+        context_pkl = pickle.dumps(context_tokens)
+        response_pkl = pickle.dumps(response_tokens)
+
+        context_raw = lzma.compress(context_pkl)
+        response_raw = lzma.compress(response_pkl)
+
+        return domain, description, response, len(context_tokens), len(response_tokens), context_raw, response_raw
 
     def classify_function(self, api_name : str, function_name : str, api_domain : str):
         """Classify a function into a subdomain, given classname and class domain.
@@ -158,7 +174,7 @@ class AIClassifier():
             out = f"No sub-domain for function '{function_name}'."
             with open(self.LOG_FILE, 'a') as file:
                 file.write(f",{out}\n")
-            return out, None, None
+            return out, None, None, -1, -1, None, None
 
         sub_domains_descriptions = []
         sub_domain_selection = []
@@ -178,8 +194,11 @@ class AIClassifier():
             f"Please provide only the name of the most appropriate subdomain and the description of it, without any additional details or explanation."
         )
 
+        response_tokens = []
+        context_tokens = []
         if not(USE_DEBUG_VALUES):
             # Query the OpenAI API
+            context_tokens = self.tokenizer.encode(prompt_text)
             completion = self.client.chat.completions.create(
                 model="gpt-3.5-turbo-0125",
                 messages=[
@@ -188,6 +207,7 @@ class AIClassifier():
             )
             #print(completion.choices[0].message.content)
             response = completion.choices[0].message.content # Assuming this is the correct path based on your API response structure
+            response_tokens = self.tokenizer.encode(response)
         else:
             # use this for random testing so it does not cost anything!
             response = random.choice(["grain","rice","seed","carrots","straw","grass","wheat"])
@@ -199,9 +219,15 @@ class AIClassifier():
         sub_domain, description = self.parse_domain_description(response)
         
         with open(self.LOG_FILE, 'a') as file:
-               file.write(f",{sub_domain}\n")
+               file.write(f",{sub_domain},{len(context_tokens)},{len(response_tokens)}\n")
 
-        return sub_domain, description, response
+        context_pkl = pickle.dumps(context_tokens)
+        response_pkl = pickle.dumps(response_tokens)
+
+        context_raw = lzma.compress(context_pkl)
+        response_raw = lzma.compress(response_pkl)
+
+        return sub_domain, description, response, len(context_tokens), len(response_tokens), context_raw, response_raw
 
     def classify_class_and_function(self, fullname : str):
         """Classify class and function from the full name at once.
@@ -254,8 +280,8 @@ class AICachedClassifier(AIClassifier):
         """
         cache_result = self.db.cache_classify_API(api)
         if(cache_result is None):
-            domain, _a , _b = super().classify_API(api)
-            self.db.store_class_classification(api, domain) 
+            domain, _a , _b, context_count, response_count, context, response = super().classify_API(api)
+            self.db.store_class_classification(api, domain, context_count, response_count, context, response) 
             return domain     
         else:
             return cache_result
@@ -273,8 +299,8 @@ class AICachedClassifier(AIClassifier):
         """
         cache_result = self.db.cache_classify_function(api_name, function_name)
         if(cache_result is None):
-            subdomain, _a , _b = super().classify_function(api_name, function_name, api_domain)
-            self.db.store_function_classification(api_name, function_name, subdomain)      
+            subdomain, _a , _b, context_count, response_count, context, response = super().classify_function(api_name, function_name, api_domain)
+            self.db.store_function_classification(api_name, function_name, subdomain, context_count, response_count, context, response) 
             return subdomain
         else:
             return cache_result

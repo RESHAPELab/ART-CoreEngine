@@ -20,6 +20,10 @@ def start(new_setup_func : Callable):
         CREATE TABLE IF NOT EXISTS apis (
                 classname TEXT, 
                 domain TEXT,
+                context_tokens INTEGER,
+                response_tokens INTEGER,
+                context BLOB,
+                response BLOB,
                 PRIMARY KEY("classname")
                 )
     ''')
@@ -27,7 +31,11 @@ def start(new_setup_func : Callable):
         CREATE TABLE IF NOT EXISTS functions (
                 classname TEXT, 
                 function_name TEXT,
-                subdomain TEXT
+                subdomain TEXT,
+                context_tokens INTEGER,
+                response_tokens INTEGER,
+                context BLOB,
+                response BLOB
                 )   
     ''')
     cur.execute("""
@@ -110,8 +118,11 @@ def start(new_setup_func : Callable):
                     CREATE TABLE IF NOT EXISTS "api_cache" (
                     "classname"	TEXT,
                     "domain"	TEXT,
-                    "descriptionText" TEXT,
-                    "response" TEXT,
+                    "context" BLOB,
+                    "response" BLOB,
+                    "context_tokens" INTEGER,
+                    "response_tokens" INTEGER,
+                    "transferred" INTEGER,
                     PRIMARY KEY("classname")
                     )               
                 """) 
@@ -119,8 +130,11 @@ def start(new_setup_func : Callable):
                     CREATE TABLE IF NOT EXISTS "function_cache" (
                     "function_name"	TEXT,
                     "subdomain"	TEXT,
-                    "descriptionText" TEXT,
-                    "response" TEXT
+                    "context" BLOB,
+                    "response" BLOB,
+                    "context_tokens" INTEGER,
+                    "response_tokens" INTEGER,
+                    "transferred" INTEGER
                 )
                 """)
     cur.execute("""
@@ -176,6 +190,8 @@ def start(new_setup_func : Callable):
                 """)
 
     conn.commit()
+    cur.execute("UPDATE api_cache SET transferred = NULL")
+    cur.execute("UPDATE function_cache SET transferred = NULL")
     cur.execute("SELECT value FROM settings WHERE key = 'create'")
     row = cur.fetchone()
     if(row is None):

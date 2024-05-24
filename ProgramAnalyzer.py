@@ -276,9 +276,8 @@ def processFiles(ai : AICachedClassifier, db : DatabaseManager):
         # classify api's
         local_domain_cache = {}
         for class_name in plain_classes:
-            domain = ai.classify_API(class_name)
+            domain = ai.classify_API(class_name) # automatically saves it to cache.
             local_domain_cache[class_name] = domain
-            db.store_class_classification(class_name, domain)
             db.mark_file_api_use(file, commit_hash, class_name)
         db.save()
 
@@ -291,9 +290,8 @@ def processFiles(ai : AICachedClassifier, db : DatabaseManager):
             function_name = tokens[1]
 
             class_domain = local_domain_cache[class_name]
-            subdomain = ai.classify_function(class_name, function_name, class_domain)
-            db.store_function_classification(class_name, function_name, subdomain)
-            db.mark_file_api_subdomain_use(file, commit_hash, class_name, function_name)
+            ai.classify_function(class_name, function_name, class_domain) # automatically saves it to cache. Save for later.
+            db.mark_file_function_use(file, commit_hash, class_name, function_name)
         
         # mark as processed and continue
         db.mark_file_as_processed(file, commit_hash)

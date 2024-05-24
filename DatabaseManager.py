@@ -45,12 +45,16 @@ class DatabaseManager():
         cur.execute("SELECT filename, commit_hash FROM files_changed WHERE processed IS NULL")
         return cur.fetchall()
 
-    def store_class_classification(self, class_name : str, domain : str) -> bool:
+    def store_class_classification(self, class_name : str, domain : str, context_token_number : int, response_token_number : int, context : bytes, response : bytes) -> bool:
         """Store a class/API domain classification in the main cache
 
         Args:
             class_name (str): API/Class full name
             domain (str): Class domain
+            context_token_number (int) : Number of tokens used in context
+            response_token_number (int) : Number of tokens used in response
+            context (bytes) : Compressed context fed to AI
+            response (bytes) : Compressed response returned by AI 
 
         Returns:
             bool: True if new record. False if already in cache.
@@ -59,20 +63,24 @@ class DatabaseManager():
         cur.execute("SELECT domain FROM api_cache WHERE classname = ?",(class_name,))
         row = cur.fetchone()
         if(row is None):
-            cur.execute("INSERT INTO api_cache (classname, domain) VALUES (?,?)",(class_name, domain))
-            cur.execute("INSERT INTO function_cache (classname, function_name, subdomain) VALUES (?,'N/A','N/A')",(class_name,))
+            cur.execute("INSERT INTO api_cache (classname, domain, context, response, context_tokens, response_tokens) VALUES (?,?,?,?,?,?)",(class_name, domain, context, response, context_token_number, response_token_number))
+            cur.execute("INSERT INTO function_cache (classname, function_name, subdomain) VALUES (?,'N/A','N/A')",(class_name,)) # Don't store a repeated response. Save the response in api_cache.
             self.cache_update = True
             return True
         else:
             return False
 
-    def store_function_classification(self, class_name : str, function_name : str, sub_domain : str) -> bool:
+    def store_function_classification(self, class_name : str, function_name : str, sub_domain : str, context_token_number : int, response_token_number : int, context : bytes, response : bytes) -> bool:
         """Store a function subdomain in main cache
 
         Args:
             class_name (str): API/Class full name
             function_name (str): Function name
             sub_domain (str): Function sub domain
+            context_token_number (int) : Number of tokens used in context
+            response_token_number (int) : Number of tokens used in response
+            context (bytes) : Compressed context fed to AI
+            response (bytes) : Compressed response returned by AI
 
         Raises:
             ValueError: If classname is not currently registered, throw error. Assumes classname already is logged
@@ -89,7 +97,7 @@ class DatabaseManager():
         cur.execute("SELECT subdomain FROM function_cache WHERE classname = ? AND function_name = ?",(class_name,function_name))
         row = cur.fetchone()
         if(row is None):
-            cur.execute("INSERT INTO function_cache (classname, function_name, subdomain) VALUES (?,?,?)",(class_name, function_name, sub_domain))
+            cur.execute("INSERT INTO function_cache (classname, function_name, subdomain, context_tokens, response_tokens, context, response) VALUES (?,?,?,?,?,?,?)",(class_name, function_name, sub_domain, context_token_number, response_token_number, context, response))
             self.cache_update = True
             return True
         else:
@@ -180,7 +188,7 @@ class DatabaseManager():
         else:
             return False
         
-    def mark_file_api_subdomain_use(self, file : str, commit_hash : str, class_name : str, function_name : str) -> bool:
+    def mark_file_function_use(self, file : str, commit_hash : str, class_name : str, function_name : str) -> bool:
         """Mark file using a certain function.
 
         Args:
@@ -222,28 +230,33 @@ class DatabaseManager():
         backup = backup_connection.cursor()
         
         cur = self.conn.cursor()
-        cur.execute("SELECT classname, domain, descriptionText, response FROM api_cache")
+        cur.execute("SELECT classname, domain, context_tokens, response_tokens, context, response FROM api_cache WHERE transferred IS NULL")
         rows = cur.fetchall()
         for row in rows:
             backup.execute("SELECT classname, domain FROM apis WHERE classname = ?",(row[0],))
             test = backup.fetchone()
             if(test is None):
-                backup.execute("INSERT INTO apis (classname, domain) VALUES (?, ?)",(row[0], row[1]))
+                backup.execute("INSERT INTO apis (classname, domain, context_tokens, response_tokens, context, response) VALUES (?, ?, ?, ?, ?, ?)",(row[0], row[1],row[2],row[3],row[4],row[5]))
             else:
                 pass # assume backup is right! Differing domains.
+        cur.execute("UPDATE api_cache SET transferred = 1 WHERE transferred IS NULL")
+        self.conn.commit()
 
 
         backup_connection.commit()
 
-        cur.execute("SELECT classname, function_name, subdomain FROM function_cache")
+        cur.execute("SELECT classname, function_name, subdomain, context_tokens, response_tokens, context, response FROM function_cache WHERE transferred IS NULL")
         rows = cur.fetchall()
         for row in rows:
             backup.execute("SELECT classname, function_name, subdomain FROM functions WHERE classname = ? AND function_name = ?",(row[0], row[1]))
             test = backup.fetchone()
             if(test is None):
-                backup.execute("INSERT INTO functions (classname, function_name, subdomain) VALUES (?, ?, ?)",(row[0], row[1], row[2]))
+                backup.execute("INSERT INTO functions (classname, function_name, subdomain, context_tokens, response_tokens, context, response) VALUES (?, ?, ?, ?, ?, ?, ?)",(row[0], row[1], row[2], row[3], row[4],row[5],row[6]))
             else:
                 pass # assume backup is right! Differing subdomains.
+
+        cur.execute("UPDATE function_cache SET transferred = 1 WHERE transferred IS NULL")
+        self.conn.commit()
 
         backup_connection.commit()
         backup.close()
