@@ -4,7 +4,7 @@ Parser and code understanding engine
 
 > Please run `onClone.sh` when repo is cloned for the first time!!!!
 
-# ART Project Core Flow:
+## ART Project Core Flow:
 
 ```
 
@@ -67,15 +67,15 @@ If you want to restart the analysis, delete **ONLY** the `main.db` file in the `
 
 ## Build Instructions:
 
-Also, you can run it on your local machine. 
+`ART-CoreEngine` can be run on your local machine:
 
-1. To do that, I would clone the repository into a temporary place (not to interfere with anything you currently have.)
-2. Switch to the CombinedLargeEngine branch. Pull all changes
-3. do `chmod +x onClone.sh` This is a script that sets up the new environment
-4. run `./onClone.sh`
-5. set the `.env` file in the root of the repository to be this: `OPENAI_API_KEY=abcdefg.....`
-6. You should be good to go now: `python3 ProgramAnalyzer.py`
-7. Output saved in `generatedFiles/main.db`
-8. View output as CSV for the predictions team in `generatedFiles/core_engine_output.csv`
+1. Clone the repository
+1. Execute `chmod +x onClone.sh` to allow for running the `onClone.sh` script
+1. Execute `./onClone.sh` to set up the new environment
+1. Place your OpenAI API key in the project's `.env` file: `OPENAI_API_KEY=abcdefg.....`
+1. Install all project dependencies into a new virtual environment: `poetry install`
+1. Run the project through this virtual environment by executing `poetry run python ProgramAnalyzer.py`
 
-To view the output, you may have to copy `main.db` to a temp directory and then open it there. Use DB Browser from https://sqlitebrowser.org/
+- After running the program, outputs will be saved in `generatedFiles/main.db`
+- You may view output as CSV for the predictions team in `generatedFiles/core_engine_output.csv`.
+- To view the output, you may have to copy `main.db` to a temp directory and then open it there. Use DB Browser from https://sqlitebrowser.org/.
