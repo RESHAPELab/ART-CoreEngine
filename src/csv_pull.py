@@ -1,9 +1,8 @@
 import csv
-import csv_push
 import sqlite3
 import ast
 
-import store_result
+from src import store_result
 
 
 def read_specific_column(filepath, column_name):
@@ -128,8 +127,8 @@ def grab_values_at_files(file_list):
                     "Search-Query Processing", "Search-Ranking", "Search-Optimization", "Search-Caching", "Search-Personalization", "Security-Authentication", "Security-Authorization",
                     "Security-Encryption", "Security-Intrusion Detection", "Security-Compliance", "Security-Data Integrity", "Setup-Installation", "Setup-Configuration",
                     "Setup-System Requirements", "Setup-Update Management", "Setup-Licensing", "Setup-Environment Setup", "User Interface-Layout Design", "User Interface-Interaction Design",
-                    "User Interface-Accessibility", "User Interface-Animation", "User Interface-Responsive Design", "User Interface-User Feedback", "Utility-Data Conversion", "Utility-System Tools", 
-                    "Utility-Automation Scripts", "Utility-Performance Tools", "Utility-Diagnostic Utilities", "Utility-Backup Tools", "Test-Unit Testing", "Test-Integration Testing", 
+                    "User Interface-Accessibility", "User Interface-Animation", "User Interface-Responsive Design", "User Interface-User Feedback", "Utility-Data Conversion", "Utility-System Tools",
+                    "Utility-Automation Scripts", "Utility-Performance Tools", "Utility-Diagnostic Utilities", "Utility-Backup Tools", "Test-Unit Testing", "Test-Integration Testing",
                     "Test-Performance Testing", "Test-Security Testing", "Test-Usability Testing", "Test-Regression Testing" FROM storage WHERE filename = ?;
             ''', (file,))
 

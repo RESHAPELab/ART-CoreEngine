@@ -4,7 +4,7 @@ GenerateAST.py
 This file generates a AST from a java source file.
 To do this, it uses the tree_sitter library which in turn
 calls a java parser. This approach means that it is configured to
-accept any and all java programs and syntaxes. 
+accept any and all java programs and syntaxes.
 
 By Benjamin Carter, TJ Potter, and Brent McLennan
 2/13/2024
@@ -13,8 +13,6 @@ By Benjamin Carter, TJ Potter, and Brent McLennan
 import sys
 import os
 from tree_sitter import Language, Parser
-import csv_pull
-import github_pull
 
 import json
 
@@ -71,9 +69,9 @@ def jsonIt(l):
         l (dict): the dictionary
 
     Returns:
-        str: the JSON output 
+        str: the JSON output
     """
-    
+
     default = lambda o: str(o)
     return json.dumps(l,indent=1,default=default,skipkeys=True)
 
@@ -121,7 +119,7 @@ def populateDictionary(walkPointer):
             "text" : walkPointer.node.text.decode()
         }
         dataDictionaryLocal = {**dataDictionaryLocal, **extra}
-            
+
         # done.
         return dataDictionaryLocal
 

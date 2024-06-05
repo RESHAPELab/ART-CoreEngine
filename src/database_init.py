@@ -4,8 +4,11 @@ import os
 import pickle
 import sqlite3
 from typing import Callable
+
 import tqdm # pip install tqdm
-from DatabaseManager import DatabaseManager
+
+from src.DatabaseManager import DatabaseManager
+
 
 RED_COLOR = "\033[1m\033[38;5;9m"
 YELLOW_COLOR = "\033[1m\033[38;5;11m"

@@ -10,17 +10,15 @@ import json
 import sys
 
 import tqdm
-from AI_Taxonomy import AICachedClassifier, load_data
-from DatabaseManager import DatabaseManager
-import github_pull
-from generateAST import generateAST
+from src.AI_Taxonomy import AICachedClassifier, load_data
+from src.DatabaseManager import DatabaseManager
+from src import github_pull
+from src.generateAST import generateAST
 import os
-from symbolTable import SymbolTable
-import tokens as tokenExtract
-import csv_pull
-import store_result
-import csv_push
-import database_init
+from src.symbolTable import SymbolTable
+from src import tokens as tokenExtract
+from src import store_result
+from src import database_init
 
 RED_COLOR = "\033[1m\033[38;5;9m"
 YELLOW_COLOR = "\033[1m\033[38;5;11m"
