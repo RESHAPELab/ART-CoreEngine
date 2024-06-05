@@ -4,7 +4,7 @@
 
 #This is well documented with improvements that could be made earlier on for better taxonomy
 #This should not require any changes to this file unless alteration for output
-#We should be calling on this file with the "GetDomains" file 
+#We should be calling on this file with the "GetDomains" file
 #in this main file i included variable to show one text example if someone wanted to run the main
 
 
@@ -21,15 +21,15 @@ import pickle
 
 from DatabaseManager import DatabaseManager
 
-# Do True to use fake domains (animals and animal-feed) 
+# Do True to use fake domains (animals and animal-feed)
 # Do False to use actual AI
 
-# Please ask/double check before setting it to false. We really don't need 
+# Please ask/double check before setting it to false. We really don't need
 # the real data until the very end. (On final export to predictions team)
 USE_DEBUG_VALUES = False
 
 # Features logging,
-# If you want to see the AI calls in real time, run 
+# If you want to see the AI calls in real time, run
 # `tail -n 100 -f generatedFiles/ai_log.csv`
 
 load_dotenv()
@@ -65,11 +65,11 @@ class AIClassifier():
 
         Returns:
             str: Domain
-            str: Description 
+            str: Description
         """
         # Define potential delimiters that separate the domain from the description
         delimiters = ["\n", " - ", "\nDescription: ", ": "]
-        
+
         # Initial split to isolate the domain from the rest of the text
         for delimiter in delimiters:
             parts = text.split(delimiter, 1)
@@ -78,7 +78,7 @@ class AIClassifier():
                 domain = parts[0].strip()
                 description = parts[1].strip()
                 return domain, description
-        
+
         # If no delimiter effectively splits the text, return the entire text as domain
         return text.strip(), "No description found"
 
@@ -117,7 +117,7 @@ class AIClassifier():
         response = None
         if not(USE_DEBUG_VALUES):
             # Query the OpenAI API
-           
+
             context_tokens = self.tokenizer.encode(question)
 
             completion = self.client.chat.completions.create(
@@ -134,11 +134,11 @@ class AIClassifier():
             response = random.choice(["cat","dog","bird","rabbit","hen","pig","cow"])
             # Use "real" dummy data... instead of animals, use the actual label names
             response = random.choice(list(self.subdomain_label_listing.keys()))
-        
+
         ##print(response)
-        
+
         domain, description = self.parse_domain_description(response)
-        
+
         with open(self.LOG_FILE, 'a') as file:
             file.write(f",{domain},{len(context_tokens)},{len(response_tokens)}\n")
 
@@ -183,11 +183,11 @@ class AIClassifier():
                 #print(f"  - {sub_domain}: {description}")
                 sub_domains_descriptions.append(f"{sub_domain}: {description}")
                 sub_domain_selection.append(sub_domain)
-        
+
         # Join all sub-domain descriptions into a single string for the query
         sub_domains_descriptions_str = "\n ".join(sub_domains_descriptions)
 
-        
+
         prompt_text = (
             f"Analyze the following information about the API function '{function_name}' which is part of the '{api_name}' in the '{api_domain}' domain. "
             f"Choose the most relevant classification from these available sub-domain options: \n{sub_domains_descriptions_str}. "
@@ -217,7 +217,7 @@ class AIClassifier():
         ##print(response)
 
         sub_domain, description = self.parse_domain_description(response)
-        
+
         with open(self.LOG_FILE, 'a') as file:
                file.write(f",{sub_domain},{len(context_tokens)},{len(response_tokens)}\n")
 
@@ -268,7 +268,7 @@ class AICachedClassifier(AIClassifier):
         """
         self.db = db
         super().__init__(api_domain_label_listing, subdomain_label_listing)
-    
+
     def classify_API(self, api : str) -> str:
         """Classify api/classname into a domain as defined by the domain label listing
 
@@ -281,11 +281,11 @@ class AICachedClassifier(AIClassifier):
         cache_result = self.db.cache_classify_API(api)
         if(cache_result is None):
             domain, _a , _b, context_count, response_count, context, response = super().classify_API(api)
-            self.db.store_class_classification(api, domain, context_count, response_count, context, response) 
-            return domain     
+            self.db.store_class_classification(api, domain, context_count, response_count, context, response)
+            return domain
         else:
             return cache_result
-        
+
     def classify_function(self, api_name: str, function_name: str, api_domain: str) -> str:
         """Classify function into a subdomain given class and class domain
 
@@ -300,11 +300,11 @@ class AICachedClassifier(AIClassifier):
         cache_result = self.db.cache_classify_function(api_name, function_name)
         if(cache_result is None):
             subdomain, _a , _b, context_count, response_count, context, response = super().classify_function(api_name, function_name, api_domain)
-            self.db.store_function_classification(api_name, function_name, subdomain, context_count, response_count, context, response) 
+            self.db.store_function_classification(api_name, function_name, subdomain, context_count, response_count, context, response)
             return subdomain
         else:
             return cache_result
-    
+
     def classify_class_and_function(self, fullname: str) -> tuple[str, str]:
         """Classify class and function from the full name at once.
 
@@ -320,8 +320,8 @@ class AICachedClassifier(AIClassifier):
         function_name = fullname.split("::")[1]
         subdomain  = self.classify_function(api_name, function_name, domain)
         return domain, subdomain
-    
-        
+
+
 #Load File
 def load_data(filename : str) -> dict:
     """Load JSON Dict from filename
@@ -345,8 +345,8 @@ def main() -> None:
 
     #-----------------------
     #Removed anything in () after the main name of the labels just incase openAI forgot to put it in the response
-    API_listing_file = 'domain_labels.json' #Dont change, specefic file needed in folder
-    sub_domain_listing_file = 'subdomain_labels.json' #Dont Change, Specefic File Needed in Folder
+    API_listing_file = './data/domain_labels.json' #Dont change, specefic file needed in folder
+    sub_domain_listing_file = './data/subdomain_labels.json' #Dont Change, Specefic File Needed in Folder
     #-----------------------
 
     api_domain_listing = load_data(API_listing_file)
@@ -365,7 +365,7 @@ def main() -> None:
     print("\n")
     function_name = fullName.split("::")[1]
     #When calling the classify function we need the api_domain that the api is apart of. This is because we are getting a sub domain for the function.
-    # For example... api_name java.sql.connection falls under the domain "Database (DB), if the function_name is createStatement the sub_domain 
+    # For example... api_name java.sql.connection falls under the domain "Database (DB), if the function_name is createStatement the sub_domain
     # will be one of the ones under the Database (DB) domain, so it would be Quert Execution according to AI
     # THe goal here is to give the AI as much context as possible because I realized when it understood the API and api domain it made better function classifications when testing
     function_sub_domain, description, response = classifier.classify_function(api_name, function_name, domain)

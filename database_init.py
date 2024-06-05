@@ -5,7 +5,7 @@ import pickle
 import sqlite3
 from typing import Callable
 import tqdm # pip install tqdm
-from DatabaseManager import DatabaseManager 
+from DatabaseManager import DatabaseManager
 
 RED_COLOR = "\033[1m\033[38;5;9m"
 YELLOW_COLOR = "\033[1m\033[38;5;11m"
@@ -18,7 +18,7 @@ def start(new_setup_func : Callable):
     cur = conn.cursor()
     cur.execute('''
         CREATE TABLE IF NOT EXISTS apis (
-                classname TEXT, 
+                classname TEXT,
                 domain TEXT,
                 context_tokens INTEGER,
                 response_tokens INTEGER,
@@ -29,14 +29,14 @@ def start(new_setup_func : Callable):
     ''')
     cur.execute('''
         CREATE TABLE IF NOT EXISTS functions (
-                classname TEXT, 
+                classname TEXT,
                 function_name TEXT,
                 subdomain TEXT,
                 context_tokens INTEGER,
                 response_tokens INTEGER,
                 context BLOB,
                 response BLOB
-                )   
+                )
     ''')
     cur.execute("""
             CREATE TABLE IF NOT EXISTS "settings" (
@@ -61,7 +61,7 @@ def start(new_setup_func : Callable):
         else:
             print("Created new AI result backup file")
             cur.execute("INSERT INTO settings (key, value) VALUES ('created',?)",(datetime.datetime.now(),))
-        
+
     conn.commit()
     cur.close()
     conn.close()
@@ -124,8 +124,8 @@ def start(new_setup_func : Callable):
                     "response_tokens" INTEGER,
                     "transferred" INTEGER,
                     PRIMARY KEY("classname")
-                    )               
-                """) 
+                    )
+                """)
     cur.execute("""
                     CREATE TABLE IF NOT EXISTS "function_cache" (
                     "function_name"	TEXT,
@@ -144,14 +144,14 @@ def start(new_setup_func : Callable):
                     "hash"	TEXT,
                     "ending" TEXT
                 )
-                """ 
+                """
                 )
-    
-    # Data structure for export... this defines the output table. It is an SQL view to use 
+
+    # Data structure for export... this defines the output table. It is an SQL view to use
     # all the power SQL has. query_generator generates the 1/0 columns.
     cur.execute(f"""
                 CREATE VIEW IF NOT EXISTS outputTable AS
-                    SELECT 
+                    SELECT
                         a.pullNumber as "PR #",
                         'True' as "Pull Request",
                         a.title as "issue text",
@@ -163,17 +163,17 @@ def start(new_setup_func : Callable):
                         a.most_recent_commit as "most_recent_commit",
                         b.filename as "filename",
                         b.commit_hash as "file_commit",
-                        
+
                         --- core engine fields
-                
+
                         c.classname as "api",
                         c.function_name as "function_name",
                         d.domain as "api_domain",
                         f.subdomain as "subdomain",
-                        
+
                         {query_generator()}
-                        
-                    FROM 
+
+                    FROM
                         pull_requests as a,
                         files_changed as b,
                         api_file_register as c,
@@ -185,7 +185,7 @@ def start(new_setup_func : Callable):
                         b.commit_hash = c.commit_hash AND
                         c.function_name = f.function_name AND
                         c.classname = f.classname AND
-                        c.classname = d.classname  
+                        c.classname = d.classname
                 ;
                 """)
 
@@ -212,7 +212,7 @@ def start(new_setup_func : Callable):
     else:
         print(f"Using main.db generated from {row[0]}")
         conn.commit()
-    
+
         cur.execute("SELECT value FROM settings WHERE key = 'setup'")
         row = cur.fetchone()
         cur.close()
@@ -262,7 +262,7 @@ def populate_db_with_mining_data():
         filesChanged = row[12]
         commit_hashes = row[13]
         commit_hash = row[14]
-        
+
         # Insert into tables.
         vals = (issueNumber, issueText, issueDescription, created, closed, userlog, author,commit_hash)
         cur.execute("INSERT INTO pull_requests (pullNumber, title, descriptionText, created, closed, userlogin, author, most_recent_commit) VALUES (?,?,?,?,?,?,?,?)", vals)
@@ -282,13 +282,13 @@ def populate_db_with_mining_data():
         if(commit_hash != ''):
             for commit in commit_hashes:
                 cur.execute("INSERT INTO pull_request_commits (pullNumber, commit_hash) VALUES (?,?)",(issueNumber,commit))
-        
+
 
     cur.execute("INSERT INTO settings (key, value) VALUES ('setup', ?)",(datetime.datetime.now(),))
     conn.commit()
     cur.close()
     conn.close()
-    
+
 
 def query_generator():
     """Generate the 1/0 columns for each label.
@@ -297,19 +297,17 @@ def query_generator():
         str: SQL query to be injected into the CREATE VIEW statement.
     """
 
-    subdomain_label_file = "subdomain_labels.json"
+    subdomain_label_file = "./data/subdomain_labels.json"
 
     with open(subdomain_label_file) as f:
         labels = json.load(f)
     out = ""
     for label in labels:
         sub_labels = labels[label]
-        
+
         out += f"(CASE WHEN d.domain = '{label}' THEN 1 ELSE 0 END) as '{label}'"
         for sub_label in sub_labels:
             out += ",\n"
             out += f"(CASE WHEN d.domain = '{label}' AND f.subdomain = '{list(sub_label.keys())[0]}' THEN 1 ELSE 0 END) as '{label}-{list(sub_label.keys())[0]}'"
-        out += ",\n" 
+        out += ",\n"
     return out[:-2]
-
-

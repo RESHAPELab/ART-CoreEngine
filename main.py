@@ -2,7 +2,7 @@
 # main.py
 #
 # By Benjamin Carter, Dylan Johnson, and Hunter Jenkins
-#  
+#
 # This program constitutes the main of the CoreEngine
 
 import glob
@@ -40,7 +40,7 @@ class JavaProgram():
 
         # Cached Responses
         self.reset()
-    
+
     def reset(self):
         """Reset internal caches"""
         self.classes = None
@@ -103,7 +103,7 @@ class JavaProgram():
                 result[token] = importItems[token]
             else:
                 result[token] = 0
-        
+
         self.classes = result
         return result
 
@@ -125,7 +125,7 @@ class JavaProgram():
             self.getClassOptions()
         if(self.symbols is None or self.methods is None):
             self.populateSymbolTable()
-        
+
         if(not(self.completeTable is None)):
             return self.completeTable
 
@@ -165,7 +165,7 @@ class JavaProgram():
                     methodOut.append(method)
 
                 out[className]["varlist"].append({"variable":variable, "methods": methodOut})
-        
+
         self.completeTable = out
         return out
 
@@ -177,10 +177,10 @@ class JavaProgram():
         """
         if(not(self.functions is None)):
             return self.functions
-        
+
         if(self.completeTable is None):
             self.getCompleteSymbolTable()
-        
+
 
         functions = {}
         for className in self.completeTable:
@@ -190,7 +190,7 @@ class JavaProgram():
             for varl in data["varlist"]:
                 for m in varl["methods"]:
                     methodsGeneral.append(m)
-            
+
             fullName = "Unknown"
             if(data["full"] != 0):
                 for fN in data["full"]:
@@ -205,7 +205,7 @@ class JavaProgram():
                         functions[f"Unknown::{mN['method']}"].append(mN["line"])
                     else:
                         functions[f"Unknown::{mN['method']}"] = [mN["line"]]
-        
+
         self.functions = functions
         return functions
 
@@ -219,7 +219,7 @@ class JavaProgram():
         """
         return self.getClasses(), self.getFunctions()
 
-    
+
 def processFiles(ai : AICachedClassifier, db : DatabaseManager):
     """Process files that have not been processed yet
 
@@ -255,14 +255,14 @@ def processFiles(ai : AICachedClassifier, db : DatabaseManager):
             db.mark_file_as_processed(file,commit_hash,status="Error downloading")
             continue
         print("Downloaded: ", commit_hash, file)
-        
+
         # generated AST.
         try:
             result = generateAST(saveLocation)
         except:
             db.mark_file_as_processed(file,commit_hash,status="unsupported lang")
             continue
-        
+
         # parse AST
         pgrm = JavaProgram(result)
         try:
@@ -292,15 +292,15 @@ def processFiles(ai : AICachedClassifier, db : DatabaseManager):
             class_domain = local_domain_cache[class_name]
             ai.classify_function(class_name, function_name, class_domain) # automatically saves it to cache. Save for later.
             db.mark_file_function_use(file, commit_hash, class_name, function_name)
-        
+
         # mark as processed and continue
         db.mark_file_as_processed(file, commit_hash)
         db.save()
         count += 1
         if(count > MAX_COUNT):
             break
-        
-        
+
+
 
 if __name__ == "__main__":
 
@@ -328,8 +328,8 @@ if __name__ == "__main__":
     # Create Database Connection
     db = DatabaseManager()
     #-----------------------
-    API_listing_file = 'domain_labels.json' 
-    sub_domain_listing_file = 'subdomain_labels.json'
+    API_listing_file = './data/domain_labels.json'
+    sub_domain_listing_file = './data/subdomain_labels.json'
     #-----------------------
 
     api_domain_listing = load_data(API_listing_file)
@@ -339,11 +339,10 @@ if __name__ == "__main__":
 
     print("Processing files")
     processFiles(classifier, db)
-    
+
     db.save()
     db.close()
 
     # EXPORT! Requires DB to be closed.
     print("Exporting....")
     store_result.sqlite_to_csv("./generatedFiles/main.db","outputTable","./generatedFiles/core_engine_output.csv")
-
