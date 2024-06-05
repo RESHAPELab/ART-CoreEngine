@@ -30,7 +30,7 @@ USE_DEBUG_VALUES = False
 
 # Features logging,
 # If you want to see the AI calls in real time, run
-# `tail -n 100 -f generatedFiles/ai_log.csv`
+# `tail -n 100 -f output/ai_log.csv`
 
 load_dotenv()
 
@@ -48,7 +48,7 @@ class AIClassifier():
         """
 
         # csv
-        LOG_FILE = "./generatedFiles/ai_log.csv"
+        LOG_FILE = "./output/ai_log.csv"
 
         OpenAI.api_key = os.getenv("OPENAI_API_KEY")
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))

@@ -1,7 +1,7 @@
 import json
 
 # Load JSON data from file
-# filename = './generatedFiles/saved.ast.json'
+# filename = './output/saved.ast.json'
 # with open(filename, 'r') as file:
 #     data = json.load(file)
 
@@ -24,17 +24,17 @@ def pullToken(jsonDirect, key="type_identifier"):
             if text_value:  #check text value isnt empty
                 # print(f"Found Token: {text_value}") #outputs the identifier when found for debugging
                 tokens.append(text_value)
-        
+
         # else recursively search through dictionary
         else:
             for value in jsonDirect.values():
                 tokens.extend(pullToken(value, key))
-    
+
     #iterates over list
     elif isinstance(jsonDirect, list):
         for item in jsonDirect:
             tokens.extend(pullToken(item, key))
-    
+
     return tokens
 
 
@@ -72,17 +72,17 @@ def pullImport(jsonDirect, key="scoped_identifier"):
             if text_value:  #check text value isnt empty
                 # print(f"Found Identifier: {text_value}") #outputs the identifier when found for debugging
                 imports.append(text_value)
-        
+
         # else recursively search through dictionary
         else:
             for value in jsonDirect.values():
                 imports.extend(pullImport(value, key))
-    
+
     #iterates over list
     elif isinstance(jsonDirect, list):
         for item in jsonDirect:
             imports.extend(pullImport(item, key))
-    
+
     return imports
 
 

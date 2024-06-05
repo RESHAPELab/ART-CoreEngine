@@ -695,6 +695,36 @@ slack = ["slack-sdk"]
 telegram = ["requests"]
 
 [[package]]
+name = "tree-sitter"
+version = "0.21.0"
+description = "Python bindings for the Tree-Sitter parsing library"
+optional = false
+python-versions = "<3.12,>=3.8"
+files = [
+    {file = "tree-sitter-0.21.0.tar.gz", hash = "sha256:c74ec9eff30e0c5b9f00ee578cca64df322b9885c8a15364a2c537f485abcc77"},
+    {file = "tree_sitter-0.21.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:bb334076814909e8b1f22aba5128a07a953e9eacfd269d3e4f1819cf2b290f5b"},
+    {file = "tree_sitter-0.21.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:8da1b036a13a5b1e7e499535060137f0127a05a0b63aec2b7e9992f27e1b0b2e"},
+    {file = "tree_sitter-0.21.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:cfcae2748f9d210370fca00fff95f7516e49953e60b4919bf42de64906417717"},
+    {file = "tree_sitter-0.21.0-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:ca8f27570acb03a06fc3b663e4ebf1d224c442846ed3837a518b044bad20582b"},
+    {file = "tree_sitter-0.21.0-cp310-cp310-win_amd64.whl", hash = "sha256:d78e2cf597f6e54bbfe27beae5dae6cde290d934753cb1a00d8b12d66f2034d8"},
+    {file = "tree_sitter-0.21.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:384c103edf6e5ac98710c1a71e2956849d692a0c47d55cd5ba3aedc000b7c3d6"},
+    {file = "tree_sitter-0.21.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:5ce18b46634a4132c6932e032ea4717e572cf0db40223afcf0eab69664ad3500"},
+    {file = "tree_sitter-0.21.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3e2f0723c025bb532e9a0cad5e1b1f99b6e35049b948321c3ad7617be716bc7a"},
+    {file = "tree_sitter-0.21.0-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:63458f19b266d9ec58057d8435f92728a164a6debc24fb3c545664bc0b4fa087"},
+    {file = "tree_sitter-0.21.0-cp311-cp311-win_amd64.whl", hash = "sha256:f308f7d05019c35d43ea609c1f04ed896fd713ddf5c95db92b3c56dbbd3c1e09"},
+    {file = "tree_sitter-0.21.0-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:ab516edce67cd201312ecd55b65b195ce118ab900cc649fc868a1185e462a9bc"},
+    {file = "tree_sitter-0.21.0-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:ef283479cb0d5c37f4c8e6cefa6e28d4de9a1eb858b43e964c4e822282394300"},
+    {file = "tree_sitter-0.21.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3310284a92d326d050cef385b4f6611a2166fbf04b2789fd87f279bfe939d6cb"},
+    {file = "tree_sitter-0.21.0-cp38-cp38-musllinux_1_1_x86_64.whl", hash = "sha256:46539b86c01463d4d5ac7b4834300504218f79e359fb496e0c4da40c24ddb167"},
+    {file = "tree_sitter-0.21.0-cp38-cp38-win_amd64.whl", hash = "sha256:eb89b951958c26f902ea3ae32f5d899ca9231d1aea64823d634f71e77af41b11"},
+    {file = "tree_sitter-0.21.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:72e109678704785cf75682edae5265106d9d13b5b146c2f6a5cd2ea0ed293e9c"},
+    {file = "tree_sitter-0.21.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:0f8eae679c13f519ae4437610f5d7a3a849b401f61d0bc08ad0ee580d4102387"},
+    {file = "tree_sitter-0.21.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0a9d007426365f3c027ef50c68ac03ab0b777ca6e613bfe921474ed69ad8ea1f"},
+    {file = "tree_sitter-0.21.0-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:348df964896bc34ec4c55d45d052decbc0ec6519624bd15f2e31580477be5d6d"},
+    {file = "tree_sitter-0.21.0-cp39-cp39-win_amd64.whl", hash = "sha256:55307318d10325ebafb51025cb630663f61172855f43c4054942a4ba69d4f11c"},
+]
+
+[[package]]
 name = "typing-extensions"
 version = "4.12.1"
 description = "Backported and Experimental Type Hints for Python 3.8+"
@@ -725,4 +755,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.11"
-content-hash = "f84ae517f37aff906fc3c8814563511cea7501f21c9f5b78106240922b964365"
+content-hash = "992ce97c157848d49510e0c035a20556de320cb9b738426c2a7fd7abc0b40902"

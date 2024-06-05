@@ -58,9 +58,9 @@ def grab_values_at_files(file_list):
     results = []
     for file in file_list:
         #print("LOOK JHERE: " + str(file))
-        if store_result.in_file('./generatedFiles/file_data.db', file):
+        if store_result.in_file('./output/file_data.db', file):
             # Connect to SQLite database
-            conn = sqlite3.connect('./generatedFiles/file_data.db')
+            conn = sqlite3.connect('./output/file_data.db')
             cur = conn.cursor()
 
             # Execute query to retrieve data

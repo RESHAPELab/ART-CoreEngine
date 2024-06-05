@@ -17,7 +17,7 @@ RESET_COLOR = "\033[0m"
 def start(new_setup_func : Callable):
     """Set up Databases with tables. Define database structure
     """
-    conn = sqlite3.connect("./generatedFiles/ai_result_backup.db")
+    conn = sqlite3.connect("./output/ai_result_backup.db")
     cur = conn.cursor()
     cur.execute('''
         CREATE TABLE IF NOT EXISTS apis (
@@ -53,14 +53,14 @@ def start(new_setup_func : Callable):
     if(row is None):
         print(f"{YELLOW_COLOR}Warning: Missing AI result backup file.")
         print(f"This could result in previous AI calls being repeated, charging extra money")
-        print(f"Check to see if you have an older version of `generatedFiles/ai_result_backup.db` before continuing")
+        print(f"Check to see if you have an older version of `output/ai_result_backup.db` before continuing")
         ans = input(f"Type 'yes' to continue. {RESET_COLOR}")
         if(ans != 'yes'):
             print("Quitting.")
             conn.commit()
             cur.close()
             conn.close()
-            os.unlink("./generatedFiles/ai_result_backup.db")
+            os.unlink("./output/ai_result_backup.db")
         else:
             print("Created new AI result backup file")
             cur.execute("INSERT INTO settings (key, value) VALUES ('created',?)",(datetime.datetime.now(),))
@@ -69,7 +69,7 @@ def start(new_setup_func : Callable):
     cur.close()
     conn.close()
 
-    conn = sqlite3.connect("./generatedFiles/main.db")
+    conn = sqlite3.connect("./output/main.db")
     cur = conn.cursor()
     cur.execute("""
                       CREATE TABLE IF NOT EXISTS "files_changed" (
@@ -225,7 +225,7 @@ def start(new_setup_func : Callable):
             db = DatabaseManager()
             db.save_caches()
             db.close()
-            os.unlink("./generatedFiles/main.db")
+            os.unlink("./output/main.db")
             return start(new_setup_func)
 
 
@@ -240,10 +240,10 @@ def setup_caches():
 def populate_db_with_mining_data():
     """Go through the mining data "datamining.pkl" and add it to the database. Data import.
     """
-    conn = sqlite3.connect("./generatedFiles/main.db")
+    conn = sqlite3.connect("./output/main.db")
     cur = conn.cursor()
 
-    file = open("./generatedFiles/datamining.pkl",'rb')
+    file = open("./output/datamining.pkl",'rb')
     data = pickle.load(file)
     file.close()
 

@@ -178,11 +178,11 @@ def generateAST(filename):
 
     # if code_pull is not None or code_pull:
     #     print("YIPPEE")
-    #     saveFile = open("generatedFiles/code_pulled.java", 'w')
+    #     saveFile = open("output/code_pulled.java", 'w')
     #     saveFile.write(code_pull)
     #     saveFile.close()
 
-    #     file = open('generatedFiles/code_pulled.java','rb')
+    #     file = open('output/code_pulled.java','rb')
     #     tree = parser.parse(file.read())
     #     file.close()
 
@@ -210,7 +210,7 @@ def generateAST(filename):
 # input_files = csv_pull.pull_csv('./issues_data2.csv', 'PR Files')
 # for file in input_files:
 #     file_name = file.strip().split('/')[-1]
-#     file_path = "./generatedFiles/" + str(file_name) + "_ast.json"
+#     file_path = "./output/" + str(file_name) + "_ast.json"
 #     if not os.path.exists(file_path):
 #         result = jsonIt(generateAST(file))
 #         if result != 'null':
@@ -240,7 +240,7 @@ def generateAST(filename):
 #     result = jsonIt(generateAST(fname))
 #
 #     # save to file.
-#     saveFile = open("generatedFiles/saved.ast.json",'w')
+#     saveFile = open("output/saved.ast.json",'w')
 #     saveFile.write(result)
 #     saveFile.close()
 #     print("AST Generated")

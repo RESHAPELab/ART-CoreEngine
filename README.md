@@ -36,7 +36,7 @@ Parser and code understanding engine
 >  1. Mine data into the given JSON (OSL-repo-extractor)
 >  2. Run JSONToCSV.py from the ART-Mining Repository
 >  3. Copy the resulting `datamining.pkl` to this repository into the
-`generatedFiles directory.`
+`output directory.`
 >  4. Setup the environment [See Build Instructions](#build-instructions)
 >  5. Run `main.py`
 >  6. Copy the resulting `core_engine_output.csv` and `main.db`
@@ -46,11 +46,11 @@ into the predictions repository ART-Predictions.
 ---
 
 If you want to see the AI calls in real time, run
-`tail -n 100 -f generatedFiles/ai_log.csv`
+`tail -n 100 -f output/ai_log.csv`
 
 ---
 
-## generatedFiles format:
+## output format:
 - `ai_log.csv` This is the log of all AI calls done. DO NOT DELETE
 - `datamining.pkl` This is the data from the datamining team. DO NOT DELETE.
 Download this from the google drive or run ART-Mining's JSONToCSV.py script
@@ -60,10 +60,10 @@ Download this from the google drive or run ART-Mining's JSONToCSV.py script
 - `core_engine_output.csv` This is for predictions team.
 
 > :warning: **Warning**<br>
-SAVE AND BACKUP both `ai_log.csv` and `ai_result_backup.db` in the `generatedFiles` directory as this keeps track of AI artifacts. Deleting this file can result in having to redo OpenAI calls, costing money!
+SAVE AND BACKUP both `ai_log.csv` and `ai_result_backup.db` in the `output` directory as this keeps track of AI artifacts. Deleting this file can result in having to redo OpenAI calls, costing money!
 
 > :information_source: **Info**<br>
-If you want to restart the analysis, delete **ONLY** the `main.db` file in the `generatedFiles` directory.
+If you want to restart the analysis, delete **ONLY** the `main.db` file in the `output` directory.
 
 ## Build Instructions:
 
@@ -76,6 +76,6 @@ If you want to restart the analysis, delete **ONLY** the `main.db` file in the `
 1. Install all project dependencies into a new virtual environment: `poetry install`
 1. Run the project through this virtual environment by executing `poetry run python main.py`
 
-- After running the program, outputs will be saved in `generatedFiles/main.db`
-- You may view output as CSV for the predictions team in `generatedFiles/core_engine_output.csv`.
+- After running the program, outputs will be saved in `output/main.db`
+- You may view output as CSV for the predictions team in `output/core_engine_output.csv`.
 - To view the output, you may have to copy `main.db` to a temp directory and then open it there. Use DB Browser from https://sqlitebrowser.org/.

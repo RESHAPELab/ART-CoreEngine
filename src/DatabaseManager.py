@@ -1,7 +1,7 @@
 #  DatabaseManager.py
 #  Benjamin Carter
 #  5/22/2024
-#  
+#
 #  This file holds the DatabaseManager class, which holds all the main procedures to enact on the databases.
 #  Short procedures. This does not include large data import/exports (like in database_init.py)
 #  See database_init.py for structure of database.
@@ -13,17 +13,17 @@ from typing import Iterable
 class DatabaseManager():
     """Database Manager class. Holds operating functions consisting with the database.
     """
-    def __init__(self, dbfile : str = "./generatedFiles/main.db", cachefile : str ="./generatedFiles/ai_result_backup.db"):
+    def __init__(self, dbfile : str = "./output/main.db", cachefile : str ="./output/ai_result_backup.db"):
         """Construct and open connection to database.
 
         Args:
-            dbfile (str, optional): _description_. Defaults to "./generatedFiles/main.db".
-            cachefile (str, optional): _description_. Defaults to "./generatedFiles/cache.db".
+            dbfile (str, optional): _description_. Defaults to "./output/main.db".
+            cachefile (str, optional): _description_. Defaults to "./output/cache.db".
         """
         self.conn = sqlite3.connect(dbfile)
         self.cache_file = cachefile
         self.cache_update = False
-    
+
     def add_pull_request(self, row : list):
         # TODO
         """From csv list. Adds a single pull request.
@@ -54,7 +54,7 @@ class DatabaseManager():
             context_token_number (int) : Number of tokens used in context
             response_token_number (int) : Number of tokens used in response
             context (bytes) : Compressed context fed to AI
-            response (bytes) : Compressed response returned by AI 
+            response (bytes) : Compressed response returned by AI
 
         Returns:
             bool: True if new record. False if already in cache.
@@ -93,7 +93,7 @@ class DatabaseManager():
         row = cur.fetchone()
         if(row is None):
             raise ValueError(f"Please classify class first by running store_class_classification({class_name}, DOMAIN). Class {class_name} is not currently in the database")
-        
+
         cur.execute("SELECT subdomain FROM function_cache WHERE classname = ? AND function_name = ?",(class_name,function_name))
         row = cur.fetchone()
         if(row is None):
@@ -102,7 +102,7 @@ class DatabaseManager():
             return True
         else:
             return False
-    
+
     def manageDownload(self, file : str, commit : str) -> str:
         """Create an entry on the files downloaded table. Return temp name
 
@@ -119,7 +119,7 @@ class DatabaseManager():
         cur.execute("SELECT seq FROM sqlite_sequence WHERE name = 'files_downloaded'")
         index = cur.fetchone()[0]
 
-        return f"generatedFiles/downloadedFiles/{index}{ending}"
+        return f"output/downloadedFiles/{index}{ending}"
 
     def mark_file_as_processed(self, file : str, commit : str, status : str ='y'):
         """Mark file as processed.
@@ -148,7 +148,7 @@ class DatabaseManager():
             return None
         else:
             return row[0]
-    
+
     def cache_classify_function(self, api : str, function_name : str) -> (str | None):
         """Classify function from cache
 
@@ -187,7 +187,7 @@ class DatabaseManager():
             return True
         else:
             return False
-        
+
     def mark_file_function_use(self, file : str, commit_hash : str, class_name : str, function_name : str) -> bool:
         """Mark file using a certain function.
 
@@ -228,7 +228,7 @@ class DatabaseManager():
         """
         backup_connection = sqlite3.connect(self.cache_file)
         backup = backup_connection.cursor()
-        
+
         cur = self.conn.cursor()
         cur.execute("SELECT classname, domain, context_tokens, response_tokens, context, response FROM api_cache WHERE transferred IS NULL")
         rows = cur.fetchall()
@@ -267,7 +267,7 @@ class DatabaseManager():
         """
         backup_connection = sqlite3.connect(self.cache_file)
         backup = backup_connection.cursor()
-        
+
         cur = self.conn.cursor()
         backup.execute("SELECT classname, domain FROM apis")
         rows = backup.fetchall()
@@ -276,7 +276,7 @@ class DatabaseManager():
             test = cur.fetchone()
             if(test is None):
                 cur.execute("INSERT INTO api_cache (classname, domain) VALUES (?, ?)",(row[0], row[1]))
-        
+
         backup.execute("SELECT classname, function_name, subdomain FROM functions")
         rows = backup.fetchall()
         for row in rows:
@@ -288,4 +288,3 @@ class DatabaseManager():
         self.conn.commit()
         backup.close()
         backup_connection.close()
-        

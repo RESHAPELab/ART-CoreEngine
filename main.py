@@ -303,10 +303,10 @@ def processFiles(ai : AICachedClassifier, db : DatabaseManager):
 if __name__ == "__main__":
 
     # Setup!
-    if (not (os.path.isdir("generatedFiles"))):
-        os.makedirs("generatedFiles")
+    if (not (os.path.isdir("output"))):
+        os.makedirs("output")
 
-    os.chdir("generatedFiles")
+    os.chdir("output")
     if (not (os.path.isdir("downloadedFiles"))):
         os.makedirs("downloadedFiles")
     os.chdir("../")
@@ -315,7 +315,7 @@ if __name__ == "__main__":
         """Put instructions here that you want run on first initialization (after folders are made)
         """
         # Clear download directory
-        for file in glob.glob("generatedFiles/downloadedFiles/*"):
+        for file in glob.glob("output/downloadedFiles/*"):
             os.remove(file)
 
         database_init.populate_db_with_mining_data()
@@ -343,4 +343,4 @@ if __name__ == "__main__":
 
     # EXPORT! Requires DB to be closed.
     print("Exporting....")
-    store_result.sqlite_to_csv("./generatedFiles/main.db","outputTable","./generatedFiles/core_engine_output.csv")
+    store_result.sqlite_to_csv("./output/main.db","outputTable","./output/core_engine_output.csv")
