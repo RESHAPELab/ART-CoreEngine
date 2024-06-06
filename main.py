@@ -1,65 +1,63 @@
-#
-# main.py
-#
-# By Benjamin Carter, Dylan Johnson, and Hunter Jenkins
-#
-# This program constitutes the main of the CoreEngine
+"""
+main.py
+
+By Benjamin Carter, Dylan Johnson, and Hunter Jenkins
+
+This program constitutes the main of the CoreEngine
+"""
 
 import glob
-import json
+import os
 import sys
 
 import tqdm
+
 from src.AI_Taxonomy import AICachedClassifier, load_data
 from src.DatabaseManager import DatabaseManager
 from src import github_pull
 from src.generateAST import generateAST
-import os
 from src.symbolTable import SymbolTable
 from src import tokens as tokenExtract
 from src import store_result
 from src import database_init
+
 
 RED_COLOR = "\033[1m\033[38;5;9m"
 YELLOW_COLOR = "\033[1m\033[38;5;11m"
 RESET_COLOR = "\033[0m"
 
 
-class JavaProgram():
-    """Class represents a Java AST Tree.
-    """
-    def __init__(self, javaAST : dict):
+class JavaProgram:
+    """Class represents a Java AST Tree."""
+
+    def __init__(self, java_ast: dict):
         """Set up the class. Requires AST.
 
         Args:
-            javaAST (dict): AST
+            java_ast (dict): AST
         """
-        self.ast = javaAST
+        self.ast = java_ast
 
-        # Cached Responses
-        self.reset()
-
-    def reset(self):
-        """Reset internal caches"""
         self.classes = None
         self.plain_classes = None
         self.methods = None
         self.symbols = None
-        self.completeTable = None
+        self.complete_table = None
         self.functions = None
 
-    def getClasses(self):
+    def get_classes(self):
         """Get classes in program
 
         Returns:
             set[str]: Set of all classes in program
         """
-        if(not(self.plain_classes) is None):
+        if self.plain_classes is not None:
             return self.plain_classes
 
         self.plain_classes = set()
-        class_options = self.getClassOptions()
-        for class_name in class_options:
+
+        class_options = self.get_class_options()
+        for class_name in class_options.items():
             node = class_options[class_name]
             if node == 0:
                 continue
@@ -67,90 +65,93 @@ class JavaProgram():
                 self.plain_classes.add(x)
         return self.plain_classes
 
-    def getClassOptions(self):
-        """Takes the classnames from the file, matches it to imports, and returns all the full-name class names.
+    def get_class_options(self):
+        """
+        Takes the classnames from the file, matches it to imports, and
+        returns all the full-name class names.
 
         Returns:
-            list: Data structure with the tokens
-                  matched to the full class name based off of imports.
+            list: Data structure with the tokens matched to the full
+            class name based off of imports.
         """
 
-        if(not(self.classes is None)):
+        if self.classes is not None:
             return self.classes
 
         ast = self.ast
 
         tokens = set(tokenExtract.pullToken(ast))
-        imports =  set(tokenExtract.pullImport(ast))
+        imports = set(tokenExtract.pullImport(ast))
 
         result = {}
-        importItems = {}
+        import_items = {}
         for i in imports:
             params = i.split(".")
             name = params[-1]
-            if(name in importItems):
-                importItems[name].append(i)
+            if name in import_items:
+                import_items[name].append(i)
             else:
-                importItems[name] = [i]
+                import_items[name] = [i]
 
         for token in tokens:
             # check to see if it is in the imports.
             # if not, check lang
             # if not, fail
-            if(token in importItems):
-                result[token] = importItems[token]
+            if token in import_items:
+                result[token] = import_items[token]
             else:
                 result[token] = 0
 
         self.classes = result
         return result
 
-    def populateSymbolTable(self):
-        """Pre-generate symbols and methods
-        """
-        pgrmTables = SymbolTable(self.ast)
-        self.symbols = pgrmTables.findSymbols()  # gets all classes with variable names.
-        self.methods = pgrmTables.getMethods()  # gets all methods from variable name.
+    def populate_symbol_table(self):
+        """Pre-generate symbols and methods"""
 
-    def getCompleteSymbolTable(self):
+        pgrm_tables = SymbolTable(self.ast)
+
+        self.symbols = (
+            pgrm_tables.findSymbols()
+        )  # gets all classes with variable names.
+
+        self.methods = pgrm_tables.getMethods()  # gets all methods from variable name.
+
+    def get_complete_symbol_table(self):
         """Match methods and symbols and class names into a combined data structure.
 
         Returns:
             dict: Data Structure of compiled symbols, methods, and classes.
         """
 
-        if(self.classes is None):
-            self.getClassOptions()
-        if(self.symbols is None or self.methods is None):
-            self.populateSymbolTable()
+        if self.classes is None:
+            self.get_class_options()
 
-        if(not(self.completeTable is None)):
-            return self.completeTable
+        if self.symbols is None or self.methods is None:
+            self.populate_symbol_table()
+
+        if self.complete_table is not None:
+            return self.complete_table
 
         out = {}
-        for className in self.classes:
-            out[className] = {"full" : self.classes[className], "varlist" : []}
+        for class_name in self.classes:
+            out[class_name] = {"full": self.classes[class_name], "varlist": []}
 
             for num, variable in enumerate(self.symbols):
-                if(variable["class"] != className):
+                if variable["class"] != class_name:
                     continue
-                variableName = variable["name"]
-                lineNumber = variable["line"]
+                variable_name = variable["name"]
 
-                nextLine = -1
-                for vr in self.symbols[num+1:]:
+                for vr in self.symbols[num + 1 :]:
                     # see if there are any more!
-                    if(vr["class"] != className):
+                    if vr["class"] != class_name:
                         continue
-                # if(variable["line"] > lineNumber):
-                    nextLine = vr["line"] - 1
-                    break # CHECK! We may need to move this back.
+                    # if(variable["line"] > lineNumber):
+                    break  # CHECK! We may need to move this back.
 
-
-                methodOut = []
+                method_out = []
                 for method in self.methods:
                     # check to see if it is referencing the same variable
-                    if(method["name"] != variableName):
+                    if method["name"] != variable_name:
                         continue
 
                     # TODO: instead of comparing line numbers, compare depth in AST tree.
@@ -160,49 +161,49 @@ class JavaProgram():
                     # if(nextLine != -1 and method["line"] > nextLine):
                     #     continue
                     # print("Append!")
-                    methodOut.append(method)
+                    method_out.append(method)
 
-                out[className]["varlist"].append({"variable":variable, "methods": methodOut})
+                out[class_name]["varlist"].append(
+                    {"variable": variable, "methods": method_out}
+                )
 
-        self.completeTable = out
+        self.complete_table = out
         return out
 
-    def getFunctions(self):
+    def get_functions(self):
         """Return all the functions used in the program
 
         Returns:
             dict[str : list]: function_name : [line numbers]
         """
-        if(not(self.functions is None)):
+        if self.functions is not None:
             return self.functions
 
-        if(self.completeTable is None):
-            self.getCompleteSymbolTable()
-
+        if self.complete_table is None:
+            self.get_complete_symbol_table()
 
         functions = {}
-        for className in self.completeTable:
-            data = self.completeTable[className]
+        for class_name in self.complete_table:
+            data = self.complete_table[class_name]
 
-            methodsGeneral = []
+            methods_general = []
             for varl in data["varlist"]:
                 for m in varl["methods"]:
-                    methodsGeneral.append(m)
+                    methods_general.append(m)
 
-            fullName = "Unknown"
-            if(data["full"] != 0):
-                for fN in data["full"]:
-                    for mN in methodsGeneral:
-                        if(f"{fN}::{mN['method']}" in functions):
-                            functions[f"{fN}::{mN['method']}"].append(mN["line"])
+            if data["full"] != 0:
+                for f_n in data["full"]:
+                    for m_n in methods_general:
+                        if f"{f_n}::{m_n['method']}" in functions:
+                            functions[f"{f_n}::{m_n['method']}"].append(m_n["line"])
                         else:
-                            functions[f"{fN}::{mN['method']}"] = [mN["line"]]
+                            functions[f"{f_n}::{m_n['method']}"] = [m_n["line"]]
             else:
-                for mN in methodsGeneral:
-                    if(f"Unknown::{mN['method']}" in functions):
-                        functions[f"Unknown::{mN['method']}"].append(mN["line"])
+                for m_n in methods_general:
+                    if f"Unknown::{m_n['method']}" in functions:
+                        functions[f"Unknown::{m_n['method']}"].append(m_n["line"])
                     else:
-                        functions[f"Unknown::{mN['method']}"] = [mN["line"]]
+                        functions[f"Unknown::{m_n['method']}"] = [m_n["line"]]
 
         self.functions = functions
         return functions
@@ -215,105 +216,134 @@ class JavaProgram():
             set: classes
             dict: functions
         """
-        return self.getClasses(), self.getFunctions()
+        return self.get_classes(), self.get_functions()
 
 
-def processFiles(ai : AICachedClassifier, db : DatabaseManager):
+def process_files(ai: AICachedClassifier, database: DatabaseManager):
     """Process files that have not been processed yet
 
     Args:
         ai (AICachedClassifier): AI Classifier Engine
         db (DatabaseManager): Database Engine
     """
-    MAX_COUNT = 10 # adjust for how many successful *java* files to process when function called!!!
+    max_count = 10  # adjust for how many successful *java* files to process when function called!!!
 
-    files = db.get_unprocessed_files()
+    files = database.get_unprocessed_files()
     count = 0
     files_done = set()
 
     # Go file by file
-    for fileElement in tqdm.tqdm(files):
+    for file_element in tqdm.tqdm(files):
         # extract file path and commit_hash
-        file = fileElement[0]
-        commit_hash = fileElement[1]
+        file = file_element[0]
+        commit_hash = file_element[1]
 
         # verify if there are no repeat files!
-        if((file, commit_hash) in files_done):
+        if (file, commit_hash) in files_done:
             print(file, commit_hash)
             raise ValueError("Repeat! Fails assert! Log Bug Report!")
-        files_done.add((file,commit_hash))
+        files_done.add((file, commit_hash))
 
         # download from GitHub
-        saveLocation = db.manageDownload(file, commit_hash)
+        save_location = database.manageDownload(file, commit_hash)
 
         try:
-            github_pull.get_github_single_file("JabRef","jabref",commit_hash, file,saveLocation)
+            github_pull.get_github_single_file(
+                "JabRef", "jabref", commit_hash, file, save_location
+            )
         except ValueError as e:
-            print(f"{YELLOW_COLOR}Error downloading file {commit_hash, file}. Likely requires a different commit. Please check. \n Error: {e}{RESET_COLOR}",file=sys.stderr)
-            db.mark_file_as_processed(file,commit_hash,status="Error downloading")
+            print(
+                (
+                    f"{YELLOW_COLOR}Error downloading file {commit_hash, file}. "
+                    f"A different commit may be required. \n"
+                    f"Error: {e}{RESET_COLOR}"
+                ),
+                file=sys.stderr,
+            )
+            database.mark_file_as_processed(
+                file, commit_hash, status="Error downloading"
+            )
             continue
         print("Downloaded: ", commit_hash, file)
 
         # generated AST.
         try:
-            result = generateAST(saveLocation)
+            result = generateAST(save_location)
         except:
-            db.mark_file_as_processed(file,commit_hash,status="unsupported lang")
+            database.mark_file_as_processed(
+                file, commit_hash, status="unsupported lang"
+            )
             continue
 
         # parse AST
         pgrm = JavaProgram(result)
         try:
-            plain_classes = pgrm.getClasses()  # converts all class names to full names.
-            functions = pgrm.getFunctions().keys()
+            plain_classes = (
+                pgrm.get_classes()
+            )  # converts all class names to full names.
+            functions = pgrm.get_functions().keys()
         except:
-            print(f"{RED_COLOR}ERROR PARSING JAVA PROGRAM {saveLocation}. Please submit bug ticket! Send the file '{saveLocation}' in the bug ticket{RESET_COLOR}",file=sys.stderr)
-            db.mark_file_as_processed(file,commit_hash,status="ERROR in Java Parsing")
+            print(
+                (
+                    f"{RED_COLOR}ERROR PARSING JAVA PROGRAM {save_location}. "
+                    f"Please submit a bug ticket! Send the file '{save_location}' in the bug ticket"
+                    f"{RESET_COLOR}"
+                ),
+                file=sys.stderr,
+            )
+            database.mark_file_as_processed(
+                file, commit_hash, status="ERROR in Java Parsing"
+            )
             continue
 
         # classify api's
         local_domain_cache = {}
         for class_name in plain_classes:
-            domain = ai.classify_API(class_name) # automatically saves it to cache.
+            domain = ai.classify_API(class_name)  # automatically saves it to cache.
             local_domain_cache[class_name] = domain
-            db.mark_file_api_use(file, commit_hash, class_name)
-        db.save()
+            database.mark_file_api_use(file, commit_hash, class_name)
+        database.save()
 
         # classify functions
         for function in functions:
             tokens = function.split("::")
             class_name = tokens[0]
-            if(class_name == "Unknown"):
+            if class_name == "Unknown":
                 continue
             function_name = tokens[1]
 
             class_domain = local_domain_cache[class_name]
-            ai.classify_function(class_name, function_name, class_domain) # automatically saves it to cache. Save for later.
-            db.mark_file_function_use(file, commit_hash, class_name, function_name)
+            ai.classify_function(
+                class_name, function_name, class_domain
+            )  # automatically saves it to cache. Save for later.
+            database.mark_file_function_use(
+                file, commit_hash, class_name, function_name
+            )
 
         # mark as processed and continue
-        db.mark_file_as_processed(file, commit_hash)
-        db.save()
+        database.mark_file_as_processed(file, commit_hash)
+        database.save()
         count += 1
-        if(count > MAX_COUNT):
+        if count > max_count:
             break
 
 
-
 if __name__ == "__main__":
-
     # Setup!
-    if (not (os.path.isdir("output"))):
+    if not os.path.isdir("output"):
         os.makedirs("output")
 
     os.chdir("output")
-    if (not (os.path.isdir("downloadedFiles"))):
+    if not os.path.isdir("downloadedFiles"):
         os.makedirs("downloadedFiles")
     os.chdir("../")
 
-    def setupDB():
-        """Put instructions here that you want run on first initialization (after folders are made)
+    def setup_db():
         """
+        Put instructions here that you want run on first initialization
+        (after folders are made)
+        """
+
         # Clear download directory
         for file in glob.glob("output/downloadedFiles/*"):
             os.remove(file)
@@ -321,26 +351,28 @@ if __name__ == "__main__":
         database_init.populate_db_with_mining_data()
         database_init.setup_caches()
 
-    database_init.start(setupDB)
+    database_init.start(setup_db)
 
-    # Create Database Connection
+    # Create database connection
     db = DatabaseManager()
-    #-----------------------
-    API_listing_file = './data/domain_labels.json'
-    sub_domain_listing_file = './data/subdomain_labels.json'
-    #-----------------------
+    # -----------------------
+    API_LISTING_FILE = "./data/domain_labels.json"
+    SUB_DOMAIN_LISTING_FILE = "./data/subdomain_labels.json"
+    # -----------------------
 
-    api_domain_listing = load_data(API_listing_file)
-    sub_domain_listing = load_data(sub_domain_listing_file)
+    api_domain_listing = load_data(API_LISTING_FILE)
+    sub_domain_listing = load_data(SUB_DOMAIN_LISTING_FILE)
 
     classifier = AICachedClassifier(api_domain_listing, sub_domain_listing, db)
 
-    print("Processing files")
-    processFiles(classifier, db)
+    print("\nProcessing files...")
+    process_files(classifier, db)
 
     db.save()
     db.close()
 
     # EXPORT! Requires DB to be closed.
-    print("Exporting....")
-    store_result.sqlite_to_csv("./output/main.db","outputTable","./output/core_engine_output.csv")
+    print("\nExporting....")
+    store_result.sqlite_to_csv(
+        "./output/main.db", "outputTable", "./output/core_engine_output.csv"
+    )
