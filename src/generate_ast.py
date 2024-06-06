@@ -10,24 +10,25 @@ By Benjamin Carter, TJ Potter, and Brent McLennan
 2/13/2024
 """
 
-import sys
+import json
 import os
+import sys
+
 from tree_sitter import Language, Parser
 
-import json
 
 # Determine the shared library extension based on the platform
-if os.name == 'posix' and sys.platform.startswith('darwin'):
-    shared_library_extension = '.dylib'
+if os.name == "posix" and sys.platform.startswith("darwin"):
+    shared_library_extension = ".dylib"
 else:
-    shared_library_extension = '.so'
+    shared_library_extension = ".so"
 
 # Build the Java language library
 Language.build_library(
     # Store the library in the `build` directory
     f"tree-sitter-java/libtree-sitter-java{shared_library_extension}",
     # Include one or more languages
-    ["tree-sitter-java"]
+    ["tree-sitter-java"],
 )
 
 # Build the Python language library
@@ -62,74 +63,87 @@ Language.build_library(
 #     ["tree-sitter-c-sharp"]
 # )
 
-def jsonIt(l):
+
+def dict_to_json(input_dict: dict):
     """Convert a dictionary to JSON
 
     Args:
-        l (dict): the dictionary
+        input_dict (dict): the dictionary
 
     Returns:
         str: the JSON output
     """
 
     default = lambda o: str(o)
-    return json.dumps(l,indent=1,default=default,skipkeys=True)
+    return json.dumps(input_dict, indent=1, default=default, skipkeys=True)
 
-def populateDictionary(walkPointer):
-        """Convert the tree into a dictionary. This uses a post-order traversal technique. Goto children, then go to child's sibling.
 
-        Args:
-            walkPointer (): The parse tree context.
+def tree_to_dict(walk_pointer):
+    """
+    Convert an abstract syntax tree into a dictionary.
+    This uses a post-order traversal technique. Goto children, then go to child's sibling.
 
-        Returns:
-            dictionary of it and it's children
-        """
-        # get all field names.
-        # for each field name, get it's value.
-        # If value is a node, recursive!
+    Args:
+        walkPointer (): The parse tree context.
 
-        dataDictionaryLocal = {"name": walkPointer.node.grammar_name}
+    Returns:
+        dictionary of it and it's children
+    """
+    # get all field names.
+    # for each field name, get it's value.
+    # If value is a node, recursive!
 
-        dataDictionaryLocal["children"] = []
+    local_data: dict = {"name": walk_pointer.node.grammar_name}
 
-        if(walkPointer.goto_first_child()):
-            dataDictionaryLocal["children"].append(populateDictionary(walkPointer))
+    local_data["children"] = []
 
-            while(walkPointer.goto_next_sibling()):
-                dataDictionaryLocal["children"].append(populateDictionary(walkPointer))
+    if walk_pointer.goto_first_child():
+        local_data["children"].append(tree_to_dict(walk_pointer))
 
-            walkPointer.goto_parent()
+        while walk_pointer.goto_next_sibling():
+            local_data["children"].append(tree_to_dict(walk_pointer))
 
-        # value!
-        extra =  {
-            "kind_id" : walkPointer.node.kind_id,
-            "grammar_id" : walkPointer.node.grammar_name,
-            "type" : walkPointer.node.type,
-            "is_named" : walkPointer.node.is_named,
-            "is_extra" : walkPointer.node.is_extra,
-            "has_changes" : walkPointer.node.has_changes,
-            "has_error" : walkPointer.node.has_error,
-            "is_error" : walkPointer.node.is_error,
-            "start_byte" : walkPointer.node.start_byte,
-            "end_byte" : walkPointer.node.end_byte,
-            "start_point" : [walkPointer.node.start_point[0], walkPointer.node.start_point[1]],
-            "end_point" : [walkPointer.node.end_point[0], walkPointer.node.end_point[1]],
-            "child_count" : walkPointer.node.child_count,
-            "named_child_count" : walkPointer.node.named_child_count,
-            "text" : walkPointer.node.text.decode()
-        }
-        dataDictionaryLocal = {**dataDictionaryLocal, **extra}
+        walk_pointer.goto_parent()
 
-        # done.
-        return dataDictionaryLocal
+    # value!
+    extra = {
+        "kind_id": walk_pointer.node.kind_id,
+        "grammar_id": walk_pointer.node.grammar_name,
+        "type": walk_pointer.node.type,
+        "is_named": walk_pointer.node.is_named,
+        "is_extra": walk_pointer.node.is_extra,
+        "has_changes": walk_pointer.node.has_changes,
+        "has_error": walk_pointer.node.has_error,
+        "is_error": walk_pointer.node.is_error,
+        "start_byte": walk_pointer.node.start_byte,
+        "end_byte": walk_pointer.node.end_byte,
+        "start_point": [
+            walk_pointer.node.start_point[0],
+            walk_pointer.node.start_point[1],
+        ],
+        "end_point": [walk_pointer.node.end_point[0], walk_pointer.node.end_point[1]],
+        "child_count": walk_pointer.node.child_count,
+        "named_child_count": walk_pointer.node.named_child_count,
+        "text": walk_pointer.node.text.decode(),
+    }
+    local_data = {**local_data, **extra}
 
-def generateAST(filename):
+    # done.
+    return local_data
 
-    file_end = filename.strip().split('.')[-1]
+
+def generate_ast(filename):
+    """
+    TODO.
+    """
+
+    file_end = filename.strip().split(".")[-1]
     language_library = ""
     # return dictionary AST.
     if file_end == "java":
-        language_library = f"tree-sitter-java/libtree-sitter-java{shared_library_extension}"
+        language_library = (
+            f"tree-sitter-java/libtree-sitter-java{shared_library_extension}"
+        )
     # elif file_end == "py":
     #     language_library = f"tree-sitter-python/libtree-sitter-python{shared_library_extension}"
     #     file_end = "python"
@@ -148,61 +162,63 @@ def generateAST(filename):
     #     language_library = f"tree-sitter-javascript/libtree-sitter-javascript{shared_library_extension}"
     #     file_end = "javascript"
     else:
-        raise ValueError("Unsupported language. Supported options: java, python, C, C#, C++, HTML, Javascript, CSS. Given: " + file_end)
+        raise ValueError(
+            "Unsupported language. "
+            "Supported options: java, python, C, C#, C++, HTML, Javascript, CSS. "
+            "Given: " + file_end
+        )
     # return dictionary AST.
     # JAVA_LANGUAGE = Language("tree-sitter-java/libtree-sitter-java.{shared_library_extension}","java")
 
     file_language = Language(language_library, file_end)
-
 
     parser = Parser()
     parser.set_language(file_language)
 
     # file_path, file_name = filename.rsplit('/', 1)
 
-    file = open(filename,'rb')
-    tree = parser.parse(file.read())
-    file.close()
+    with open(filename, "rb") as file:
+        tree = parser.parse(file.read())
 
-    treeWalk = tree.walk()
+    tree_walk = tree.walk()
 
     # run recursive loop
-    return populateDictionary(treeWalk)
+    return tree_to_dict(tree_walk)
 
 
 # maybe create a separate function that pulls the files from github?
 
-    # print("File Path: " + file_path)
-    # print("File Name: " + file_name)
-    # code_pull = github_pull.get_github_file_content('JabRef', 'jabref', file_path, file_name)
+# print("File Path: " + file_path)
+# print("File Name: " + file_name)
+# code_pull = github_pull.get_github_file_content('JabRef', 'jabref', file_path, file_name)
 
-    # if code_pull is not None or code_pull:
-    #     print("YIPPEE")
-    #     saveFile = open("output/code_pulled.java", 'w')
-    #     saveFile.write(code_pull)
-    #     saveFile.close()
+# if code_pull is not None or code_pull:
+#     print("YIPPEE")
+#     saveFile = open("output/code_pulled.java", 'w')
+#     saveFile.write(code_pull)
+#     saveFile.close()
 
-    #     file = open('output/code_pulled.java','rb')
-    #     tree = parser.parse(file.read())
-    #     file.close()
+#     file = open('output/code_pulled.java','rb')
+#     tree = parser.parse(file.read())
+#     file.close()
 
-    #     treeWalk = tree.walk()
+#     treeWalk = tree.walk()
 
-    #     # run recursive loop
-    #     return populateDictionary(treeWalk)
+#     # run recursive loop
+#     return populateDictionary(treeWalk)
 
-    # else:
-    #     try:
-    #         file = open("./jabref-5.0-alpha/" + filename.strip(' '), 'rb')
-    #         tree = parser.parse(file.read())
-    #         file.close()
+# else:
+#     try:
+#         file = open("./jabref-5.0-alpha/" + filename.strip(' '), 'rb')
+#         tree = parser.parse(file.read())
+#         file.close()
 
-    #     except Exception as e:
-    #         return
+#     except Exception as e:
+#         return
 
-    #     treeWalk = tree.walk()
-    #     # run recursive loop
-    #     return populateDictionary(treeWalk)
+#     treeWalk = tree.walk()
+#     # run recursive loop
+#     return populateDictionary(treeWalk)
 
 
 # maybe create a separate function that does this?

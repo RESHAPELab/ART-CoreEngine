@@ -9,7 +9,7 @@ import tqdm
 from src.AI_Taxonomy import AICachedClassifier, load_data
 from src.DatabaseManager import DatabaseManager
 from src import github_pull
-from src.generateAST import generateAST
+from src.generate_ast import generate_ast
 from src.java_ast import JavaProgram
 
 from src import store_result
@@ -121,7 +121,7 @@ def process_files(ai: AICachedClassifier, database: DatabaseManager):
 
         # generated AST.
         try:
-            result = generateAST(save_location)
+            result = generate_ast(save_location)
         except:
             database.mark_file_as_processed(
                 file, commit_hash, status="unsupported lang"
