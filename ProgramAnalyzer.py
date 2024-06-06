@@ -234,7 +234,7 @@ def processFiles(ai : AICachedClassifier, db : DatabaseManager):
     files_done = set()
 
     # Go file by file
-    for fileElement in tqdm.tqdm(files):
+    for fileElement in tqdm.tqdm(files, smoothing=0.05):
         # extract file path and commit_hash
         file = fileElement[0]
         commit_hash = fileElement[1]
@@ -248,9 +248,15 @@ def processFiles(ai : AICachedClassifier, db : DatabaseManager):
         # download from GitHub
         saveLocation = db.manageDownload(file, commit_hash)
 
+        
+        # quick hack to skip all files except java files to save time!
+        name, ending = os.path.splitext(file)
+        if(ending != '.java'):
+            db.mark_file_as_processed(file,commit_hash,status="Time Save Not Java")
+            continue
         try:
             github_pull.get_github_single_file("JabRef","jabref",commit_hash, file,saveLocation)
-        except ValueError as e:
+        except Exception as e:
             print(f"{YELLOW_COLOR}Error downloading file {commit_hash, file}. Likely requires a different commit. Please check. \n Error: {e}{RESET_COLOR}",file=sys.stderr)
             db.mark_file_as_processed(file,commit_hash,status="Error downloading")
             continue
@@ -295,12 +301,15 @@ def processFiles(ai : AICachedClassifier, db : DatabaseManager):
         
         # mark as processed and continue
         db.mark_file_as_processed(file, commit_hash)
+        os.unlink(saveLocation)
         db.save()
         count += 1
         if(count > MAX_COUNT):
             break
         
         
+    db.save()
+
 
 if __name__ == "__main__":
 
