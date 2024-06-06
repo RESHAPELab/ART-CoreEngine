@@ -38,6 +38,12 @@ def start(new_setup_func : Callable):
                 response BLOB
                 )   
     ''')
+    cur.execute('''
+                CREATE UNIQUE INDEX "QuickFuncLookup" ON "functions" (
+                    "classname"	ASC,
+                    "function_name"	ASC
+                )
+                ''')
     cur.execute("""
             CREATE TABLE IF NOT EXISTS "settings" (
             "rowID"	INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -146,6 +152,14 @@ def start(new_setup_func : Callable):
                 )
                 """ 
                 )
+    cur.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS "QuickFileClassFunction" ON "api_file_register" (
+                    "filename"	ASC,
+                    "commit_hash"	ASC,
+                    "classname"	ASC,
+                    "function_name"	ASC
+                );
+                """)
     
     # Data structure for export... this defines the output table. It is an SQL view to use 
     # all the power SQL has. query_generator generates the 1/0 columns.
