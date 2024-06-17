@@ -73,7 +73,7 @@ If you want to restart the analysis, delete **ONLY** the `main.db` file in the `
 1. Execute `chmod +x onClone.sh` to allow for running the `onClone.sh` script
 1. Execute `./onClone.sh` to set up the new environment
 1. Place your OpenAI API key in the project's `.env` file: `OPENAI_API_KEY=abcdefg.....`
-1. Install all project dependencies into a new virtual environment: `poetry install`
+1. Install all project dependencies into a new virtual environment: `poetry install --no-root`
 1. Run the project through this virtual environment by executing `poetry run python ProgramAnalyzer.py`
 
 - After running the program, outputs will be saved in `generatedFiles/main.db`
