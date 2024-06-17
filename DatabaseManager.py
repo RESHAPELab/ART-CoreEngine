@@ -8,7 +8,7 @@
 
 import os
 import sqlite3
-from typing import Iterable
+from typing import Iterable, Optional
 
 class DatabaseManager():
     """Database Manager class. Holds operating functions consisting with the database.
@@ -34,15 +34,21 @@ class DatabaseManager():
         raise NotImplementedError
         pass
 
-    def get_unprocessed_files(self) -> Iterable[tuple[str, str]]:
+    def get_unprocessed_files(self, pr : Optional[int] = None) -> Iterable[tuple[str, str]]:
         """Get list of files changed that have not been analyzed yet.
 
+        Args:
+            pr (Optional[int]): Pull request number to query.
+        
         Returns:
             Iterable[tuple[str, str]]: SQL table with columns: file_path and commit_hash
         """
         # go file by file that has not been processed.
         cur = self.conn.cursor()
-        cur.execute("SELECT filename, commit_hash FROM files_changed WHERE processed IS NULL")
+        if(pr is None):
+            cur.execute("SELECT filename, commit_hash FROM files_changed WHERE processed IS NULL")
+        else:
+            cur.execute("SELECT filename, commit_hash FROM files_changed WHERE processed IS NULL AND pullNumber=?",(pr,))
         return cur.fetchall()
 
     def store_class_classification(self, class_name : str, domain : str, context_token_number : int, response_token_number : int, context : bytes, response : bytes) -> bool:
