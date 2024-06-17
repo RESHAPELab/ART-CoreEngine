@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "art-coreengine"
+version = "0.1.0"
+description = ""
+authors = [
+    "Benjamin Carter",
+    "Dylan Johnson",
+    "Hunter Jenkins",
+    "Jacob McAuley Penney <jacobmpenney@gmail.com>",
+]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">= 3.10, < 3.12"
+openai = "1.31.1"
+pandas = "1.5.3"
+python-dotenv = "1.0.1"
+requests = "2.32.3"
+tiktoken = "0.6.0"
+tqdm = "4.66.2"
+tree-sitter = "0.21"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
