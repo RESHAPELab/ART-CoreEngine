@@ -10,11 +10,11 @@ __pycache__/
 
 .code-workspace
 
-# Ignore submodules for now.
-.gitmodules
+
 ART-Mining/
 nohup.out
 !generatedFiles/ai_result_backup.db
+output/datamining.pkl
 
 *.code-workspace
 __MACOSX/
