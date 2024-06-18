@@ -39,7 +39,7 @@ def start(new_setup_func : Callable):
                 )   
     ''')
     cur.execute('''
-                CREATE UNIQUE INDEX "QuickFuncLookup" ON "functions" (
+                CREATE UNIQUE INDEX IF NOT EXISTS "QuickFuncLookup" ON "functions" (
                     "classname"	ASC,
                     "function_name"	ASC
                 )
@@ -258,7 +258,6 @@ def populate_db_with_mining_data():
     data = pickle.load(file)
     file.close()
 
-    filesAdded = set()
 
     for row in tqdm.tqdm(data):
         # Get elements from the rows
@@ -287,10 +286,10 @@ def populate_db_with_mining_data():
         for fileChange in set(filesChanged):
             if(fileChange == ''):
                 continue
-            search = f"{commit_hash}:{fileChange}"
-            if(search not in filesAdded): # no duplicates!
+            search_request = cur.execute("SELECT pullNumber FROM files_changed WHERE filename=? AND commit_hash=?", (fileChange, commit_hash))
+            a = search_request.fetchone()
+            if(a is not None): # no duplicates!
                 cur.execute("INSERT INTO files_changed (pullNumber, filename, commit_hash) VALUES (?, ?, ?)", (issueNumber, fileChange, commit_hash))
-                filesAdded.add(search)
             else:
                 cur.execute("UPDATE files_changed SET pullNumber=? WHERE filename = ? AND commit_hash = ?", (issueNumber, fileChange, commit_hash))
         if(commit_hash != ''):
