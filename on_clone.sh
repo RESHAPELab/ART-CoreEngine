@@ -4,4 +4,4 @@
 unzip data/datamining.zip
 mkdir -p output
 mv datamining.pkl output/datamining.pkl
-# git submodule update --init --recursive
+git submodule update --init --recursive
