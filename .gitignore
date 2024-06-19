@@ -5,6 +5,7 @@ generatedFiles/LLMcache.json
 generatedFiles/*
 tree-sitter-java/libtree-sitter-java.so
 jabref-5.0-alpha/
+output/*
 .env
 __pycache__/
 
@@ -13,7 +14,7 @@ __pycache__/
 
 ART-Mining/
 nohup.out
-!generatedFiles/ai_result_backup.db
+!output/ai_result_backup.db
 output/datamining.pkl
 
 *.code-workspace
@@ -186,3 +187,4 @@ cython_debug/
 #.idea/
 
 !tree-sitter-java/script/run-javaparser/target/
+input/

@@ -1,5 +1,3 @@
-import json
-
 # Load JSON data from file
 # filename = './output/saved.ast.json'
 # with open(filename, 'r') as file:

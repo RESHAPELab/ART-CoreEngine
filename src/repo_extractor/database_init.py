@@ -3,8 +3,10 @@ import json
 import os
 import pickle
 import sqlite3
-import tqdm
-from src.database_manager import DatabaseManager
+
+import tqdm  # pip install tqdm
+
+from repo_extractor.database_manager import DatabaseManager
 
 
 RED_COLOR = "\033[1m\033[38;5;9m"
@@ -270,17 +272,26 @@ def __init_output_db():
     else:
         print(f"Using main.db generated from {row[0]}")
         conn.commit()
+
+        cur.execute("SELECT value FROM settings WHERE key = 'setup'")
+        row = cur.fetchone()
         cur.close()
         conn.close()
+
+        if row is None:
+            print("main.db is corrupted, regenerating")
+            db = DatabaseManager()
+            db.save_caches()
+            db.close()
+            os.unlink(OUTPUT_DB)
+
 
 def start():
     """Set up Databases with tables. Define database structure."""
 
     __init_ai_res_db()
     __init_output_db()
-    
-    setup_caches()
-    
+
 
 def setup_caches():
     """Import caches from backup."""
@@ -360,68 +371,69 @@ def save_pr_data(pr_data: dict):
 
         print(f"Is {num} PR?: {is_pr}")
 
-        if not(is_pr):
-            continue # skip if not pr.
+        if is_pr is True:
+            issue_num = num
+            issue_title = clean_text(data["title"])
+            issue_body = clean_text(data["body"])
+            created = clean_text(data["created_at"])
+            closed = clean_text(data["closed_at"])
+            userlogin = clean_text(data["userlogin"])
+            comments = clean_text(get_comments(data))
 
-        issue_num = num
-        issue_title = clean_text(data["title"])
-        issue_body = clean_text(data["body"])
-        created = clean_text(data["created_at"])
-        closed = clean_text(data["closed_at"])
-        userlogin = clean_text(data["userlogin"])
-        comments = clean_text(get_comments(data))
+            commit_hashes, files_changed = get_commits(data)
+            print(commit_hashes)
+            newest_commit_hash = commit_hashes[0]
+            author = newest_commit_hash[2]
 
-        commit_hashes, files_changed = get_commits(data)
-        print(commit_hashes)
-        newest_commit_hash = commit_hashes[0]
-        author = newest_commit_hash[2]
+            commit_hashes = " | ".join(commit_hashes)
 
-        commit_hashes = " | ".join(commit_hashes)
-
-        vals = (
-            issue_num,
-            issue_title,
-            issue_body,
-            created,
-            closed,
-            userlogin,
-            author,
-            newest_commit_hash,
-        )
-        cur.execute(
-            "INSERT INTO pull_requests (pullNumber, title, descriptionText, created, closed, userlogin, author, most_recent_commit) VALUES (?,?,?,?,?,?,?,?)",
-            vals,
-        )
-        for comment in comments:
-            if comment == "":
-                continue
-            cur.execute(
-                "INSERT INTO pull_request_comments (pullNumber, comment) VALUES (?,?)",
-                (issue_num, comment),
+            vals = (
+                issue_num,
+                issue_title,
+                issue_body,
+                created,
+                closed,
+                userlogin,
+                author,
+                newest_commit_hash,
             )
+            cur.execute(
+                "INSERT INTO pull_requests (pullNumber, title, descriptionText, created, closed, userlogin, author, most_recent_commit) VALUES (?,?,?,?,?,?,?,?)",
+                vals,
+            )
+            for comment in comments:
+                if comment == "":
+                    continue
+                cur.execute(
+                    "INSERT INTO pull_request_comments (pullNumber, comment) VALUES (?,?)",
+                    (issue_num, comment),
+                )
+            for file_change in set(files_changed):
+                if file_change == "":
+                    continue
+                search = f"{newest_commit_hash}:{file_change}"
+                if search not in files_added:  # no duplicates!
+                    cur.execute(
+                        "INSERT INTO files_changed (pullNumber, filename, commit_hash) VALUES (?, ?, ?)",
+                        (issue_num, file_change, newest_commit_hash),
+                    )
+                    files_added.add(search)
+                else:
+                    cur.execute(
+                        "UPDATE files_changed SET pullNumber=? WHERE filename = ? AND commit_hash = ?",
+                        (issue_num, file_change, newest_commit_hash),
+                    )
+            if newest_commit_hash != "":
+                for commit in commit_hashes:
+                    cur.execute(
+                        "INSERT INTO pull_request_commits (pullNumber, commit_hash) VALUES (?,?)",
+                        (issue_num, commit),
+                    )
 
-        for file_change in set(files_changed):
-            if file_change == "":
-                continue
-            search = f"{newest_commit_hash}:{file_change}"
-            if search not in files_added:  # no duplicates!
-                cur.execute(
-                    "INSERT INTO files_changed (pullNumber, filename, commit_hash) VALUES (?, ?, ?)",
-                    (issue_num, file_change, newest_commit_hash),
-                )
-                files_added.add(search)
-            else:
-                cur.execute(
-                    "UPDATE files_changed SET pullNumber=? WHERE filename = ? AND commit_hash = ?",
-                    (issue_num, file_change, newest_commit_hash),
-                )
-        if newest_commit_hash != "":
-            for commit in commit_hashes:
-                cur.execute(
-                    "INSERT INTO pull_request_commits (pullNumber, commit_hash) VALUES (?,?)",
-                    (issue_num, commit),
-                )
-
+    cur.execute(
+        "INSERT INTO settings (key, value) VALUES ('setup', ?)",
+        (datetime.now(),),
+    )
     conn.commit()
     cur.close()
     conn.close()

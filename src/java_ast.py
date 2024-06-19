@@ -6,7 +6,7 @@ By Benjamin Carter, Dylan Johnson, and Hunter Jenkins
 This program constitutes the main of the CoreEngine
 """
 
-from src.symbolTable import SymbolTable
+from src.symbol_table import SymbolTable
 from src import tokens as tokenExtract
 
 
