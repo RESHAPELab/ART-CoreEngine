@@ -125,7 +125,7 @@ class DatabaseManager():
         cur.execute("SELECT seq FROM sqlite_sequence WHERE name = 'files_downloaded'")
         index = cur.fetchone()[0]
 
-        return f"output/downloadedFiles/{index}{ending}"
+        return f"output/downloaded_files/{index}{ending}"
 
     def mark_file_as_processed(self, file : str, commit : str, status : str ='y'):
         """Mark file as processed.

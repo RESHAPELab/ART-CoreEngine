@@ -3,7 +3,12 @@
 import argparse
 import glob
 import os
-from src import database_init
+from src import (
+    database_init, 
+    database_manager,
+    ai_taxonomy
+)
+from program_analyzer import processFiles # TODO. Incorporate this function into code.
 from src.repo_extractor import (
     conf,
     extractor,
@@ -30,6 +35,16 @@ def main():
     print(f"{tab}Issue data complete!")
 
     print("\nExtraction complete!\n")
+
+    print("\nClassifying files from downloaded PRs for predictions training ")
+    db = database_manager.DatabaseManager()
+    api_labels = utils.read_jsonfile_into_dict(cfg_obj.get_cfg_val("api_domain_label_listing"))
+    sub_labels = utils.read_jsonfile_into_dict(cfg_obj.get_cfg_val("api_subdomain_label_listing"))
+    ai = ai_taxonomy.AICachedClassifier(api_labels, sub_labels, db)
+
+    processFiles(ai, db) # TODO. Move processFiles into src, incorporate it.
+    db.save()
+    db.close()
 
 
 def init_db():

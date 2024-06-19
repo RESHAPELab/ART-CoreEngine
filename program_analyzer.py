@@ -225,7 +225,7 @@ def processFiles(ai: AICachedClassifier, db: DatabaseManager):
         ai (AICachedClassifier): AI Classifier Engine
         db (DatabaseManager): Database Engine
     """
-    MAX_COUNT = 10  # adjust for how many successful *java* files to process when function called!!!
+    MAX_COUNT = 100000  # adjust for how many successful *java* files to process when function called!!!
 
     files = db.get_unprocessed_files()
     # later change to process files from one PR! db.get_unprocessed_files(pr)

@@ -362,7 +362,7 @@ def save_pr_data(pr_data: dict):
 
         if not(is_pr):
             continue # skip if not pr.
-        
+
         issue_num = num
         issue_title = clean_text(data["title"])
         issue_body = clean_text(data["body"])
@@ -399,6 +399,7 @@ def save_pr_data(pr_data: dict):
                 "INSERT INTO pull_request_comments (pullNumber, comment) VALUES (?,?)",
                 (issue_num, comment),
             )
+
         for file_change in set(files_changed):
             if file_change == "":
                 continue
@@ -421,6 +422,7 @@ def save_pr_data(pr_data: dict):
                     (issue_num, commit),
                 )
 
+    conn.commit()
     cur.close()
     conn.close()
 

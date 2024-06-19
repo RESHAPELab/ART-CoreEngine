@@ -216,6 +216,8 @@ cfg_schema: dict = {
     "auth_path": _str_type,
     "repo": _str_type,
     "output_path": _str_type,
+    "api_domain_label_listing": _str_type,
+    "api_subdomain_label_listing": _str_type,
     **issues_fields_schema,
     "state": {**_str_type, "allowed": ["closed", "open"]},
     "range": {
