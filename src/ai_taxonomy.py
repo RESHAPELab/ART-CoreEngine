@@ -19,7 +19,7 @@ import tiktoken # pip install tiktoken
 import lzma
 import pickle
 
-from src.DatabaseManager import DatabaseManager
+from src.database_manager import DatabaseManager
 
 # Do True to use fake domains (animals and animal-feed)
 # Do False to use actual AI

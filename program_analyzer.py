@@ -2,35 +2,34 @@
 # main.py
 #
 # By Benjamin Carter, Dylan Johnson, and Hunter Jenkins
-#  
+#
 # This program constitutes the main of the CoreEngine
 
 import glob
-import json
-import sys
-
-import tqdm
-from AI_Taxonomy import AICachedClassifier, load_data
-from DatabaseManager import DatabaseManager
-import github_pull
-from generateAST import generateAST
 import os
-from symbolTable import SymbolTable
-import tokens as tokenExtract
-import csv_pull
-import store_result
-import csv_push
-import database_init
+import sys
+import tqdm
+from src import (
+    database_init,
+    github_pull,
+    store_result,
+)
+from src.ai_taxonomy import AICachedClassifier, load_data
+from src.database_manager import DatabaseManager
+from src.generate_ast import generate_ast
+from src.symbol_table import SymbolTable
+import src.tokens as tokenExtract
+
 
 RED_COLOR = "\033[1m\033[38;5;9m"
 YELLOW_COLOR = "\033[1m\033[38;5;11m"
 RESET_COLOR = "\033[0m"
 
 
-class JavaProgram():
-    """Class represents a Java AST Tree.
-    """
-    def __init__(self, javaAST : dict):
+class JavaProgram:
+    """Class represents a Java AST Tree."""
+
+    def __init__(self, javaAST: dict):
         """Set up the class. Requires AST.
 
         Args:
@@ -40,7 +39,7 @@ class JavaProgram():
 
         # Cached Responses
         self.reset()
-    
+
     def reset(self):
         """Reset internal caches"""
         self.classes = None
@@ -56,7 +55,7 @@ class JavaProgram():
         Returns:
             set[str]: Set of all classes in program
         """
-        if(not(self.plain_classes) is None):
+        if not (self.plain_classes) is None:
             return self.plain_classes
 
         self.plain_classes = set()
@@ -77,20 +76,20 @@ class JavaProgram():
                   matched to the full class name based off of imports.
         """
 
-        if(not(self.classes is None)):
+        if not (self.classes is None):
             return self.classes
 
         ast = self.ast
 
         tokens = set(tokenExtract.pullToken(ast))
-        imports =  set(tokenExtract.pullImport(ast))
+        imports = set(tokenExtract.pullImport(ast))
 
         result = {}
         importItems = {}
         for i in imports:
             params = i.split(".")
             name = params[-1]
-            if(name in importItems):
+            if name in importItems:
                 importItems[name].append(i)
             else:
                 importItems[name] = [i]
@@ -99,17 +98,16 @@ class JavaProgram():
             # check to see if it is in the imports.
             # if not, check lang
             # if not, fail
-            if(token in importItems):
+            if token in importItems:
                 result[token] = importItems[token]
             else:
                 result[token] = 0
-        
+
         self.classes = result
         return result
 
     def populateSymbolTable(self):
-        """Pre-generate symbols and methods
-        """
+        """Pre-generate symbols and methods"""
         pgrmTables = SymbolTable(self.ast)
         self.symbols = pgrmTables.findSymbols()  # gets all classes with variable names.
         self.methods = pgrmTables.getMethods()  # gets all methods from variable name.
@@ -121,38 +119,37 @@ class JavaProgram():
             dict: Data Structure of compiled symbols, methods, and classes.
         """
 
-        if(self.classes is None):
+        if self.classes is None:
             self.getClassOptions()
-        if(self.symbols is None or self.methods is None):
+        if self.symbols is None or self.methods is None:
             self.populateSymbolTable()
-        
-        if(not(self.completeTable is None)):
+
+        if not (self.completeTable is None):
             return self.completeTable
 
         out = {}
         for className in self.classes:
-            out[className] = {"full" : self.classes[className], "varlist" : []}
+            out[className] = {"full": self.classes[className], "varlist": []}
 
             for num, variable in enumerate(self.symbols):
-                if(variable["class"] != className):
+                if variable["class"] != className:
                     continue
                 variableName = variable["name"]
                 lineNumber = variable["line"]
 
                 nextLine = -1
-                for vr in self.symbols[num+1:]:
+                for vr in self.symbols[num + 1 :]:
                     # see if there are any more!
-                    if(vr["class"] != className):
+                    if vr["class"] != className:
                         continue
-                # if(variable["line"] > lineNumber):
+                    # if(variable["line"] > lineNumber):
                     nextLine = vr["line"] - 1
-                    break # CHECK! We may need to move this back.
-
+                    break  # CHECK! We may need to move this back.
 
                 methodOut = []
                 for method in self.methods:
                     # check to see if it is referencing the same variable
-                    if(method["name"] != variableName):
+                    if method["name"] != variableName:
                         continue
 
                     # TODO: instead of comparing line numbers, compare depth in AST tree.
@@ -164,8 +161,10 @@ class JavaProgram():
                     # print("Append!")
                     methodOut.append(method)
 
-                out[className]["varlist"].append({"variable":variable, "methods": methodOut})
-        
+                out[className]["varlist"].append(
+                    {"variable": variable, "methods": methodOut}
+                )
+
         self.completeTable = out
         return out
 
@@ -175,12 +174,11 @@ class JavaProgram():
         Returns:
             dict[str : list]: function_name : [line numbers]
         """
-        if(not(self.functions is None)):
+        if not (self.functions is None):
             return self.functions
-        
-        if(self.completeTable is None):
+
+        if self.completeTable is None:
             self.getCompleteSymbolTable()
-        
 
         functions = {}
         for className in self.completeTable:
@@ -190,22 +188,22 @@ class JavaProgram():
             for varl in data["varlist"]:
                 for m in varl["methods"]:
                     methodsGeneral.append(m)
-            
+
             fullName = "Unknown"
-            if(data["full"] != 0):
+            if data["full"] != 0:
                 for fN in data["full"]:
                     for mN in methodsGeneral:
-                        if(f"{fN}::{mN['method']}" in functions):
+                        if f"{fN}::{mN['method']}" in functions:
                             functions[f"{fN}::{mN['method']}"].append(mN["line"])
                         else:
                             functions[f"{fN}::{mN['method']}"] = [mN["line"]]
             else:
                 for mN in methodsGeneral:
-                    if(f"Unknown::{mN['method']}" in functions):
+                    if f"Unknown::{mN['method']}" in functions:
                         functions[f"Unknown::{mN['method']}"].append(mN["line"])
                     else:
                         functions[f"Unknown::{mN['method']}"] = [mN["line"]]
-        
+
         self.functions = functions
         return functions
 
@@ -219,17 +217,17 @@ class JavaProgram():
         """
         return self.getClasses(), self.getFunctions()
 
-    
-def processFiles(ai : AICachedClassifier, db : DatabaseManager):
+
+def processFiles(ai: AICachedClassifier, db: DatabaseManager):
     """Process files that have not been processed yet
 
     Args:
         ai (AICachedClassifier): AI Classifier Engine
         db (DatabaseManager): Database Engine
     """
-    MAX_COUNT = 10 # adjust for how many successful *java* files to process when function called!!!
+    MAX_COUNT = 10  # adjust for how many successful *java* files to process when function called!!!
 
-    files = db.get_unprocessed_files() 
+    files = db.get_unprocessed_files()
     # later change to process files from one PR! db.get_unprocessed_files(pr)
     count = 0
     files_done = set()
@@ -241,49 +239,56 @@ def processFiles(ai : AICachedClassifier, db : DatabaseManager):
         commit_hash = fileElement[1]
 
         # verify if there are no repeat files!
-        if((file, commit_hash) in files_done):
+        if (file, commit_hash) in files_done:
             print(file, commit_hash)
             raise ValueError("Repeat! Fails assert! Log Bug Report!")
-        files_done.add((file,commit_hash))
+        files_done.add((file, commit_hash))
 
         # download from GitHub
         saveLocation = db.manageDownload(file, commit_hash)
 
-        
         # quick hack to skip all files except java files to save time!
         name, ending = os.path.splitext(file)
-        if(ending != '.java'):
-            db.mark_file_as_processed(file,commit_hash,status="Time Save Not Java")
+        if ending != ".java":
+            db.mark_file_as_processed(file, commit_hash, status="Time Save Not Java")
             continue
         try:
-            github_pull.get_github_single_file("JabRef","jabref",commit_hash, file,saveLocation)
+            github_pull.get_github_single_file(
+                "JabRef", "jabref", commit_hash, file, saveLocation
+            )
         except Exception as e:
-            print(f"{YELLOW_COLOR}Error downloading file {commit_hash, file}. Likely requires a different commit. Please check. \n Error: {e}{RESET_COLOR}",file=sys.stderr)
-            db.mark_file_as_processed(file,commit_hash,status="Error downloading")
+            print(
+                f"{YELLOW_COLOR}Error downloading file {commit_hash, file}. Likely requires a different commit. Please check. \n Error: {e}{RESET_COLOR}",
+                file=sys.stderr,
+            )
+            db.mark_file_as_processed(file, commit_hash, status="Error downloading")
             continue
         print("Downloaded: ", commit_hash, file)
-        
+
         # generated AST.
         try:
-            result = generateAST(saveLocation)
+            result = generate_ast(saveLocation)
         except:
-            db.mark_file_as_processed(file,commit_hash,status="unsupported lang")
+            db.mark_file_as_processed(file, commit_hash, status="unsupported lang")
             continue
-        
+
         # parse AST
         pgrm = JavaProgram(result)
         try:
             plain_classes = pgrm.getClasses()  # converts all class names to full names.
             functions = pgrm.getFunctions().keys()
         except:
-            print(f"{RED_COLOR}ERROR PARSING JAVA PROGRAM {saveLocation}. Please submit bug ticket! Send the file '{saveLocation}' in the bug ticket{RESET_COLOR}",file=sys.stderr)
-            db.mark_file_as_processed(file,commit_hash,status="ERROR in Java Parsing")
+            print(
+                f"{RED_COLOR}ERROR PARSING JAVA PROGRAM {saveLocation}. Please submit bug ticket! Send the file '{saveLocation}' in the bug ticket{RESET_COLOR}",
+                file=sys.stderr,
+            )
+            db.mark_file_as_processed(file, commit_hash, status="ERROR in Java Parsing")
             continue
 
         # classify api's
         local_domain_cache = {}
         for class_name in plain_classes:
-            domain = ai.classify_API(class_name) # automatically saves it to cache.
+            domain = ai.classify_API(class_name)  # automatically saves it to cache.
             local_domain_cache[class_name] = domain
             db.mark_file_api_use(file, commit_hash, class_name)
         db.save()
@@ -292,40 +297,40 @@ def processFiles(ai : AICachedClassifier, db : DatabaseManager):
         for function in functions:
             tokens = function.split("::")
             class_name = tokens[0]
-            if(class_name == "Unknown"):
+            if class_name == "Unknown":
                 continue
             function_name = tokens[1]
 
             class_domain = local_domain_cache[class_name]
-            ai.classify_function(class_name, function_name, class_domain) # automatically saves it to cache. Save for later.
+            ai.classify_function(
+                class_name, function_name, class_domain
+            )  # automatically saves it to cache. Save for later.
             db.mark_file_function_use(file, commit_hash, class_name, function_name)
-        
+
         # mark as processed and continue
         db.mark_file_as_processed(file, commit_hash)
         os.unlink(saveLocation)
         db.save()
         count += 1
-        if(count > MAX_COUNT):
+        if count > MAX_COUNT:
             break
-        
-        
+
     db.save()
 
 
 if __name__ == "__main__":
 
     # Setup!
-    if (not (os.path.isdir("generatedFiles"))):
+    if not (os.path.isdir("generatedFiles")):
         os.makedirs("generatedFiles")
 
     os.chdir("generatedFiles")
-    if (not (os.path.isdir("downloadedFiles"))):
+    if not (os.path.isdir("downloadedFiles")):
         os.makedirs("downloadedFiles")
     os.chdir("../")
 
     def setupDB():
-        """Put instructions here that you want run on first initialization (after folders are made)
-        """
+        """Put instructions here that you want run on first initialization (after folders are made)"""
         # Clear download directory
         for file in glob.glob("generatedFiles/downloadedFiles/*"):
             os.remove(file)
@@ -337,10 +342,10 @@ if __name__ == "__main__":
 
     # Create Database Connection
     db = DatabaseManager()
-    #-----------------------
-    API_listing_file = 'domain_labels.json' 
-    sub_domain_listing_file = 'subdomain_labels.json'
-    #-----------------------
+    # -----------------------
+    API_listing_file = "domain_labels.json"
+    sub_domain_listing_file = "subdomain_labels.json"
+    # -----------------------
 
     api_domain_listing = load_data(API_listing_file)
     sub_domain_listing = load_data(sub_domain_listing_file)
@@ -349,11 +354,14 @@ if __name__ == "__main__":
 
     print("Processing files")
     processFiles(classifier, db)
-    
+
     db.save()
     db.close()
 
     # EXPORT! Requires DB to be closed.
     print("Exporting....")
-    store_result.sqlite_to_csv("./generatedFiles/main.db","outputTable","./generatedFiles/core_engine_output.csv")
-
+    store_result.sqlite_to_csv(
+        "./generatedFiles/main.db",
+        "outputTable",
+        "./generatedFiles/core_engine_output.csv",
+    )

@@ -1,8 +1,3 @@
-
-
-import json
-
-
 class SymbolTable():
     def __init__(self, ast : dict):
         """Create Symbol Table Object
@@ -15,7 +10,7 @@ class SymbolTable():
         self.methodTable = []
     # in class def.
     # formal identifier. func(string A)
-    # object_creation_expression 
+    # object_creation_expression
 
     # used by method invocation.
 
@@ -25,15 +20,15 @@ class SymbolTable():
         """Find all symbols (variables) used in the program
 
         Returns:
-            list[dict]: Symbol Dictionary. [{class, name, line}, ...] 
+            list[dict]: Symbol Dictionary. [{class, name, line}, ...]
         """
         # LRP
         self.__findSymbol(self.ast)
         return self.symbols
-        
+
     def __findSymbol(self, node):
         if(node["name"] == "formal_parameter"):
-            
+
             typeID = ""
             name = ""
             startPoint = 0
@@ -44,14 +39,14 @@ class SymbolTable():
                 elif(x["type"] == "identifier"):
                     name = x["text"]
                     startPoint = x["start_point"][0]
-            
+
             if(typeID != ''):
                 self.symbols.append({"class":typeID, "name":name, "line":startPoint})
-                # ignore primitives. 
+                # ignore primitives.
 
             return
         elif(node["name"] == "field_declaration"):
-            
+
             typeID = ""
             name = ""
             startPoint = 0
@@ -67,10 +62,10 @@ class SymbolTable():
                         count += 1
                     name = children[count]["text"] # get first identifier.
                     startPoint = children[count]["start_point"][0]
-            
+
             if(typeID != ''):
                 self.symbols.append({"class":typeID, "name":name, "line":startPoint})
-                # ignore primitives. 
+                # ignore primitives.
 
             return
         elif(node["name"] == "local_variable_declaration"):
@@ -90,34 +85,34 @@ class SymbolTable():
                         count += 1
                     name = children[count]["text"] # get first identifier.
                     startPoint = children[count]["start_point"][0]
-            
+
             if(typeID != ''):
                 self.symbols.append({"class":typeID, "name":name, "line":startPoint})
-                # ignore primitives. 
+                # ignore primitives.
             return
-        
+
         # see children.
         if(len(node["children"]) == 0):
             return # nothing here!
-        
+
         for n in node["children"]:
-            # check 
+            # check
             self.__findSymbol(n)
-        
+
         # that's it! Nothing here.
-    
+
     def getMethods(self):
         """Find all methods and invocations used in the program
 
         Returns:
-            list[dict]: Method Dictionary. [{name (variable name), method, line}, ...] 
+            list[dict]: Method Dictionary. [{name (variable name), method, line}, ...]
         """
         self.__getMethod(self.ast)
         return self.methodTable
 
     def __getMethod(self, node):
         if(node["name"] == "method_invocation"):
-            
+
             tokens = []
             # tokens, first is X
             # second, is .
@@ -135,20 +130,20 @@ class SymbolTable():
                 if(x["type"] == "argument_list"):
                     # it is possible for more!
                     self.__getMethod(x)
-                
+
             if(len(tokens) >= 2):
                 self.methodTable.append({"name":tokens[0], "method":tokens[1], "line":startPoint})
-                # ignore primitives. 
+                # ignore primitives.
 
             return
-        
-        
+
+
         # see children.
         if(len(node["children"]) == 0):
             return # nothing here!
-        
+
         for n in node["children"]:
-            # check 
+            # check
             self.__getMethod(n)
-        
+
         # that's it! Nothing here.
