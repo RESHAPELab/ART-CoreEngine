@@ -6,6 +6,7 @@
 #  Short procedures. This does not include large data import/exports (like in database_init.py)
 #  See database_init.py for structure of database.
 
+from datetime import datetime
 import os
 import sqlite3
 from typing import Iterable, Optional
@@ -34,6 +35,20 @@ class DatabaseManager():
         raise NotImplementedError
         pass
 
+    def check_if_pr_already_done(self, issue_number : int):
+        """Boolean if PR is in main.db and already extracted
+
+        Args:
+            issue_number (int): Issue number
+
+        Returns:
+            bool: True if previously extracted
+        """
+        cur = self.conn.cursor()
+        cur.execute("SELECT pullNumber FROM pull_requests WHERE pullNumber = ?",(issue_number,))
+        out = cur.fetchone()
+        return out is not None
+    
     def get_unprocessed_files(self, pr : Optional[int] = None) -> Iterable[tuple[str, str]]:
         """Get list of files changed that have not been analyzed yet.
 
@@ -294,3 +309,140 @@ class DatabaseManager():
         self.conn.commit()
         backup.close()
         backup_connection.close()
+
+    def save_pr_data(self, pr_data: dict):
+        def clean_text(text):
+            """Replace newline characters with spaces, handling None values."""
+            if text is None:
+                return ""
+            return text.replace("\n", " ").replace("\r", " ")
+
+        def get_comments(data):
+            comments = data.get("comments")
+            clean_comments: list = []
+
+            if comments:
+                for comment in comments.values():
+                    body = clean_text(comment.get("body", ""))
+                    clean_comments.append(body)
+
+            return " | ".join(clean_comments)
+
+        def get_commits(data):
+            files_changed: list = []
+            clean_commits: list = []
+
+            commits = data.get("commits")
+
+            if commits:
+                for commit in commits.values():
+                    commit_date = commit.get("date", "")
+                    if commit_date:  # Only parse if commit_date is not empty
+                        try:
+                            commit_date_obj = datetime.strptime(
+                                commit_date, "%Y-%m-%dT%H:%M:%SZ"
+                            )
+                            clean_commits.append(
+                                (
+                                    commit_date_obj,
+                                    commit.get("sha", ""),
+                                    commit.get("author_name", ""),
+                                )
+                            )
+                        except ValueError:
+                            continue  # Skip this commit if the date is invalid
+                    files = commit.get("files", {})
+                    if files:
+                        files_changed.extend(files.get("file_list", []))
+
+            # Sort commits by date (newest to oldest)
+            clean_commits.sort(key=lambda x: x[0], reverse=True)
+            sorted_commit_hashes = [commit[1] for commit in clean_commits]
+
+            return sorted_commit_hashes, files_changed
+
+        cur = self.conn.cursor()
+
+        # "issue": clean_text(pr.get("title", "")),
+        # "Pull Request": pr.get("is_pr", ""),
+        # "issue text": clean_text(pr.get("title", "")),
+        # "issue description": clean_text(pr.get("body", "")),
+        # "pull request text": clean_text(pr.get("title", "")),
+        # "pull request description": clean_text(pr.get("body", "")),
+        # "created_at": clean_text(pr.get("created_at", "")),
+        # "closed_at": clean_text(pr.get("closed_at", "")),
+        # "userlogin": clean_text(pr.get("userlogin", "")),
+
+        for num, data in pr_data.items():
+            is_pr = data["is_pr"]
+
+            print(f"Is {num} PR?: {is_pr}")
+
+            if not(is_pr):
+                continue # skip if not pr.
+
+            issue_num = num
+            issue_title = clean_text(data["title"])
+            issue_body = clean_text(data["body"])
+            created = clean_text(data["created_at"])
+            closed = clean_text(data["closed_at"])
+            userlogin = clean_text(data["userlogin"])
+            comments = clean_text(get_comments(data))
+
+            commit_hashes, files_changed = get_commits(data)
+            print(commit_hashes)
+            newest_commit_hash = commit_hashes[0]
+            author = newest_commit_hash[2]
+
+            commit_hashes = " | ".join(commit_hashes)
+
+            vals = (
+                issue_num,
+                issue_title,
+                issue_body,
+                created,
+                closed,
+                userlogin,
+                author,
+                newest_commit_hash,
+            )
+            cur.execute(
+                "INSERT INTO pull_requests (pullNumber, title, descriptionText, created, closed, userlogin, author, most_recent_commit) VALUES (?,?,?,?,?,?,?,?)",
+                vals,
+            )
+            for comment in comments:
+                if comment == "":
+                    continue
+                cur.execute(
+                    "INSERT INTO pull_request_comments (pullNumber, comment) VALUES (?,?)",
+                    (issue_num, comment),
+                )
+
+            for file_change in set(files_changed):
+                if file_change == "":
+                    continue
+                
+                search_request = cur.execute(
+                    "SELECT pullNumber FROM files_changed WHERE filename=? AND commit_hash=?",
+                    (file_change, newest_commit_hash)
+                )
+
+                search_result = search_request.fetchone()
+                if search_result is None:  # no duplicates!
+                    cur.execute(
+                        "INSERT INTO files_changed (pullNumber, filename, commit_hash) VALUES (?, ?, ?)",  # sets processed to NULL
+                        (issue_num, file_change, newest_commit_hash),
+                    )
+                elif(search_result[0] != issue_num):
+                    cur.execute(
+                        "UPDATE files_changed SET pullNumber=? WHERE filename = ? AND commit_hash = ?",
+                        (issue_num, file_change, newest_commit_hash),
+                    )
+            if newest_commit_hash != "":
+                for commit in commit_hashes:
+                    cur.execute(
+                        "INSERT INTO pull_request_commits (pullNumber, commit_hash) VALUES (?,?)",
+                        (issue_num, commit),
+                    )
+
+        self.conn.commit()

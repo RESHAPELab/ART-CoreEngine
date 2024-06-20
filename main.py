@@ -25,19 +25,19 @@ def main():
 
     cfg_dict: dict = get_user_cfg()
     cfg_obj = conf.Cfg(cfg_dict, schema.cfg_schema)
+    db = database_manager.DatabaseManager()
 
     print("\nInitializing extractor...")
     gh_ext = extractor.Extractor(cfg_obj)
     print(f"{tab}Extractor initialization complete!")
 
     print("\nRunning extractor...")
-    gh_ext.get_repo_issues_data()
+    gh_ext.get_repo_issues_data(db)
     print(f"{tab}Issue data complete!")
 
     print("\nExtraction complete!\n")
 
     print("\nClassifying files from downloaded PRs for predictions training ")
-    db = database_manager.DatabaseManager()
     api_labels = utils.read_jsonfile_into_dict(cfg_obj.get_cfg_val("api_domain_label_listing"))
     sub_labels = utils.read_jsonfile_into_dict(cfg_obj.get_cfg_val("api_subdomain_label_listing"))
     ai = ai_taxonomy.AICachedClassifier(api_labels, sub_labels, db)
@@ -45,6 +45,7 @@ def main():
     processFiles(ai, db) # TODO. Move processFiles into src, incorporate it.
     db.save()
     db.close()
+    print("\nFinished!")
 
 
 def init_db():

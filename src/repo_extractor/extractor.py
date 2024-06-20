@@ -7,6 +7,7 @@ import time
 import traceback
 import github
 from src import database_init
+from src.database_manager import DatabaseManager
 from src.repo_extractor import conf, schema, utils
 
 
@@ -313,7 +314,7 @@ class Extractor:
     # If a helper is capable of being used by more than one,
     # it will be listed above this heading.
     # ----------------------------------------------------------------------
-    def get_repo_issues_data(self) -> None:
+    def get_repo_issues_data(self, db : DatabaseManager) -> None:
         """
         Gather all chosen data points from chosen issue numbers.
 
@@ -343,9 +344,26 @@ class Extractor:
         # ends are exclusive. To make it end-inclusive, we add 1
         repo_slice = self.paged_list[start_index : end_index + 1]
 
+        def is_pr(cur_issue):
+            try:
+                cur_pr = cur_issue.as_pull_request()
+                return True
+            except github.UnknownObjectException:
+                # Not a PR, does not need to raise an error.
+                # Return up and keep going
+                return False
+        
         print(f"{TAB}Starting mining at #{issue_range[0]}...")
 
         for cur_issue in repo_slice:
+            if(db.check_if_pr_already_done(cur_issue.number)):
+               print(f"{TAB}{TAB}Skipping issue {cur_issue.number} as it already has been extracted")
+               continue # skip issues that have already been extracted
+            if(not(is_pr(cur_issue))):
+                print(f"{TAB}{TAB}Skipping issue {cur_issue.number} as it is not a PR")
+                continue
+
+
             cur_issue_data: dict = {}
 
             try:
@@ -357,10 +375,10 @@ class Extractor:
                             cur_issue,
                         )
 
-                issue_data: dict = {str(cur_issue.number): cur_issue_data}
+                issue_data: dict = {cur_issue.number: cur_issue_data}
 
             except github.RateLimitExceededException:
-                database_init.save_pr_data(out_data)
+                db.save_pr_data(out_data)
 
                 # clear dictionary so that it isn't massive and holding
                 # onto data that we have already written to output
@@ -375,7 +393,7 @@ class Extractor:
                 socket.gaierror,
             ):
                 print("\nWriting gathered data...")
-                database_init.save_pr_data(out_data)
+                db.save_pr_data(out_data)
 
                 print(f"{TAB}Terminating at item #{cur_issue.number}\n")
                 print("---------------------------------------------\n\n")
@@ -388,7 +406,7 @@ class Extractor:
                 print(f"{CLR}{TAB * 2}Issue: {cur_issue.number}, ", end="")
                 print(f"calls: {self.gh_sesh.get_remaining_calls()}", end="\r")
 
-        database_init.save_pr_data(out_data)
+        db.save_pr_data(out_data)
 
         print()
 
