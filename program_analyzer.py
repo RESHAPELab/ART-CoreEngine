@@ -218,16 +218,17 @@ class JavaProgram:
         return self.getClasses(), self.getFunctions()
 
 
-def processFiles(ai: AICachedClassifier, db: DatabaseManager):
+def process_files(ai: AICachedClassifier, db: DatabaseManager, pr=None):
     """Process files that have not been processed yet
 
     Args:
         ai (AICachedClassifier): AI Classifier Engine
         db (DatabaseManager): Database Engine
+        pr (Optional[int], default=None): Set to pr # for processing files from a specific PR # 
     """
     MAX_COUNT = 100000  # adjust for how many successful *java* files to process when function called!!!
 
-    files = db.get_unprocessed_files()
+    files = db.get_unprocessed_files(pr)
     # later change to process files from one PR! db.get_unprocessed_files(pr)
     count = 0
     files_done = set()
@@ -258,12 +259,12 @@ def processFiles(ai: AICachedClassifier, db: DatabaseManager):
             )
         except Exception as e:
             print(
-                f"{YELLOW_COLOR}Error downloading file {commit_hash, file}. Likely requires a different commit. Please check. \n Error: {e}{RESET_COLOR}",
+                f"\t{YELLOW_COLOR}Error downloading file {commit_hash, file}. Likely requires a different commit. Please check. \n Error: {e}{RESET_COLOR}",
                 file=sys.stderr,
             )
             db.mark_file_as_processed(file, commit_hash, status="Error downloading")
             continue
-        print("Downloaded: ", commit_hash, file)
+        print("\tDownloaded: ", commit_hash, file)
 
         # generated AST.
         try:
@@ -279,7 +280,7 @@ def processFiles(ai: AICachedClassifier, db: DatabaseManager):
             functions = pgrm.getFunctions().keys()
         except:
             print(
-                f"{RED_COLOR}ERROR PARSING JAVA PROGRAM {saveLocation}. Please submit bug ticket! Send the file '{saveLocation}' in the bug ticket{RESET_COLOR}",
+                f"\t{RED_COLOR}ERROR PARSING JAVA PROGRAM {saveLocation}. Please submit bug ticket! Send the file '{saveLocation}' in the bug ticket{RESET_COLOR}",
                 file=sys.stderr,
             )
             db.mark_file_as_processed(file, commit_hash, status="ERROR in Java Parsing")
@@ -353,7 +354,7 @@ if __name__ == "__main__":
     classifier = AICachedClassifier(api_domain_listing, sub_domain_listing, db)
 
     print("Processing files")
-    processFiles(classifier, db)
+    process_files(classifier, db)
 
     db.save()
     db.close()

@@ -5,6 +5,7 @@ import socket
 import sys
 import time
 import traceback
+from typing import List
 import github
 from src import database_init
 from src.database_manager import DatabaseManager
@@ -321,6 +322,9 @@ class Extractor:
         This method is our access point into the GitHub API, the
         primary tool afforded by the Extractor class to the user.
 
+        Returns:
+            list[int] : List of PRs available, for use in querying the database
+        
         Raises:
             github.RateLimitExceededException: if rate limited
                 by the GitHub REST API, dump collected data to
@@ -332,6 +336,8 @@ class Extractor:
             "commits": self.__get_issue_commits,
             "comments": self.__get_issue_comments,
         }.items()
+
+        processed_prs_out : List[int] = []
 
         out_data: dict = {}
         issue_range: list = self.cfg.get_cfg_val("range")
@@ -357,12 +363,12 @@ class Extractor:
 
         for cur_issue in repo_slice:
             if(db.check_if_pr_already_done(cur_issue.number)):
+               processed_prs_out.append(cur_issue.number)
                print(f"{TAB}{TAB}Skipping issue {cur_issue.number} as it already has been extracted")
                continue # skip issues that have already been extracted
             if(not(is_pr(cur_issue))):
                 print(f"{TAB}{TAB}Skipping issue {cur_issue.number} as it is not a PR")
                 continue
-
 
             cur_issue_data: dict = {}
 
@@ -401,6 +407,7 @@ class Extractor:
                 sys.exit(1)
 
             else:
+                processed_prs_out.append(cur_issue.number)
                 out_data |= issue_data
 
                 print(f"{CLR}{TAB * 2}Issue: {cur_issue.number}, ", end="")
@@ -409,6 +416,7 @@ class Extractor:
         db.save_pr_data(out_data)
 
         print()
+        return processed_prs_out
 
     def __get_issue_comments(self, fields: list, cmd_tbl: dict, issue) -> dict:
         """
