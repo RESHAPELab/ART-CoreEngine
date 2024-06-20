@@ -44,10 +44,42 @@ def main():
 
     for pr in prs:
         print(f"\nClassifying files from PR {pr} for predictions training ")
-        processing.process_files(ai, db, pr) # TODO. Move processFiles into src, incorporate it.
+        processing.process_files(ai, db, pr) # Here is where ASTs and classification is done. All the "heavy lifting" of the core engine
     db.save()
     db.close()
     print("\nFinished!")
+
+
+    # Pseudo code below... just the concepts (and thoughts, this is not set in stone... what do you think?)
+    # import llm_classifier
+    # training_model == (get from command line)
+    #
+    # if training_model == "GPT":
+
+    #     # Generate fine tuning file
+    #
+    #     data_from_extraction = database manager query OutputTable
+    # 
+    #     system_message, assistant_message = llm_classifier.generate_system_message(domain_dictionary, data_from_extraction)
+    #     generate_gpt_messages(system_message, assistant_message, df)
+
+    #     # Fine tune GPT Model
+    #     llm_classifier = fine_tune_gpt(openAI_key)
+    #     save_model(llm_classifier)
+
+    # if model == "Random Forest":
+
+    #     data_from_extraction = database manager query OutputTable
+    # 
+    #     rf_model = llm_classifier.train_rf(domain_dictionary, data_from_extraction)
+
+    #     save_model(rf_model)
+
+    # exit()
+
+    # The "running portion" will be in the UI part only.
+    # UI will call methods from CoreEngine/Extractor to extract PRs/Issues, and then call llm_classifier.get_llm_response(issue) and rf_response(issue)
+
 
 
 def init_db():
