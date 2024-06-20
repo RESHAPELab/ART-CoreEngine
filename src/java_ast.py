@@ -9,38 +9,43 @@ This program constitutes the main of the CoreEngine
 from src.symbol_table import SymbolTable
 from src import tokens as tokenExtract
 
+# TODO. Refactor this.
 
-class JavaProgram:
-    """Class represents a Java AST Tree."""
-
-    def __init__(self, java_ast: dict):
+class JavaProgram():
+    """Class represents a Java AST Tree.
+    """
+    def __init__(self, javaAST : dict):
         """Set up the class. Requires AST.
 
         Args:
-            java_ast (dict): AST
+            javaAST (dict): AST
         """
-        self.ast = java_ast
+        self.ast = javaAST
 
+        # Cached Responses
+        self.reset()
+    
+    def reset(self):
+        """Reset internal caches"""
         self.classes = None
         self.plain_classes = None
         self.methods = None
         self.symbols = None
-        self.complete_table = None
+        self.completeTable = None
         self.functions = None
 
-    def get_classes(self):
+    def getClasses(self):
         """Get classes in program
 
         Returns:
             set[str]: Set of all classes in program
         """
-        if self.plain_classes is not None:
+        if(not(self.plain_classes) is None):
             return self.plain_classes
 
         self.plain_classes = set()
-
-        class_options = self.get_class_options()
-        for class_name in class_options.items():
+        class_options = self.getClassOptions()
+        for class_name in class_options:
             node = class_options[class_name]
             if node == 0:
                 continue
@@ -48,93 +53,90 @@ class JavaProgram:
                 self.plain_classes.add(x)
         return self.plain_classes
 
-    def get_class_options(self):
-        """
-        Takes the classnames from the file, matches it to imports, and
-        returns all the full-name class names.
+    def getClassOptions(self):
+        """Takes the classnames from the file, matches it to imports, and returns all the full-name class names.
 
         Returns:
-            list: Data structure with the tokens matched to the full
-            class name based off of imports.
+            list: Data structure with the tokens
+                  matched to the full class name based off of imports.
         """
 
-        if self.classes is not None:
+        if(not(self.classes is None)):
             return self.classes
 
         ast = self.ast
 
         tokens = set(tokenExtract.pullToken(ast))
-        imports = set(tokenExtract.pullImport(ast))
+        imports =  set(tokenExtract.pullImport(ast))
 
         result = {}
-        import_items = {}
+        importItems = {}
         for i in imports:
             params = i.split(".")
             name = params[-1]
-            if name in import_items:
-                import_items[name].append(i)
+            if(name in importItems):
+                importItems[name].append(i)
             else:
-                import_items[name] = [i]
+                importItems[name] = [i]
 
         for token in tokens:
             # check to see if it is in the imports.
             # if not, check lang
             # if not, fail
-            if token in import_items:
-                result[token] = import_items[token]
+            if(token in importItems):
+                result[token] = importItems[token]
             else:
                 result[token] = 0
-
+        
         self.classes = result
         return result
 
-    def populate_symbol_table(self):
-        """Pre-generate symbols and methods"""
+    def populateSymbolTable(self):
+        """Pre-generate symbols and methods
+        """
+        pgrmTables = SymbolTable(self.ast)
+        self.symbols = pgrmTables.findSymbols()  # gets all classes with variable names.
+        self.methods = pgrmTables.getMethods()  # gets all methods from variable name.
 
-        pgrm_tables = SymbolTable(self.ast)
-
-        self.symbols = (
-            pgrm_tables.findSymbols()
-        )  # gets all classes with variable names.
-
-        self.methods = pgrm_tables.getMethods()  # gets all methods from variable name.
-
-    def get_complete_symbol_table(self):
+    def getCompleteSymbolTable(self):
         """Match methods and symbols and class names into a combined data structure.
 
         Returns:
             dict: Data Structure of compiled symbols, methods, and classes.
         """
 
-        if self.classes is None:
-            self.get_class_options()
-
-        if self.symbols is None or self.methods is None:
-            self.populate_symbol_table()
-
-        if self.complete_table is not None:
-            return self.complete_table
+        if(self.classes is None):
+            self.getClassOptions()
+        if(self.symbols is None or self.methods is None):
+            self.populateSymbolTable()
+        
+        if(not(self.completeTable is None)):
+            return self.completeTable
 
         out = {}
-        for class_name in self.classes:
-            out[class_name] = {"full": self.classes[class_name], "varlist": []}
+        for className in self.classes:
+            out[className] = {"full" : self.classes[className], "varlist" : []}
 
             for num, variable in enumerate(self.symbols):
-                if variable["class"] != class_name:
+                if(variable["class"] != className):
                     continue
-                variable_name = variable["name"]
+                variableName = variable["name"]
+                lineNumber = variable["line"]
 
-                for vr in self.symbols[num + 1 :]:
+                nextLine = -1
+                for vr in self.symbols[num+1:]:
                     # see if there are any more!
-                    if vr["class"] != class_name:
+                    if(vr["class"] != className):
                         continue
-                    # if(variable["line"] > lineNumber):
-                    break  # CHECK! We may need to move this back.
+                # if(variable["line"] > lineNumber):
+                    nextLine = vr["line"] - 1
+                    break # CHECK! We may need to move this back.
 
-                method_out = []
+
+                methodOut = []
                 for method in self.methods:
                     # check to see if it is referencing the same variable
-                    if method["name"] != variable_name:
+                    if(method["name"] != variableName):
                         continue
 
                     # TODO: instead of comparing line numbers, compare depth in AST tree.
@@ -144,50 +146,50 @@ class JavaProgram:
                     # if(nextLine != -1 and method["line"] > nextLine):
                     #     continue
                     # print("Append!")
-                    method_out.append(method)
+                    methodOut.append(method)
 
-                out[class_name]["varlist"].append(
-                    {"variable": variable, "methods": method_out}
-                )
-
-        self.complete_table = out
+                out[className]["varlist"].append({"variable":variable, "methods": methodOut})
+        
+        self.completeTable = out
         return out
 
-    def get_functions(self):
+    def getFunctions(self):
         """Return all the functions used in the program
 
         Returns:
             dict[str : list]: function_name : [line numbers]
         """
-        if self.functions is not None:
+        if(not(self.functions is None)):
             return self.functions
-
-        if self.complete_table is None:
-            self.get_complete_symbol_table()
+        
+        if(self.completeTable is None):
+            self.getCompleteSymbolTable()
+        
 
         functions = {}
-        for class_name in self.complete_table:
-            data = self.complete_table[class_name]
+        for className in self.completeTable:
+            data = self.completeTable[className]
 
-            methods_general = []
+            methodsGeneral = []
             for varl in data["varlist"]:
                 for m in varl["methods"]:
-                    methods_general.append(m)
-
-            if data["full"] != 0:
-                for f_n in data["full"]:
-                    for m_n in methods_general:
-                        if f"{f_n}::{m_n['method']}" in functions:
-                            functions[f"{f_n}::{m_n['method']}"].append(m_n["line"])
+                    methodsGeneral.append(m)
+            
+            fullName = "Unknown"
+            if(data["full"] != 0):
+                for fN in data["full"]:
+                    for mN in methodsGeneral:
+                        if(f"{fN}::{mN['method']}" in functions):
+                            functions[f"{fN}::{mN['method']}"].append(mN["line"])
                         else:
-                            functions[f"{f_n}::{m_n['method']}"] = [m_n["line"]]
+                            functions[f"{fN}::{mN['method']}"] = [mN["line"]]
             else:
-                for m_n in methods_general:
-                    if f"Unknown::{m_n['method']}" in functions:
-                        functions[f"Unknown::{m_n['method']}"].append(m_n["line"])
+                for mN in methodsGeneral:
+                    if(f"Unknown::{mN['method']}" in functions):
+                        functions[f"Unknown::{mN['method']}"].append(mN["line"])
                     else:
-                        functions[f"Unknown::{m_n['method']}"] = [m_n["line"]]
-
+                        functions[f"Unknown::{mN['method']}"] = [mN["line"]]
+        
         self.functions = functions
         return functions
 
@@ -199,4 +201,6 @@ class JavaProgram:
             set: classes
             dict: functions
         """
-        return self.get_classes(), self.get_functions()
+        return self.getClasses(), self.getFunctions()
+    
+    

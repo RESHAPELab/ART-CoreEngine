@@ -6,9 +6,9 @@ import os
 from src import (
     database_init, 
     database_manager,
-    ai_taxonomy
+    ai_taxonomy,
+    processing
 )
-from program_analyzer import process_files # TODO. Incorporate this function into code.
 from src.repo_extractor import (
     conf,
     extractor,
@@ -44,7 +44,7 @@ def main():
 
     for pr in prs:
         print(f"\nClassifying files from PR {pr} for predictions training ")
-        process_files(ai, db, pr) # TODO. Move processFiles into src, incorporate it.
+        processing.process_files(ai, db, pr) # TODO. Move processFiles into src, incorporate it.
     db.save()
     db.close()
     print("\nFinished!")
