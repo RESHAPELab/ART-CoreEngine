@@ -7,7 +7,6 @@ import time
 import traceback
 from typing import List
 import github
-from src import database_init
 from src.database_manager import DatabaseManager
 from src.repo_extractor import conf, schema, utils
 
@@ -324,20 +323,30 @@ class Extractor:
 
         Returns:
             list[int] : List of PRs available, for use in querying the database
-        
+
         Raises:
             github.RateLimitExceededException: if rate limited
                 by the GitHub REST API, dump collected data to
                 output file and sleep the program until calls
                 can be made again.
         """
+
+        def is_pr(cur_issue):
+            try:
+                cur_pr = cur_issue.as_pull_request()
+                return True
+            except github.UnknownObjectException:
+                # Not a PR, does not need to raise an error.
+                # Return up and keep going
+                return False
+
         func_schema = {
             "issues": self.__get_item_data,
             "commits": self.__get_issue_commits,
             "comments": self.__get_issue_comments,
         }.items()
 
-        processed_prs_out : List[int] = []
+        processed_prs_out: List[int] = []
 
         out_data: dict = {}
         issue_range: list = self.cfg.get_cfg_val("range")
@@ -350,23 +359,16 @@ class Extractor:
         # ends are exclusive. To make it end-inclusive, we add 1
         repo_slice = self.paged_list[start_index : end_index + 1]
 
-        def is_pr(cur_issue):
-            try:
-                cur_pr = cur_issue.as_pull_request()
-                return True
-            except github.UnknownObjectException:
-                # Not a PR, does not need to raise an error.
-                # Return up and keep going
-                return False
-        
         print(f"{TAB}Starting mining at #{issue_range[0]}...")
 
         for cur_issue in repo_slice:
-            if(db.check_if_pr_already_done(cur_issue.number)):
-               processed_prs_out.append(cur_issue.number)
-               print(f"{TAB}{TAB}Skipping issue {cur_issue.number} as it already has been extracted")
-               continue # skip issues that have already been extracted
-            if(not(is_pr(cur_issue))):
+            if db.check_if_pr_already_done(cur_issue.number):
+                processed_prs_out.append(cur_issue.number)
+                print(
+                    f"{TAB}{TAB}Skipping issue {cur_issue.number} as it already has been extracted"
+                )
+                continue  # skip issues that have already been extracted
+            if not is_pr(cur_issue):
                 print(f"{TAB}{TAB}Skipping issue {cur_issue.number} as it is not a PR")
                 continue
 

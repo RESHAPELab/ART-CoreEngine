@@ -3,12 +3,7 @@
 import argparse
 import glob
 import os
-from src import (
-    database_init, 
-    database_manager,
-    ai_taxonomy,
-    processing
-)
+from src import database_init, database_manager, ai_taxonomy, processing
 from src.repo_extractor import (
     conf,
     extractor,
@@ -19,36 +14,31 @@ from src.repo_extractor import (
 
 def main():
     """Driver function for GitHub Repo Extractor."""
-    tab: str = " " * 4
-
     init_db()
 
     cfg_dict: dict = get_user_cfg()
     cfg_obj = conf.Cfg(cfg_dict, schema.cfg_schema)
     db = database_manager.DatabaseManager()
 
-    print("\nInitializing extractor...")
     gh_ext = extractor.Extractor(cfg_obj)
-    print(f"{tab}Extractor initialization complete!")
-
-    print("\nRunning extractor...")
     prs = gh_ext.get_repo_issues_data(db)
-    print(f"{tab}Issue data complete!")
 
-    print("\nExtraction complete!\n")
-
-    
-    api_labels = utils.read_jsonfile_into_dict(cfg_obj.get_cfg_val("api_domain_label_listing"))
-    sub_labels = utils.read_jsonfile_into_dict(cfg_obj.get_cfg_val("api_subdomain_label_listing"))
+    api_labels = utils.read_jsonfile_into_dict(
+        cfg_obj.get_cfg_val("api_domain_label_listing")
+    )
+    sub_labels = utils.read_jsonfile_into_dict(
+        cfg_obj.get_cfg_val("api_subdomain_label_listing")
+    )
     ai = ai_taxonomy.AICachedClassifier(api_labels, sub_labels, db)
 
     for pr in prs:
         print(f"\nClassifying files from PR {pr} for predictions training ")
-        processing.process_files(ai, db, pr) # Here is where ASTs and classification is done. All the "heavy lifting" of the core engine
+        processing.process_files(
+            ai, db, pr
+        )  # Here is where ASTs and classification is done. All the "heavy lifting" of the core engine
+
     db.save()
     db.close()
-    print("\nFinished!")
-
 
     # Pseudo code below... just the concepts (and thoughts, this is not set in stone... what do you think?)
     # import llm_classifier
@@ -59,7 +49,7 @@ def main():
     #     # Generate fine tuning file
     #
     #     data_from_extraction = database manager query OutputTable
-    # 
+    #
     #     system_message, assistant_message = llm_classifier.generate_system_message(domain_dictionary, data_from_extraction)
     #     generate_gpt_messages(system_message, assistant_message, df)
 
@@ -70,7 +60,7 @@ def main():
     # if model == "Random Forest":
 
     #     data_from_extraction = database manager query OutputTable
-    # 
+    #
     #     rf_model = llm_classifier.train_rf(domain_dictionary, data_from_extraction)
 
     #     save_model(rf_model)
@@ -79,7 +69,6 @@ def main():
 
     # The "running portion" will be in the UI part only.
     # UI will call methods from CoreEngine/Extractor to extract PRs/Issues, and then call llm_classifier.get_llm_response(issue) and rf_response(issue)
-
 
 
 def init_db():
