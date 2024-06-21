@@ -315,7 +315,7 @@ class Extractor:
     # If a helper is capable of being used by more than one,
     # it will be listed above this heading.
     # ----------------------------------------------------------------------
-    def get_repo_issues_data(self, db : DatabaseManager) -> None:
+    def get_repo_issues_data(self, db: DatabaseManager):
         """
         Gather all chosen data points from chosen issue numbers.
 
