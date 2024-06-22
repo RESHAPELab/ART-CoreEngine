@@ -1,6 +1,6 @@
 # ART-CoreEngine
 By Dylan Johnson, Benjamin Carter, and Hunter Jenkins
-Parser and code understanding engine 
+Parser and code understanding engine
 
 > Please run `onClone.sh` when repo is cloned for the first time!!!!
 
@@ -19,12 +19,12 @@ Parser and code understanding engine
     |-------------------------|       |
                                       |  datamining.pkl Contains table of PRs and files changed
     |-------------------------|       |
-    | ProgramAnalyzer.py      | <------
+    |         main.py         | <------
     |                         | -----
     |-------------------------|      |
-                                     |  main.db   Contains all PRs, files changed, and AI Classifications. 
+                                     |  main.db   Contains all PRs, files changed, and AI Classifications.
                                      |      More verbose and supports SQL
-    |-------------------------|      |  core_engine_output.csv   Contains all PRs 
+    |-------------------------|      |  core_engine_output.csv   Contains all PRs
     |                         |      |      and AI Classifications as one table
     | Predictions Team        |  <---
     |-------------------------|
@@ -35,24 +35,24 @@ Parser and code understanding engine
 > An example flow for data training:
 >  1. Mine data into the given JSON (OSL-repo-extractor)
 >  2. Run JSONToCSV.py from the ART-Mining Repository
->  3. Copy the resulting `datamining.pkl` to this repository into the 
-`generatedFiles directory.`
+>  3. Copy the resulting `datamining.pkl` to this repository into the
+`output directory.`
 >  4. Setup the environment [See Build Instructions](#build-instructions)
->  5. Run `ProgramAnalyzer.py`
+>  5. Run `main.py`
 >  6. Copy the resulting `core_engine_output.csv` and `main.db`
 into the predictions repository ART-Predictions.
 >  7. Run the predictions program.
 
 ---
 
-If you want to see the AI calls in real time, run 
-`tail -n 100 -f generatedFiles/ai_log.csv`
+If you want to see the AI calls in real time, run
+`tail -n 100 -f output/ai_log.csv`
 
 ---
 
-## generatedFiles format:
+## output format:
 - `ai_log.csv` This is the log of all AI calls done. DO NOT DELETE
-- `datamining.pkl` This is the data from the datamining team. DO NOT DELETE. 
+- `datamining.pkl` This is the data from the datamining team. DO NOT DELETE.
 Download this from the google drive or run ART-Mining's JSONToCSV.py script
 - `main.db` This is the main database file that manages all the run artifacts. Deleting this file will prompt complete environment regeneration.
 - `ai_cache_results.db` This will be a backup persistent database. DO NOT DELETE.
@@ -60,10 +60,10 @@ Download this from the google drive or run ART-Mining's JSONToCSV.py script
 - `core_engine_output.csv` This is for predictions team.
 
 > :warning: **Warning**<br>
-SAVE AND BACKUP both `ai_log.csv` and `ai_result_backup.db` in the `generatedFiles` directory as this keeps track of AI artifacts. Deleting this file can result in having to redo OpenAI calls, costing money!
+SAVE AND BACKUP both `ai_log.csv` and `ai_result_backup.db` in the `output` directory as this keeps track of AI artifacts. Deleting this file can result in having to redo OpenAI calls, costing money!
 
 > :information_source: **Info**<br>
-If you want to restart the analysis, delete **ONLY** the `main.db` file in the `generatedFiles` directory.
+If you want to restart the analysis, delete **ONLY** the `main.db` file in the `output` directory.
 
 ## Build Instructions:
 
