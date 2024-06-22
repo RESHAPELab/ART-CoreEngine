@@ -23,6 +23,13 @@ tqdm = "4.66.2"
 tree-sitter = "0.21"
 numpy = "1.24.3"
 
+#  pandas~=2.2.2
+#  numpy~=1.26.4
+#  emoji~=2.12.1
+#  openai~=1.33.0
+#  tiktoken~=0.7.0
+#  requests~=2.32.2
+
 
 [build-system]
 requires = ["poetry-core"]

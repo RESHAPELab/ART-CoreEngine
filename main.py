@@ -3,7 +3,18 @@
 import argparse
 import glob
 import os
-from src import database_init, database_manager, ai_taxonomy, processing
+import sys
+
+from dotenv import load_dotenv  # do a pip install dotenv
+import pandas as pd
+
+from src import (
+    ai_taxonomy,
+    database_init,
+    database_manager,
+    open_issue_classification as classifier,
+    processing,
+)
 from src.repo_extractor import (
     conf,
     extractor,
@@ -33,42 +44,74 @@ def main():
 
     for pr in prs:
         print(f"\nClassifying files from PR {pr} for predictions training ")
-        processing.process_files(
-            ai, db, pr
-        )  # Here is where ASTs and classification is done. All the "heavy lifting" of the core engine
+
+        # Here is where ASTs and classification are done;
+        # all the "heavy lifting" of the core engine
+        processing.process_files(ai, db, pr)
 
     db.save()
     db.close()
 
-    # Pseudo code below... just the concepts (and thoughts, this is not set in stone... what do you think?)
-    # import llm_classifier
-    # training_model == (get from command line)
-    #
-    # if training_model == "GPT":
+    load_dotenv()
+    openai_key = os.getenv("OPENAI_KEY")
+    method = cfg_dict["classification_method"]
 
-    #     # Generate fine tuning file
-    #
-    #     data_from_extraction = database manager query OutputTable
-    #
-    #     system_message, assistant_message = llm_classifier.generate_system_message(domain_dictionary, data_from_extraction)
-    #     generate_gpt_messages(system_message, assistant_message, df)
+    df = get_pr_df("./output/main.db")
 
-    #     # Fine tune GPT Model
-    #     llm_classifier = fine_tune_gpt(openAI_key)
-    #     save_model(llm_classifier)
+    if method == "gpt":
+        system_message, assistant_message = classifier.generate_system_message(
+            sub_labels, df
+        )
+        classifier.generate_gpt_messages(system_message, assistant_message, df)
 
-    # if model == "Random Forest":
+        llm_classifier = classifier.fine_tune_gpt(openai_key)
+        #  classifier.save_model(llm_classifier)
 
-    #     data_from_extraction = database manager query OutputTable
-    #
-    #     rf_model = llm_classifier.train_rf(domain_dictionary, data_from_extraction)
+    if method == "rf":
+        df = df.drop(
+            columns=[
+                "PR #",
+                "Pull Request",
+                "created_at",
+                "closed_at",
+                "userlogin",
+                "author_name",
+                "most_recent_commit",
+                "filename",
+                "file_commit",
+                "api",
+                "function_name",
+                "api_domain",
+                "subdomain",
+            ]
+        )
+        df = df.dropna()
 
-    #     save_model(rf_model)
+        print("processing data...")
+        x_text_features, _ = classifier.extract_text_features(df)
 
-    # exit()
+        # Transform labels
+        y_df, _ = classifier.transform_labels(df)
 
-    # The "running portion" will be in the UI part only.
-    # UI will call methods from CoreEngine/Extractor to extract PRs/Issues, and then call llm_classifier.get_llm_response(issue) and rf_response(issue)
+        # Combine features
+        x_combined = classifier.create_combined_features(x_text_features)
+
+        # Perform MLSMOTE to augment the data
+        print("balancing classes...")
+        x_augmented, y_augmented = classifier.perform_mlsmote(
+            x_combined, y_df, n_sample=500
+        )
+
+        print("training RF model...")
+        x_combined = pd.concat([x_combined, x_augmented], axis=0)
+        y_combined = pd.concat([y_df, y_augmented], axis=0)
+
+        # Train
+        clf = classifier.train_random_forest(x_combined, y_combined)
+
+        # save_model(rf_model)
+
+    sys.exit()
 
 
 def init_db():
@@ -119,6 +162,20 @@ def get_cli_args() -> str:
     )
 
     return arg_parser.parse_args().extractor_cfg_file
+
+
+def get_pr_df(db_path):
+    """Todo."""
+    df = classifier.db_to_df(db_path)
+    columns_to_convert = df.columns[15:]
+    df[columns_to_convert] = df[columns_to_convert].applymap(
+        lambda x: 1 if x > 0 else 0
+    )
+    df["issue text"] = df["issue text"].apply(classifier.clean_text)
+    df["issue description"] = df["issue description"].apply(classifier.clean_text)
+    df = classifier.filter_domains(df)
+
+    return df
 
 
 if __name__ == "__main__":
