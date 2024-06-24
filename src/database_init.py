@@ -210,12 +210,11 @@ def __init_output_db():
     )
 
     cur.execute(
-        """
-            CREATE UNIQUE INDEX IF NOT EXISTS "QuickFileChange" ON "files_changed" (
-                "filename"	ASC,
-                "commit_hash"	ASC
-            );
-            """
+        """CREATE INDEX IF NOT EXISTS "QuickFunctionCache" ON "function_cache" (
+            "classname",
+            "function_name",
+            "subdomain"
+        )"""
     )
 
     # Data structure for export... this defines the output table. It is an SQL view to use

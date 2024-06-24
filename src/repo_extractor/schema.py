@@ -219,6 +219,7 @@ cfg_schema: dict = {
     "api_domain_label_listing": _str_type,
     "api_subdomain_label_listing": _str_type,
     "classification_method": _str_type,
+    "classification_model_save": _str_type,
     **issues_fields_schema,
     "state": {**_str_type, "allowed": ["closed", "open"]},
     "range": {

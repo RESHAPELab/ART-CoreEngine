@@ -7,9 +7,15 @@
 #  See database_init.py for structure of database.
 
 from datetime import datetime
+import json
 import os
 import sqlite3
+import time
 from typing import Iterable, Optional
+
+import numpy as np
+import pandas as pd
+import tqdm
 
 
 class DatabaseManager:
@@ -19,16 +25,21 @@ class DatabaseManager:
         self,
         dbfile: str = "./output/main.db",
         cachefile: str = "./output/ai_result_backup.db",
+        label_file: str = "./data/subdomain_labels.json",
     ):
         """Construct and open connection to database.
 
         Args:
             dbfile (str, optional): _description_. Defaults to "./output/main.db".
             cachefile (str, optional): _description_. Defaults to "./output/cache.db".
+            label_file (str, optional): List of labels/sublabels for APIs
         """
         self.conn = sqlite3.connect(dbfile)
         self.cache_file = cachefile
         self.cache_update = False
+
+        with open(label_file, "r", encoding="UTF-8") as f:
+            self.domain_labels = json.load(f)
 
     def add_pull_request(self, row: list):
         # TODO
@@ -76,6 +87,30 @@ class DatabaseManager:
         else:
             cur.execute(
                 "SELECT filename, commit_hash FROM files_changed WHERE processed IS NULL AND pullNumber=?",
+                (pr,),
+            )
+        return cur.fetchall()
+
+    def get_processed_files(
+        self, pr: Optional[int] = None
+    ) -> Iterable[tuple[str, str]]:
+        """Get list of files changed that have been successfully analyzed yet.
+
+        Args:
+            pr (Optional[int]): Pull request number to query.
+
+        Returns:
+            Iterable[tuple[str, str]]: SQL table with columns: file_path and commit_hash
+        """
+        # go file by file that has not been processed.
+        cur = self.conn.cursor()
+        if pr is None:
+            cur.execute(
+                "SELECT filename, commit_hash FROM files_changed WHERE processed IS NOT NULL"
+            )
+        else:
+            cur.execute(
+                "SELECT filename, commit_hash FROM files_changed WHERE processed IS NOT AND pullNumber=?",
                 (pr,),
             )
         return cur.fetchall()
@@ -550,3 +585,172 @@ class DatabaseManager:
                     )
 
         self.conn.commit()
+
+    def get_df(self, prs):
+        # Path to your SQLite database
+        full_data = []
+        # Iterate through PR numbers until none are found
+        for pr in tqdm.tqdm(prs):
+            curr_entry = self.get_pr_data(pr=pr)
+
+            if curr_entry is None:
+                continue
+
+            full_data.append(curr_entry)
+
+        print(
+            f"Processed {len(full_data)}. Skipped {len(full_data) - len(prs)} empty PRs"
+        )
+
+        df = pd.DataFrame(data=full_data, columns=self.get_df_column_names())
+        return df
+
+    def get_df_column_names(self):
+        """TODO. Change later to static column list"""
+        cursor = self.conn.cursor()
+        cursor.execute(f"PRAGMA table_info(outputTable)")
+        column_names = [row[1] for row in cursor.fetchall()]
+        return column_names
+
+    # drop in replacement for get_pr_data without needing the extra db connection
+
+    def get_pr_meta_data(self, pr):
+        cursor = self.conn.cursor()
+
+        cursor.execute(
+            """SELECT title, 
+                       descriptionText, 
+                       created, 
+                       closed, 
+                       userlogin,
+                       author,
+                       most_recent_commit
+                       FROM 
+                       pull_requests
+                       WHERE
+                       pullNumber = ?""",
+            (pr,),
+        )
+
+        return cursor.fetchone()
+
+    def get_pr_data(self, pr):
+
+        cursor = self.conn.cursor()
+        # An equivalent to outputTable but much faster!
+
+        base_data = [pr, True]
+        base_data += self.get_pr_meta_data(pr)
+        query = """SELECT
+                    file_table.filename,
+                    file_table.commit_hash,
+                    apis.classname,
+                    apis.domain,
+                    functions.function_name,
+                    functions.subdomain
+                FROM
+                    files_changed AS file_table,
+                    api_file_register AS file_apis, 
+                    api_cache AS apis,
+                    function_cache AS functions	
+                WHERE 
+                    file_table.pullNumber = ? AND
+                    file_table.processed = 'y' AND
+                    file_apis.filename = file_table.filename AND
+                    file_apis.commit_hash = file_table.commit_hash AND
+                    apis.classname = file_apis.classname AND
+                    functions.function_name = file_apis.function_name AND
+                    functions.classname = file_apis.classname;
+            """
+        cursor.execute(query, (pr,))  # change to use SQL prepared statements.
+        output = cursor.fetchall()
+
+        label_data = []
+        for label in self.domain_labels:
+            label_data.append(0)
+            for sub_label in self.domain_labels[label]:
+                label_data.append(0)
+
+        zero_range = len(label_data)
+        query_data = []
+
+        for row in output:
+            label_data = [0] * zero_range
+            file_data = [
+                row[0],
+                row[1],
+                row[2],
+                row[4],
+                row[3],
+                row[5],
+            ]
+            domain = row[3]
+            subdomain = row[5]
+
+            counter = 0
+            for label in self.domain_labels:
+                if domain == label:
+                    label_data[counter] = 1
+                    if subdomain == "N/A":
+                        break
+
+                counter += 1
+
+                for sub_label_d in self.domain_labels[label]:
+                    sub_label = list(sub_label_d.keys())[0]
+                    if subdomain == sub_label:
+                        label_data[counter] = 1
+                        break
+                    counter += 1
+
+            query_data_row = base_data + file_data + label_data
+            query_data.append(query_data_row)
+
+        # collapsing it for the top file of the PR!
+        if len(query_data) != 0:
+            first_half = list(query_data[0][:15])
+            second_half = list(query_data[0][15:])
+            for i in range(len(query_data)):
+                if i != 0:
+                    second_half = np.add(second_half, query_data[i][15:])
+                    second_half = second_half.tolist()
+
+            data_entry = first_half + second_half
+            return data_entry
+
+    def get_pr_data_old(self, pr):
+
+        cursor = self.conn.cursor()
+        # An equivalent to outputTable but much faster!
+
+        query = f'SELECT * FROM outputTable WHERE "PR #" = ?'
+        cursor.execute(query, (pr,))
+
+        query_data = cursor.fetchall()
+
+        # collapsing it for the top file of the PR!
+        if len(query_data) != 0:
+            first_half = list(query_data[0][:15])
+            second_half = list(query_data[0][15:])
+            for i in range(len(query_data)):
+                if i != 0:
+                    second_half = np.add(second_half, query_data[i][15:])
+                    second_half = second_half.tolist()
+
+            data_entry = first_half + second_half
+            return data_entry
+
+
+if __name__ == "__main__":
+    # Test to see if both outputs are the same
+
+    test = DatabaseManager()
+    st = time.time()
+    i = test.get_pr_data(86)
+    print((time.time() - st) * 1000)
+    st = time.time()
+    i2 = test.get_pr_data_old(86)
+    print((time.time() - st) * 1000)
+    for x in range(len(i)):
+        print(i[x], i2[x])
+    test.close()

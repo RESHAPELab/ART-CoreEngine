@@ -14,6 +14,7 @@ import json
 import os
 import sys
 
+import tree_sitter_java
 from tree_sitter import Language, Parser
 
 
@@ -23,13 +24,13 @@ if os.name == "posix" and sys.platform.startswith("darwin"):
 else:
     shared_library_extension = ".so"
 
-# Build the Java language library
-Language.build_library(
-    # Store the library in the `build` directory
-    f"tree-sitter-java/libtree-sitter-java{shared_library_extension}",
-    # Include one or more languages
-    ["tree-sitter-java"],
-)
+# # Build the Java language library
+# Language.build_library(
+#     # Store the library in the `build` directory
+#     f"tree-sitter-java/libtree-sitter-java{shared_library_extension}",
+#     # Include one or more languages
+#     ["tree-sitter-java"],
+# )
 
 # Build the Python language library
 # Language.build_library(
@@ -141,25 +142,23 @@ def generate_ast(filename):
     language_library = ""
     # return dictionary AST.
     if file_end == "java":
-        language_library = (
-            f"tree-sitter-java/libtree-sitter-java{shared_library_extension}"
-        )
+        language_library = tree_sitter_java.language()
     # elif file_end == "py":
-    #     language_library = f"tree-sitter-python/libtree-sitter-python{shared_library_extension}"
+    #     language_library = tree_sitter_python.language()
     #     file_end = "python"
     # elif file_end == "c":
-    #     language_library = f"tree-sitter-c/libtree-sitter-c{shared_library_extension}"
+    #     language_library = tree_sitter_c.language()
     # elif file_end == "cpp":
-    #     language_library = f"tree-sitter-cpp/libtree-sitter-cpp{shared_library_extension}"
+    #     language_library = tree_sitter_cpp.language()
     # elif file_end == "cs":
-    #     language_library = f"tree-sitter-c-sharp/libtree-sitter-c_sharp{shared_library_extension}"
+    #     language_library = tree_sitter_cs.language()
     #     file_end = "c_sharp"
     # elif file_end == "html":
-    #     language_library = f"tree-sitter-html/libtree-sitter-html{shared_library_extension}"
+    #     language_library = tree_sitter_html.language()
     # elif file_end == "css":
-    #     language_library = f"tree-sitter-css/libtree-sitter-css{shared_library_extension}"
+    #     language_library = tree_sitter_css.language()
     # elif file_end == "js":
-    #     language_library = f"tree-sitter-javascript/libtree-sitter-javascript{shared_library_extension}"
+    #     language_library = tree_sitter_js.language()
     #     file_end = "javascript"
     else:
         raise ValueError(
@@ -170,7 +169,7 @@ def generate_ast(filename):
     # return dictionary AST.
     # JAVA_LANGUAGE = Language("tree-sitter-java/libtree-sitter-java.{shared_library_extension}","java")
 
-    file_language = Language(language_library, file_end)
+    file_language = Language(language_library)
 
     parser = Parser()
     parser.set_language(file_language)

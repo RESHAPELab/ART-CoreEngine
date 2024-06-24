@@ -1,8 +1,10 @@
 """Provides driver functionality for running the GitHub extractor."""
 
 import argparse
+from datetime import datetime
 import glob
 import os
+import pickle
 import sys
 
 from dotenv import load_dotenv  # do a pip install dotenv
@@ -25,6 +27,7 @@ from src.repo_extractor import (
 
 def main():
     """Driver function for GitHub Repo Extractor."""
+    print("Connecting to database...")
     init_db()
 
     cfg_dict: dict = get_user_cfg()
@@ -50,13 +53,11 @@ def main():
         processing.process_files(ai, db, pr)
 
     db.save()
-    db.close()
 
-    load_dotenv()
-    openai_key = os.getenv("OPENAI_KEY")
     method = cfg_dict["classification_method"]
 
-    df = get_pr_df("./output/main.db")
+    print("\nPreparing data frame")
+    df = get_prs_df(db, prs)
 
     if method == "gpt":
         system_message, assistant_message = classifier.generate_system_message(
@@ -64,8 +65,18 @@ def main():
         )
         classifier.generate_gpt_messages(system_message, assistant_message, df)
 
-        llm_classifier = classifier.fine_tune_gpt(openai_key)
-        #  classifier.save_model(llm_classifier)
+        llm_classifier = classifier.fine_tune_gpt()
+
+        # Save Model
+        with open(cfg_dict["classification_model_save"], "wb") as f:
+            dat = {
+                "time_saved": datetime.now(),
+                "model": llm_classifier,
+                "type": "gpt",
+            }
+            pickle.dump(dat, f)
+        # classifier.save_model(llm_classifier)
+        print(f"Your model has been saved {llm_classifier}")
 
     if method == "rf":
         df = df.drop(
@@ -87,7 +98,7 @@ def main():
         )
         df = df.dropna()
 
-        print("processing data...")
+        print("\nTraining Model...")
         x_text_features, _ = classifier.extract_text_features(df)
 
         # Transform labels
@@ -97,20 +108,34 @@ def main():
         x_combined = classifier.create_combined_features(x_text_features)
 
         # Perform MLSMOTE to augment the data
-        print("balancing classes...")
+
+        if len(prs) < 3:
+            print("Too Few PRs to train! Quitting")
+            return
+
+        print("\nbalancing classes...")
         x_augmented, y_augmented = classifier.perform_mlsmote(
             x_combined, y_df, n_sample=500
         )
 
-        print("training RF model...")
+        print("\nTraining RF model...")
         x_combined = pd.concat([x_combined, x_augmented], axis=0)
         y_combined = pd.concat([y_df, y_augmented], axis=0)
 
         # Train
         clf = classifier.train_random_forest(x_combined, y_combined)
 
-        # save_model(rf_model)
+        # Save Model
+        with open(cfg_dict["classification_model_save"], "wb") as f:
+            dat = {
+                "time_saved": datetime.now(),
+                "model": clf,
+                "type": "rf",
+            }
+            pickle.dump(dat, f)
+        print(f"Your model has been saved {clf}")
 
+    db.close()
     sys.exit()
 
 
@@ -164,13 +189,11 @@ def get_cli_args() -> str:
     return arg_parser.parse_args().extractor_cfg_file
 
 
-def get_pr_df(db_path):
+def get_prs_df(db: database_manager.DatabaseManager, prs):
     """Todo."""
-    df = classifier.db_to_df(db_path)
+    df = db.get_df(prs)
     columns_to_convert = df.columns[15:]
-    df[columns_to_convert] = df[columns_to_convert].applymap(
-        lambda x: 1 if x > 0 else 0
-    )
+    df[columns_to_convert] = df[columns_to_convert].map(lambda x: 1 if x > 0 else 0)
     df["issue text"] = df["issue text"].apply(classifier.clean_text)
     df["issue description"] = df["issue description"].apply(classifier.clean_text)
     df = classifier.filter_domains(df)

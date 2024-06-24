@@ -19,13 +19,14 @@ RED_COLOR = "\033[1m\033[38;5;9m"
 YELLOW_COLOR = "\033[1m\033[38;5;11m"
 RESET_COLOR = "\033[0m"
 
+
 def process_files(ai: AICachedClassifier, db: DatabaseManager, pr=None):
     """Process files that have not been processed yet
 
     Args:
         ai (AICachedClassifier): AI Classifier Engine
         db (DatabaseManager): Database Engine
-        pr (Optional[int], default=None): Set to pr # for processing files from a specific PR # 
+        pr (Optional[int], default=None): Set to pr # for processing files from a specific PR #
     """
 
     files = db.get_unprocessed_files(pr)
@@ -63,7 +64,7 @@ def process_files(ai: AICachedClassifier, db: DatabaseManager, pr=None):
             )
             db.mark_file_as_processed(file, commit_hash, status="Error downloading")
             continue
-        print("\tDownloaded: ", commit_hash, file)
+        # print("\tDownloaded: ", commit_hash, file)
 
         # generated AST.
         try:

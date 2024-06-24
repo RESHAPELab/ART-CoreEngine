@@ -3,10 +3,10 @@
 import argparse
 import concurrent.futures
 import json
+import os
 import random
 import re
 import string
-import sqlite3
 
 import emoji
 import numpy as np
@@ -18,59 +18,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import MultiLabelBinarizer
+from dotenv import load_dotenv
 
-
-def db_to_df(db_path):
-    # Path to your SQLite database
-    full_data = []
-    none_count = 0
-    curr_pr = 1
-    # Iterate through PR numbers until none are found
-    while none_count < 100:
-        curr_entry = get_pr_data(db_path, pr=curr_pr)
-
-        if curr_entry is not None:
-            full_data.append(curr_entry)
-            none_count = 0
-            print("issue number", str(curr_pr), "processed")
-
-        curr_pr += 1
-        none_count += 1
-
-    print("processed", str(len(full_data)), "entries")
-
-    df = pd.DataFrame(data=full_data, columns=get_column_names(db_path))
-    return df
-
-
-def get_pr_data(db_path, pr):
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-
-    query = f'SELECT * FROM outputTable WHERE "PR #" = {str(pr)}'
-    cursor.execute(query)
-
-    query_data = cursor.fetchall()
-
-    if len(query_data) != 0:
-        first_half = list(query_data[0][:15])
-        second_half = list(query_data[0][15:])
-        for i in range(len(query_data)):
-            if i != 0:
-                second_half = np.add(second_half, query_data[i][15:])
-                second_half = second_half.tolist()
-
-        data_entry = first_half + second_half
-        return data_entry
-
-
-def get_column_names(db_path):
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    cursor.execute(f"PRAGMA table_info(outputTable)")
-    column_names = [row[1] for row in cursor.fetchall()]
-    conn.close()
-    return column_names
+load_dotenv()
 
 
 def clean_text(text):
@@ -221,8 +171,8 @@ def generate_gpt_messages(system_message, gpt_output, df):
             f.write(json.dumps(conversation_object, ensure_ascii=False) + "\n")
 
 
-def fine_tune_gpt(api_key):
-    client = OpenAI(api_key=api_key)
+def fine_tune_gpt():
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     # uploading a training file
     domain_classifier_training_file = client.files.create(
         file=open("gpt_messages.jsonl", "rb"), purpose="fine-tune"
@@ -453,7 +403,8 @@ def parse_args():
 
 
 def run_llm(args):
-
+    # old version before integration. See `main.py` now.
+    raise NotImplementedError
     # Load JSON from file
     with open(args.config, "r") as f:
         repo_data = json.load(f)
@@ -504,6 +455,8 @@ def run_llm(args):
 
 
 def run_rf(args):
+    # old version before integration. See `main.py` now.
+    raise NotImplementedError
     # Load JSON from file
     with open(args.config, "r") as f:
         repo_data = json.load(f)
