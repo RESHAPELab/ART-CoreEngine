@@ -22,7 +22,7 @@ try:
         clean_text_rf,
         predict_open_issues,
     )
-    from src.issue import issue
+    from src.issue import Issue
 except:
     from database_manager import DatabaseManager
     from open_issue_classification import (
