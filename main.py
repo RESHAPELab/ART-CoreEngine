@@ -139,30 +139,6 @@ def main():
             pickle.dump(dat, f)
         print(f"Your model has been saved {clf}")
 
-        print("collecting open issues...")
-
-        issue = Issue(
-            1,
-            "Database connection fails when power goes off.",
-            """Hey, I noticed that when I unplug my computer, the database server on my computer stops working.
-                    This is definitely an issue.""",
-        )
-
-        assert issue.get_data() == [issue.number, issue.title, issue.body]
-
-        open_issue_data = pd.DataFrame(
-            columns=["Issue #", "Title", "Body"], data=[issue.get_data()]
-        )
-
-        vectorized_text = clean_text_rf(vx, open_issue_data)  # vectorize issue text
-
-        print("classifying open issues...")
-        predictions_df = predict_open_issues(
-            open_issue_data, clf, vectorized_text, y_df
-        )  # predict for open issues
-
-        print(predictions_df)
-
     db.close()
     sys.exit()
 

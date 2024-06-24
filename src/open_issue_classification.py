@@ -20,6 +20,7 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import MultiLabelBinarizer
 from dotenv import load_dotenv
 
+from issue import Issue
 
 load_dotenv()
 
@@ -266,11 +267,11 @@ def get_open_issues(owner, repo, access_token):
         params["page"] += 1
 
     # Add extracted issues to dataframe
-    for issue in issues:
-        data.append([issue["number"], issue["title"], issue["body"]])
-    print(f"Total issues fetched: {len(issues)}")
-    df = pd.DataFrame(columns=["Issue #", "Title", "Body"], data=data)
-    return df
+    for i in issues:
+        data.append(Issue(i["number"], i["title"], i["body"]))
+    print(f"Total issues fetched: {len(i)}")
+
+    return data
 
 
 def query_gpt(user_message, issue_classifier, openai_key, max_retries=5):

@@ -22,6 +22,7 @@ try:
         clean_text_rf,
         predict_open_issues,
     )
+    from src.issue import issue
 except:
     from database_manager import DatabaseManager
     from open_issue_classification import (
@@ -30,21 +31,7 @@ except:
         clean_text_rf,
         predict_open_issues,
     )
-
-
-class Issue:
-    """Structure modeling a single issue."""
-
-    def __init__(self, number: int, title: str, body: str = ""):
-        self.number = number
-        self.title = title
-        self.body = body
-
-    def combined_text(self):
-        return self.title + " " + self.body
-
-    def get_data(self):
-        return [self.number, self.title, self.body]
+    from issue import Issue
 
 
 class External_Model_Interface:
@@ -98,7 +85,6 @@ class External_Model_Interface:
         # predict open issues ()
         predictions = predict_open_issues(df, clf, vectorized_text, y_df)
 
-        print(predictions)
         max_value = 0.0
         domain_max = ""
         for column in predictions.columns:
