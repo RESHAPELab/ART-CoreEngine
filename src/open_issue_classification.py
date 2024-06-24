@@ -20,6 +20,7 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import MultiLabelBinarizer
 from dotenv import load_dotenv
 
+
 load_dotenv()
 
 
@@ -171,6 +172,40 @@ def generate_gpt_messages(system_message, gpt_output, df):
             f.write(json.dumps(conversation_object, ensure_ascii=False) + "\n")
 
 
+def generate_gpt_message_one_issue(system_message, gpt_output, issue):
+    # Open the file in write mode
+
+    # Create the user message by formatting the prompt with the title and body
+    user_message = (
+        f"Classify a GitHub issue by indicating whether each domain and subdomain is relevant to the issue based on its title: [{row['issue text']}] "
+        f"and body: [{row['issue description']}]. Ensure that every domain/subdomain is accounted for, and its relevance is indicated with a 1 (relevant) or a 0 (not relevant)."
+    )
+
+    # logic to update assistant message with values in df
+    for column in df.columns:
+        if column in gpt_output:
+            if row[column] > 0:
+                assistant_message[column] = 1
+            else:
+                assistant_message[column] = 0
+
+    # Construct the conversation object
+    conversation_object = {
+        "messages": [
+            {
+                "role": "system",
+                "content": "Refer to these domains and subdomains when classifying "
+                + system_message,
+            },
+            {"role": "user", "content": user_message},
+            {"role": "assistant", "content": str(assistant_message)},
+        ]
+    }
+
+    # Write the conversation object to one line in the file
+    f.write(json.dumps(conversation_object, ensure_ascii=False) + "\n")
+
+
 def fine_tune_gpt():
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     # uploading a training file
@@ -280,6 +315,19 @@ def get_gpt_responses(open_issue_df, issue_classifier, domains_string, openai_ke
     with open("GPT_Responses.json", "w") as json_file:
         json.dump(responses, json_file, indent=4)
     return responses
+
+
+def get_gpt_response_one_issue(issue, issue_classifier, domains_string, openai_key):
+    # create user and system messages
+    user_message = (
+        f"Classify a GitHub issue by indicating up to THREE domains and subdomains that are relevant to the issue based on its title: [{issue.title}] "
+        f"and body: [{issue.body}]. Prioritize positive precision by marking an issue with a 1 only when VERY CERTAIN a domain is relevant to the issue text. Ensure that you only provide three domains and refer to ONLY THESE domains and subdomains when classifying: {domains_string}."
+        f"\n\nImportant: only provide the name of the domains in list format."
+    )
+
+    # query fine tuned model
+    response = query_gpt(user_message, issue_classifier, openai_key)
+    return response
 
 
 def responses_to_csv(gpt_responses):

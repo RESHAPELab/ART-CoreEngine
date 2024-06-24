@@ -17,6 +17,8 @@ from src import (
     open_issue_classification as classifier,
     processing,
 )
+from src.external import Issue
+from src.open_issue_classification import clean_text_rf, predict_open_issues
 from src.repo_extractor import (
     conf,
     extractor,
@@ -99,7 +101,7 @@ def main():
         df = df.dropna()
 
         print("\nTraining Model...")
-        x_text_features, _ = classifier.extract_text_features(df)
+        x_text_features, vx = classifier.extract_text_features(df)
 
         # Transform labels
         y_df, _ = classifier.transform_labels(df)
@@ -130,10 +132,36 @@ def main():
             dat = {
                 "time_saved": datetime.now(),
                 "model": clf,
+                "vectorizer": vx,
+                "labels": y_df,
                 "type": "rf",
             }
             pickle.dump(dat, f)
         print(f"Your model has been saved {clf}")
+
+        print("collecting open issues...")
+
+        issue = Issue(
+            1,
+            "Database connection fails when power goes off.",
+            """Hey, I noticed that when I unplug my computer, the database server on my computer stops working.
+                    This is definitely an issue.""",
+        )
+
+        assert issue.get_data() == [issue.number, issue.title, issue.body]
+
+        open_issue_data = pd.DataFrame(
+            columns=["Issue #", "Title", "Body"], data=[issue.get_data()]
+        )
+
+        vectorized_text = clean_text_rf(vx, open_issue_data)  # vectorize issue text
+
+        print("classifying open issues...")
+        predictions_df = predict_open_issues(
+            open_issue_data, clf, vectorized_text, y_df
+        )  # predict for open issues
+
+        print(predictions_df)
 
     db.close()
     sys.exit()
