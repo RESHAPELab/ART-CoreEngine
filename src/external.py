@@ -14,6 +14,8 @@ import pickle
 
 import pandas as pd
 
+from issue_class import Issue
+
 try:
     from src.database_manager import DatabaseManager
     from src.open_issue_classification import (
@@ -22,7 +24,7 @@ try:
         clean_text_rf,
         predict_open_issues,
     )
-    from src.issue import Issue
+    from src.issue_class import Issue
 except:
     from database_manager import DatabaseManager
     from open_issue_classification import (
@@ -31,7 +33,7 @@ except:
         clean_text_rf,
         predict_open_issues,
     )
-    from issue import Issue
+    from issue_class import Issue
 
 
 class External_Model_Interface:
