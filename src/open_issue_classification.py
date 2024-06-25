@@ -136,9 +136,9 @@ def generate_system_message(domain_dictionary, df):
     return system_message, assistant_message
 
 
-def generate_gpt_messages(system_message, gpt_output, df):
+def generate_gpt_messages(system_message, gpt_output, df, out_jsonl):
     # Open the file in write mode
-    with open("gpt_messages.jsonl", "w", encoding="utf-8") as f:
+    with open(out_jsonl, "w", encoding="utf-8") as f:
         assistant_message = gpt_output
         # Iterate over the rows in the DataFrame
         for index, row in df.iterrows():
@@ -207,11 +207,11 @@ def generate_gpt_message_one_issue(system_message, gpt_output, issue):
     f.write(json.dumps(conversation_object, ensure_ascii=False) + "\n")
 
 
-def fine_tune_gpt():
+def fine_tune_gpt(output_jsonl):
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     # uploading a training file
     domain_classifier_training_file = client.files.create(
-        file=open("gpt_messages.jsonl", "rb"), purpose="fine-tune"
+        file=open(output_jsonl, "rb"), purpose="fine-tune"
     )
     print("Beginning fine tuning process")
     # creating a fine-tuned model

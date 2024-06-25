@@ -53,14 +53,16 @@ def main():
     df = get_prs_df(db, prs)
 
     if method == "gpt":
+        json_open = cfg_obj.get_cfg_val("gpt_jsonl_path")
+
         system_message, assistant_message = (
             CoreEngine.classifier.generate_system_message(sub_labels, df)
         )
         CoreEngine.classifier.generate_gpt_messages(
-            system_message, assistant_message, df
+            system_message, assistant_message, df, json_open
         )
 
-        llm_classifier = CoreEngine.classifier.fine_tune_gpt()
+        llm_classifier = CoreEngine.classifier.fine_tune_gpt(json_open)
 
         # Save Model
         with open(cfg_dict["classification_model_save"], "wb") as f:

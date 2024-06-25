@@ -216,6 +216,7 @@ cfg_schema: dict = {
     "auth_path": _str_type,
     "repo": _str_type,
     "output_path": _str_type,
+    "gpt_jsonl_path": _str_type,
     "api_domain_label_listing": _str_type,
     "api_subdomain_label_listing": _str_type,
     "classification_method": _str_type,
