@@ -13,27 +13,14 @@ import json
 import pickle
 
 import pandas as pd
-
-from issue_class import Issue
-
-try:
-    from src.database_manager import DatabaseManager
-    from src.open_issue_classification import (
-        generate_system_message,
-        get_gpt_response_one_issue,
-        clean_text_rf,
-        predict_open_issues,
-    )
-    from src.issue_class import Issue
-except:
-    from database_manager import DatabaseManager
-    from open_issue_classification import (
-        generate_system_message,
-        get_gpt_response_one_issue,
-        clean_text_rf,
-        predict_open_issues,
-    )
-    from issue_class import Issue
+from src.database_manager import DatabaseManager
+from src.open_issue_classification import (
+    generate_system_message,
+    get_gpt_response_one_issue,
+    clean_text_rf,
+    predict_open_issues,
+)
+from src.issue_class import Issue
 
 
 class External_Model_Interface:
@@ -98,41 +85,3 @@ class External_Model_Interface:
                 domain_max = column
 
         return domain_max
-
-
-# def predict_open_issues(open_issue_df, model, data, y_df):
-
-#     # predict for open issues
-#     predicted_values = model.predict(data)
-
-#     # get used domains from csv and issue numbers from df
-#     columns = y_df.columns
-#     columns = columns.insert(0, "Issue #")
-#     issue_numbers = open_issue_df["Issue #"].values
-
-#     # link issue number with predictions and add to data
-#     prediction_data = []
-#     for i in range(len(predicted_values)):
-#         curr_prediction = predicted_values[i].tolist()
-#         curr_issue = [issue_numbers[i]]
-#         prediction_data.append(curr_issue + curr_prediction)
-
-#     # convert data to df
-#     prediction_df = pd.DataFrame(columns=columns, data=prediction_data)
-#     return prediction_df
-
-
-if __name__ == "__main__":
-    db = DatabaseManager()
-    external = External_Model_Interface(
-        "open_ai", db, "./output/rf_model.pkl", "./data/domain_labels.json"
-    )
-    issue = Issue(
-        1,
-        "Database connection fails when power goes off.",
-        """Hey, I noticed that when I unplug my computer, the database server on my computer stops working.
-                This is definitely an issue.""",
-    )
-    print(external.predict_issue(issue))
-
-    db.close()

@@ -20,7 +20,7 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import MultiLabelBinarizer
 from dotenv import load_dotenv
 
-from issue_class import Issue
+from src.issue_class import Issue
 
 load_dotenv()
 
