@@ -10,7 +10,9 @@ It must be self contained.
 """
 
 import json
+import os
 import pickle
+from joblib import Memory
 
 import pandas as pd
 from src.database_manager import DatabaseManager
@@ -25,7 +27,12 @@ from src.issue_class import Issue
 
 class External_Model_Interface:
     def __init__(
-        self, open_ai_key: str, db: DatabaseManager, model_file: str, domain_file: str
+        self,
+        open_ai_key: str,
+        db: DatabaseManager,
+        model_file: str,
+        domain_file: str,
+        response_cache: str,
     ):
 
         with open(model_file, "rb") as f:
@@ -35,10 +42,19 @@ class External_Model_Interface:
             self.domains = json.load(f)
 
         self.db = db
-
+        self.model_file_name = model_file
         self.__open_ai_key = open_ai_key
+        self.memory = Memory(response_cache)
+        self.__cached_pi = self.memory.cache(self.__predict_issue, ignore=["num"])
 
     def predict_issue(self, issue: Issue):
+        # Simply to force new cache if model changes.
+        cache_unique = f"{self.model['type']} {self.model_file_name}"
+        return self.__cached_pi(issue.number, issue.title, issue.body, cache_unique)
+
+    def __predict_issue(self, num, title, body, _ignore_me):
+
+        issue = Issue(num, title, body)  # for caching.
 
         if self.model["type"] == "gpt":
             return self.__gpt_predict(issue)
