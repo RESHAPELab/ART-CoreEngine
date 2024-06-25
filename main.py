@@ -11,21 +11,6 @@ import pandas as pd
 
 import src as CoreEngine
 
-from src import (
-    ai_taxonomy,
-    database_init,
-    database_manager,
-    open_issue_classification as classifier,
-    processing,
-)
-from src.open_issue_classification import clean_text_rf, predict_open_issues
-from src.repo_extractor import (
-    conf,
-    extractor,
-    schema,
-    utils,
-)
-
 
 def main():
     """Driver function for GitHub Repo Extractor."""
@@ -33,7 +18,9 @@ def main():
     init_db()
 
     cfg_dict: dict = get_user_cfg()
-    cfg_obj = CoreEngine.repo_extractor.conf.Cfg(cfg_dict, schema.cfg_schema)
+    cfg_obj = CoreEngine.repo_extractor.conf.Cfg(
+        cfg_dict, CoreEngine.configuration_schema.cfg_schema
+    )
     db = CoreEngine.DatabaseManager()
 
     gh_ext = CoreEngine.repo_extractor.extractor.Extractor(cfg_obj)
@@ -42,7 +29,7 @@ def main():
     api_labels = CoreEngine.utils.read_jsonfile_into_dict(
         cfg_obj.get_cfg_val("api_domain_label_listing")
     )
-    sub_labels = utils.read_jsonfile_into_dict(
+    sub_labels = CoreEngine.utils.read_jsonfile_into_dict(
         cfg_obj.get_cfg_val("api_subdomain_label_listing")
     )
     ai = CoreEngine.AICachedClassifier(api_labels, sub_labels, db)

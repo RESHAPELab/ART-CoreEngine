@@ -234,7 +234,7 @@ def fine_tune_gpt():
             return
 
 
-def get_open_issues(owner, repo, access_token):
+def get_open_issues(owner, repo, access_token) -> list[Issue]:
     data = []
     # GitHub API URL for fetching issues
     url = f"https://api.github.com/repos/{owner}/{repo}/issues"
@@ -269,7 +269,7 @@ def get_open_issues(owner, repo, access_token):
     # Add extracted issues to dataframe
     for i in issues:
         data.append(Issue(i["number"], i["title"], i["body"]))
-    print(f"Total issues fetched: {len(i)}")
+    print(f"Total issues fetched: {len(issues)}")
 
     return data
 

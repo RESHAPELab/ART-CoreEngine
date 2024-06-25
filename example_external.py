@@ -40,4 +40,13 @@ if __name__ == "__main__":
     )
     print(external.predict_issue(issue))  # Returns string of top domain.
 
-    db.close()
+    # It is also possible to download a repository's open issues like this:
+    issues = CoreEngine.git_helper_get_open_issues(
+        owner="JabRef", repo="JabRef", access_token="A Github Key"
+    )  # Note, it will query GitHub for this.
+
+    for issue in issues:
+        # issue is of type CoreEngine.Issue
+        print(issue.title, external.predict_issue(issue))
+
+    db.close()  # always close the database when done!
