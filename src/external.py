@@ -51,7 +51,7 @@ class External_Model_Interface:
         llm_classifier = self.model["model"]
 
         columns = self.db.get_df_column_names()
-        empty = list(range(len(columns)))
+        empty = [list(range(len(columns)))]
         df = pd.DataFrame(data=empty, columns=columns)
 
         system_message, assistant_message = generate_system_message(self.domains, df)
@@ -74,14 +74,21 @@ class External_Model_Interface:
         # predict open issues ()
         predictions = predict_open_issues(df, clf, vectorized_text, y_df)
 
-        max_value = 0.0
-        domain_max = ""
+        value_out: list[int] = []
+        columns: list[str] = []
         for column in predictions.columns:
             if len(column) < 3 or column == "Issue #":
                 continue
             value = predictions[column][0]
-            if value > max_value:
-                max_value = value
-                domain_max = column
 
-        return domain_max
+            if len(value_out) == 0:
+                value_out.insert(0, value)
+                columns.insert(0, column)
+            else:
+                x = 0
+                while x < len(value_out) and value_out[x] > value:
+                    x += 1
+                value_out.insert(x, value)
+                columns.insert(x, column)
+
+        return columns[:3]

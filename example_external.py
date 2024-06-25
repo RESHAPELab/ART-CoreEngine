@@ -6,8 +6,11 @@
 # the path to the domain_labels.json file. Default: `./data/subdomain_labels.json`
 # Open AI Key
 
+import os
+from dotenv import load_dotenv
 import src as CoreEngine
 
+load_dotenv()
 
 if __name__ == "__main__":
     db = CoreEngine.DatabaseManager(
@@ -17,8 +20,7 @@ if __name__ == "__main__":
     )
 
     # Recommended to use os.getenv(). Look up dotenv()
-    # openai_key = os.getenv("OPENAI_API_KEY")
-    openai_key = "KEY"
+    openai_key = os.getenv("OPENAI_API_KEY")
     external = CoreEngine.External_Model_Interface(
         openai_key, db, "./output/rf_model.pkl", "./data/subdomain_labels.json"
     )

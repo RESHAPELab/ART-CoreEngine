@@ -11,10 +11,14 @@ import pandas as pd
 
 import src as CoreEngine
 
+from dotenv import load_dotenv
+
 
 def main():
     """Driver function for GitHub Repo Extractor."""
     print("Connecting to database...")
+
+    load_dotenv()
     init_db()
 
     cfg_dict: dict = get_user_cfg()
