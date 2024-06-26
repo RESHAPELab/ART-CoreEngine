@@ -36,7 +36,8 @@ def pullToken(jsonDirect, key="type_identifier"):
     return tokens
 
 
-def pullTokenPython(jsonDirect, key="assignment", keyChild="identifier"):
+# Assignment or attribute
+def pullTokenPython(jsonDirect, key="attribute", keyChild="identifier"):
     tokens = []
 
     if isinstance(jsonDirect, dict):
@@ -94,7 +95,11 @@ def pullImportPython(jsonDirect, key="dotted_name"):
             if text_value:  # check text value isnt empty
                 # print(f"Found Identifier: {text_value}") #outputs the identifier when found for debugging
                 imports.append(text_value)
-
+        elif jsonDirect.get("type") == "aliased_import":
+            text_value = jsonDirect.get("text")
+            if text_value:  # check text value isnt empty
+                text_value = text_value.replace(" as ", ":")
+                imports.append(text_value)
         # else recursively search through dictionary
         else:
             for value in jsonDirect.values():

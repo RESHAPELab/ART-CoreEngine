@@ -26,7 +26,7 @@ from src.database_manager import DatabaseManager
 
 # Please ask/double check before setting it to false. We really don't need
 # the real data until the very end. (On final export to predictions team)
-USE_DEBUG_VALUES = False
+USE_DEBUG_VALUES = True
 
 # Features logging,
 # If you want to see the AI calls in real time, run

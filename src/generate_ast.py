@@ -26,18 +26,18 @@ else:
 # Build the Java language library
 Language.build_library(
     # Store the library in the `build` directory
-    f"tree-sitter-java/libtree-sitter-java{shared_library_extension}",
+    f"../tree-sitter-java/libtree-sitter-java{shared_library_extension}",
     # Include one or more languages
-    ["tree-sitter-java"],
+    ["../tree-sitter-java"]
 )
 
 # Build the Python language library
-# Language.build_library(
-#     # Store the library in the `build` directory
-#     f"tree-sitter-python/libtree-sitter-python{shared_library_extension}",
-#     # Include one or more languages
-#     ["tree-sitter-python"]
-# )
+Language.build_library(
+    # Store the library in the `build` directory
+    f"../tree-sitter-python/libtree-sitter-python{shared_library_extension}",
+    # Include one or more languages
+    ["../tree-sitter-python"]
+)
 #
 # # Build the C++ language library
 # Language.build_library(
@@ -142,11 +142,11 @@ def generate_ast(filename):
     # return dictionary AST.
     if file_end == "java":
         language_library = (
-            f"tree-sitter-java/libtree-sitter-java{shared_library_extension}"
+            f"../tree-sitter-java/libtree-sitter-java{shared_library_extension}"
         )
-    # elif file_end == "py":
-    #     language_library = f"tree-sitter-python/libtree-sitter-python{shared_library_extension}"
-    #     file_end = "python"
+    elif file_end == "py":
+        language_library = f"../tree-sitter-python/libtree-sitter-python{shared_library_extension}"
+        file_end = "python"
     # elif file_end == "c":
     #     language_library = f"tree-sitter-c/libtree-sitter-c{shared_library_extension}"
     # elif file_end == "cpp":
@@ -164,7 +164,7 @@ def generate_ast(filename):
     else:
         raise ValueError(
             "Unsupported language. "
-            "Supported options: java, python, C, C#, C++, HTML, Javascript, CSS. "
+            "Supported options: java, python."
             "Given: " + file_end
         )
     # return dictionary AST.
