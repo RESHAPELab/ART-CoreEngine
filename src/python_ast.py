@@ -140,7 +140,6 @@ class PythonProgram():
         if (not (self.completeTable is None)):
             return self.completeTable
 
-
         out = {}
         out["built-in"] = {"full": "python built-in types", "varlist": []}
         for className in self.classes:
@@ -175,7 +174,10 @@ class PythonProgram():
                             if len(inner_class) >= 2:
                                 if method["name"] == inner_class[1]:
                                     alias = True
-                                    variable['class'] = inner_class[0]
+                                    out[inner_class[0]] = {"full": self.classes[className], "varlist": []}
+                                    method['name'] = inner_class[0]
+                                    methodOut.append(method)
+                                    #variable['class'] = inner_class[0]
                         if (method["name"] != variableName and not alias):
                             continue
 
@@ -188,14 +190,6 @@ class PythonProgram():
                         # print("Append!")
                         #print(method)
 
-                        alias = False
-                        for plain_class in self.plain_classes:
-                            name = plain_class.split(":")
-                            if len(name) >= 2:
-                                if name[0] == className:
-                                    methodOut.append(method)
-                                    alias = True
-                                    break
                         if not alias:
                             if self.plain_classes.__contains__(className):
                                 methodOut.append(method)
@@ -218,6 +212,7 @@ class PythonProgram():
                     out[variable["name"]]["varlist"].append({"variable": variable, "methods": methodOut})
                     out["built-in"]["varlist"].append({"variable": variable, "methods": builtInMethods})
         self.completeTable = out
+        #print(self.completeTable)
         return out
 
     def getFunctions(self):
@@ -247,7 +242,7 @@ class PythonProgram():
             #print("WHAT: " + str(data["varlist"]))
 
             for vN in data["varlist"]:
-                # print("HERE: " + str(vN))
+                print("HERE: " + str(vN))
                 for fN in vN["methods"]:
                     if vN['variable']['class'] != "unknown":
                         if (f"{vN['variable']['class']}::{fN['method']}" in functions):
@@ -283,3 +278,11 @@ class PythonProgram():
             dict: functions
         """
         return self.getClasses(), self.getFunctions()
+
+
+
+# I pushed the python-integration stuff i have currently onto a new branch of the engine github. It can currently grab imports and functions used by what class.
+#
+# Though currently it has a bit of an issue sometimes due to pythons builtin classes (such as list, dict, etc) with builtin functions (such as append, split, etc).
+#
+# It will attempt to cast each function under a class but it sometimes doesn't find one (if its based off of another variable, x = y[3]) or the function has multiple possible classes it belongs to (such as split, belonging to BaseExceptionGroup/ExceptionGroup/bytearray/bytes/str).
