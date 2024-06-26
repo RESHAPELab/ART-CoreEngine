@@ -281,8 +281,10 @@ class PythonProgram():
 
 
 
-# I pushed the python-integration stuff i have currently onto a new branch of the engine github. It can currently grab imports and functions used by what class.
+# TODO:
 #
-# Though currently it has a bit of an issue sometimes due to pythons builtin classes (such as list, dict, etc) with builtin functions (such as append, split, etc).
+# Currently it has a bit of an issue sometimes due to pythons builtin classes (such as list, dict, etc) 
+# with builtin functions (such as append, split, etc).
 #
-# It will attempt to cast each function under a class but it sometimes doesn't find one (if its based off of another variable, x = y[3]) or the function has multiple possible classes it belongs to (such as split, belonging to BaseExceptionGroup/ExceptionGroup/bytearray/bytes/str).
+# It will attempt to cast each function under a class but it sometimes doesn't find one (if its based off of another variable, x = y[3]) 
+# or the function has multiple possible classes it belongs to (such as split, belonging to BaseExceptionGroup/ExceptionGroup/bytearray/bytes/str).
