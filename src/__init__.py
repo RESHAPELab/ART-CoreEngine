@@ -14,7 +14,6 @@ import src.open_issue_classification as classifier
 import src.store_result
 import src.symbol_table
 import src.tokens
-from src.external import External_Model_Interface
 from src.issue_class import Issue
 import src.repo_extractor
 from src.repo_extractor import utils
