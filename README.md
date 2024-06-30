@@ -28,6 +28,8 @@ Parser and code understanding engine
     |                         |      |      and AI Classifications as one table
     | Predictions Team        |  <---
     |-------------------------|
+    "clf_method" : "Either 'rf' or 'gpt', determines the model to train",
+    "clf_model_out_path" : "Model output file",
 
 
 ```

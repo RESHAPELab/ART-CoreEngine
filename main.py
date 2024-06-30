@@ -54,7 +54,7 @@ def main():
 
     db.save()
 
-    method = cfg_dict["classification_method"]
+    method = cfg_dict["clf_method"]
 
     print("\nPreparing data frame")
     df = get_prs_df(db, prs)
@@ -68,7 +68,7 @@ def main():
         llm_classifier = classifier.fine_tune_gpt()
 
         # Save Model
-        with open(cfg_dict["classification_model_save"], "wb") as f:
+        with open(cfg_dict["clf_model_out_path"], "wb") as f:
             dat = {
                 "time_saved": datetime.now(),
                 "model": llm_classifier,
@@ -126,7 +126,7 @@ def main():
         clf = classifier.train_random_forest(x_combined, y_combined)
 
         # Save Model
-        with open(cfg_dict["classification_model_save"], "wb") as f:
+        with open(cfg_dict["clf_model_out_path"], "wb") as f:
             dat = {
                 "time_saved": datetime.now(),
                 "model": clf,
