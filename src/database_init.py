@@ -1,9 +1,7 @@
 from datetime import datetime
 import json
 import os
-import pickle
 import sqlite3
-import tqdm
 from src.database_manager import DatabaseManager
 
 
@@ -46,12 +44,14 @@ def __init_ai_res_db():
                 )
     """
     )
-    cur.execute('''
+    cur.execute(
+        """
             CREATE UNIQUE INDEX IF NOT EXISTS "QuickFuncLookup" ON "functions" (
                 "classname"	ASC,
                 "function_name"	ASC
             )
-            ''')
+            """
+    )
     cur.execute(
         """
             CREATE TABLE IF NOT EXISTS "settings" (
@@ -198,21 +198,24 @@ def __init_output_db():
                 )
                 """
     )
-    cur.execute("""
+    cur.execute(
+        """
             CREATE UNIQUE INDEX IF NOT EXISTS "QuickFileClassFunction" ON "api_file_register" (
                 "filename"	ASC,
                 "commit_hash"	ASC,
                 "classname"	ASC,
                 "function_name"	ASC
             );
-            """)
-    
-    cur.execute("""
-            CREATE UNIQUE INDEX IF NOT EXISTS "QuickFileChange" ON "files_changed" (
-                "filename"	ASC,
-                "commit_hash"	ASC
-            );
-            """)
+            """
+    )
+
+    cur.execute(
+        """CREATE INDEX IF NOT EXISTS "QuickFunctionCache" ON "function_cache" (
+            "classname",
+            "function_name",
+            "subdomain"
+        )"""
+    )
 
     # Data structure for export... this defines the output table. It is an SQL view to use
     # all the power SQL has. query_generator generates the 1/0 columns.
@@ -303,21 +306,21 @@ def __init_output_db():
         cur.close()
         conn.close()
 
+
 def start():
     """Set up Databases with tables. Define database structure."""
 
     __init_ai_res_db()
     __init_output_db()
-    
+
     setup_caches()
-    
+
 
 def setup_caches():
     """Import caches from backup."""
     db = DatabaseManager()
     db.load_caches()
     db.close()
-
 
 
 def query_generator():

@@ -6,6 +6,7 @@ import src.database_manager
 import src.generate_ast
 import src.github_pull
 import src.identifiers
+import src.open_issue_classification
 import src.store_result
 import src.symbol_table
 import src.tokens
