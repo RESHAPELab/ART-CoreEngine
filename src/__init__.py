@@ -10,7 +10,7 @@ from src.database_manager import DatabaseManager
 import src.generate_ast
 import src.github_pull
 import src.identifiers
-import src.open_issue_classification as classifier
+import AST_Rock_Website.open_issue as classifier
 import src.store_result
 import src.symbol_table
 import src.tokens
@@ -18,6 +18,6 @@ from src.issue_class import Issue
 import src.repo_extractor
 from src.repo_extractor import utils
 from src.processing import process_files
-from src.open_issue_classification import get_open_issues as git_helper_get_open_issues
+from AST_Rock_Website.open_issue import get_open_issues as git_helper_get_open_issues
 from src.repo_extractor import conf as configuration
 from src.repo_extractor import schema as configuration_schema
