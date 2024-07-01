@@ -19,9 +19,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import MultiLabelBinarizer
 from dotenv import load_dotenv
-
-src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'CoreEngine', 'src'))
-sys.path.insert(0, src_dir)
 from issue_class import Issue
 
 load_dotenv()

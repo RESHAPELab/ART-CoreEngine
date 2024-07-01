@@ -15,13 +15,18 @@ import pickle
 import sys
 from joblib import Memory
 from django.core.cache import cache  # Assuming default Django cache setup
-from open_issue_classification import (
+from AST_Rock_Website.dashboard.CoreEngine.src.open_issue_classification import (
     generate_system_message,
     get_gpt_response_one_issue,
     clean_text_rf,
     predict_open_issues,
 )
-from database_manager import DatabaseManager
+from AST_Rock_Website.dashboard.CoreEngine.src.database_manager import DatabaseManager
+
+src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'CoreEngine', 'src'))
+sys.path.insert(0, src_dir)
+
+
 from issue_class import Issue
 
 
