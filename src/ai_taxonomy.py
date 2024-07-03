@@ -1,25 +1,25 @@
-#Hunter Jenkins
-#Taxonomy Tests Version 1
-#AI function calls
+# Hunter Jenkins
+# Taxonomy Tests Version 1
+# AI function calls
 
-#This is well documented with improvements that could be made earlier on for better taxonomy
-#This should not require any changes to this file unless alteration for output
-#We should be calling on this file with the "GetDomains" file
-#in this main file i included variable to show one text example if someone wanted to run the main
+# This is well documented with improvements that could be made earlier on for better taxonomy
+# This should not require any changes to this file unless alteration for output
+# We should be calling on this file with the "GetDomains" file
+# in this main file i included variable to show one text example if someone wanted to run the main
 
 
 import datetime
 import json
 import lzma
 from openai import OpenAI
-from dotenv import load_dotenv # do a pip install dotenv
+from dotenv import load_dotenv  # do a pip install dotenv
 import os
 import random
-import tiktoken # pip install tiktoken
+import tiktoken  # pip install tiktoken
 import lzma
 import pickle
 
-from src.database_manager import DatabaseManager
+from .database_manager import DatabaseManager
 
 # Do True to use fake domains (animals and animal-feed)
 # Do False to use actual AI
@@ -38,8 +38,9 @@ load_dotenv()
 # and can be autoformatted with a VS Code extension. I use "autoDocstring"
 # from https://marketplace.visualstudio.com/items?itemName=njpwerner.autodocstring
 
-class AIClassifier():
-    def __init__(self, api_domain_label_listing : dict, subdomain_label_listing : dict):
+
+class AIClassifier:
+    def __init__(self, api_domain_label_listing: dict, subdomain_label_listing: dict):
         """Setup OpenAI API key. Import label listings. API Domains and subdomains.
 
         Args:
@@ -57,7 +58,7 @@ class AIClassifier():
         self.LOG_FILE = LOG_FILE
         self.tokenizer = tiktoken.get_encoding("cl100k_base")
 
-    def parse_domain_description(self, text : str):
+    def parse_domain_description(self, text: str):
         """Extracts the domain and description from an OpenAI Query Response
 
         Args:
@@ -82,7 +83,7 @@ class AIClassifier():
         # If no delimiter effectively splits the text, return the entire text as domain
         return text.strip(), "No description found"
 
-    def classify_API(self, api : str):
+    def classify_API(self, api: str):
         """Classifies a classname "API" into a domain.
 
         Args:
@@ -95,43 +96,48 @@ class AIClassifier():
         """
 
         # LOG
-        with open(self.LOG_FILE, 'a') as file:
+        with open(self.LOG_FILE, "a") as file:
             file.write(f"{datetime.datetime.now()},API,{api}")
 
-        #Storing and approving past classfications in a database. THis would take manual work at first but maybe we can add a functon to the program design where#
+        # Storing and approving past classfications in a database. THis would take manual work at first but maybe we can add a functon to the program design where#
         # the user validates the AIs reponse such as upvoting it
 
-        #Cassify the API into the orginal domains
+        # Cassify the API into the orginal domains
 
         # Convert the JSON data into a text format suitable for asking questions
-        text = json.dumps(self.api_label_listing, indent=2)  # You might still want to convert it to ensure it's readable
+        text = json.dumps(
+            self.api_label_listing, indent=2
+        )  # You might still want to convert it to ensure it's readable
 
         # Directly include the full question in the OpenAI API call
         question = (
-        f"Please analyze the provided descriptions and the details of the imported API, then determine the most fitting domain from a list of 31 labels. "
-        f"Return like this domain - description, only the name of the selected domain and a brief description of this domain. "
-        f"API details: {api}. Context: {text}. Do not include any additional information or reasoning in your response.")
+            f"Please analyze the provided descriptions and the details of the imported API, then determine the most fitting domain from a list of 31 labels. "
+            f"Return like this domain - description, only the name of the selected domain and a brief description of this domain. "
+            f"API details: {api}. Context: {text}. Do not include any additional information or reasoning in your response."
+        )
 
         response_tokens = []
         context_tokens = []
         response = None
-        if not(USE_DEBUG_VALUES):
+        if not (USE_DEBUG_VALUES):
             # Query the OpenAI API
 
             context_tokens = self.tokenizer.encode(question)
 
             completion = self.client.chat.completions.create(
                 model="gpt-3.5-turbo-0125",
-                messages=[
-                    {"role": "user", "content": question}
-                ]
+                messages=[{"role": "user", "content": question}],
             )
             # Accessing the chat response correctly
-            response = completion.choices[0].message.content # Assuming this is the correct path based on your API response structure
+            response = completion.choices[
+                0
+            ].message.content  # Assuming this is the correct path based on your API response structure
             response_tokens = self.tokenizer.encode(response)
         else:
             # use this for random testing so it does not cost anything!
-            response = random.choice(["cat","dog","bird","rabbit","hen","pig","cow"])
+            response = random.choice(
+                ["cat", "dog", "bird", "rabbit", "hen", "pig", "cow"]
+            )
             # Use "real" dummy data... instead of animals, use the actual label names
             response = random.choice(list(self.subdomain_label_listing.keys()))
 
@@ -139,7 +145,7 @@ class AIClassifier():
 
         domain, description = self.parse_domain_description(response)
 
-        with open(self.LOG_FILE, 'a') as file:
+        with open(self.LOG_FILE, "a") as file:
             file.write(f",{domain},{len(context_tokens)},{len(response_tokens)}\n")
 
         context_pkl = pickle.dumps(context_tokens)
@@ -148,9 +154,17 @@ class AIClassifier():
         context_raw = lzma.compress(context_pkl)
         response_raw = lzma.compress(response_pkl)
 
-        return domain, description, response, len(context_tokens), len(response_tokens), context_raw, response_raw
+        return (
+            domain,
+            description,
+            response,
+            len(context_tokens),
+            len(response_tokens),
+            context_raw,
+            response_raw,
+        )
 
-    def classify_function(self, api_name : str, function_name : str, api_domain : str):
+    def classify_function(self, api_name: str, function_name: str, api_domain: str):
         """Classify a function into a subdomain, given classname and class domain.
 
         Args:
@@ -164,15 +178,17 @@ class AIClassifier():
             str: response
         """
         # LOG
-        with open(self.LOG_FILE, 'a') as file:
-            file.write(f"{datetime.datetime.now()},FUNC,{api_name},{function_name},{api_domain}")
+        with open(self.LOG_FILE, "a") as file:
+            file.write(
+                f"{datetime.datetime.now()},FUNC,{api_name},{function_name},{api_domain}"
+            )
 
-        if(api_domain in ["cat","dog","bird","rabbit","hen","pig","cow"]):
+        if api_domain in ["cat", "dog", "bird", "rabbit", "hen", "pig", "cow"]:
             api_domain = random.choice(list(self.subdomain_label_listing.keys()))
 
-        if not(api_domain in self.subdomain_label_listing):
+        if not (api_domain in self.subdomain_label_listing):
             out = f"No sub-domain for function '{function_name}'."
-            with open(self.LOG_FILE, 'a') as file:
+            with open(self.LOG_FILE, "a") as file:
                 file.write(f",{out}\n")
             return out, None, None, -1, -1, None, None
 
@@ -180,13 +196,12 @@ class AIClassifier():
         sub_domain_selection = []
         for item in self.subdomain_label_listing[api_domain]:
             for sub_domain, description in item.items():
-                #print(f"  - {sub_domain}: {description}")
+                # print(f"  - {sub_domain}: {description}")
                 sub_domains_descriptions.append(f"{sub_domain}: {description}")
                 sub_domain_selection.append(sub_domain)
 
         # Join all sub-domain descriptions into a single string for the query
         sub_domains_descriptions_str = "\n ".join(sub_domains_descriptions)
-
 
         prompt_text = (
             f"Analyze the following information about the API function '{function_name}' which is part of the '{api_name}' in the '{api_domain}' domain. "
@@ -196,21 +211,23 @@ class AIClassifier():
 
         response_tokens = []
         context_tokens = []
-        if not(USE_DEBUG_VALUES):
+        if not (USE_DEBUG_VALUES):
             # Query the OpenAI API
             context_tokens = self.tokenizer.encode(prompt_text)
             completion = self.client.chat.completions.create(
                 model="gpt-3.5-turbo-0125",
-                messages=[
-                    {"role": "user", "content": prompt_text}
-                ]
+                messages=[{"role": "user", "content": prompt_text}],
             )
-            #print(completion.choices[0].message.content)
-            response = completion.choices[0].message.content # Assuming this is the correct path based on your API response structure
+            # print(completion.choices[0].message.content)
+            response = completion.choices[
+                0
+            ].message.content  # Assuming this is the correct path based on your API response structure
             response_tokens = self.tokenizer.encode(response)
         else:
             # use this for random testing so it does not cost anything!
-            response = random.choice(["grain","rice","seed","carrots","straw","grass","wheat"])
+            response = random.choice(
+                ["grain", "rice", "seed", "carrots", "straw", "grass", "wheat"]
+            )
             # Use "real" dummy data... instead of animal food, use the actual label names
             response = random.choice(sub_domain_selection)
 
@@ -218,8 +235,8 @@ class AIClassifier():
 
         sub_domain, description = self.parse_domain_description(response)
 
-        with open(self.LOG_FILE, 'a') as file:
-               file.write(f",{sub_domain},{len(context_tokens)},{len(response_tokens)}\n")
+        with open(self.LOG_FILE, "a") as file:
+            file.write(f",{sub_domain},{len(context_tokens)},{len(response_tokens)}\n")
 
         context_pkl = pickle.dumps(context_tokens)
         response_pkl = pickle.dumps(response_tokens)
@@ -227,9 +244,17 @@ class AIClassifier():
         context_raw = lzma.compress(context_pkl)
         response_raw = lzma.compress(response_pkl)
 
-        return sub_domain, description, response, len(context_tokens), len(response_tokens), context_raw, response_raw
+        return (
+            sub_domain,
+            description,
+            response,
+            len(context_tokens),
+            len(response_tokens),
+            context_raw,
+            response_raw,
+        )
 
-    def classify_class_and_function(self, fullname : str):
+    def classify_class_and_function(self, fullname: str):
         """Classify class and function from the full name at once.
 
         Args:
@@ -244,9 +269,11 @@ class AIClassifier():
             str: subresponse of function
         """
         api_name = fullname.split("::")[0]
-        domain, description, response  = self.classify_API(api_name)
+        domain, description, response = self.classify_API(api_name)
         function_name = fullname.split("::")[1]
-        subdomain, subdescription, subresponse  = self.classify_function(api_name, function_name, domain)
+        subdomain, subdescription, subresponse = self.classify_function(
+            api_name, function_name, domain
+        )
         return domain, description, response, subdomain, subdescription, subresponse
 
 
@@ -258,7 +285,13 @@ class AICachedClassifier(AIClassifier):
     Inherits:
         AIClassifier
     """
-    def __init__(self, api_domain_label_listing : dict, subdomain_label_listing : dict, db : DatabaseManager):
+
+    def __init__(
+        self,
+        api_domain_label_listing: dict,
+        subdomain_label_listing: dict,
+        db: DatabaseManager,
+    ):
         """Set up AI Classifier with Cache Support
 
         Args:
@@ -269,7 +302,7 @@ class AICachedClassifier(AIClassifier):
         self.db = db
         super().__init__(api_domain_label_listing, subdomain_label_listing)
 
-    def classify_API(self, api : str) -> str:
+    def classify_API(self, api: str) -> str:
         """Classify api/classname into a domain as defined by the domain label listing
 
         Args:
@@ -279,14 +312,20 @@ class AICachedClassifier(AIClassifier):
             str: domain of API
         """
         cache_result = self.db.cache_classify_API(api)
-        if(cache_result is None):
-            domain, _a , _b, context_count, response_count, context, response = super().classify_API(api)
-            self.db.store_class_classification(api, domain, context_count, response_count, context, response)
+        if cache_result is None:
+            domain, _a, _b, context_count, response_count, context, response = (
+                super().classify_API(api)
+            )
+            self.db.store_class_classification(
+                api, domain, context_count, response_count, context, response
+            )
             return domain
         else:
             return cache_result
 
-    def classify_function(self, api_name: str, function_name: str, api_domain: str) -> str:
+    def classify_function(
+        self, api_name: str, function_name: str, api_domain: str
+    ) -> str:
         """Classify function into a subdomain given class and class domain
 
         Args:
@@ -298,9 +337,19 @@ class AICachedClassifier(AIClassifier):
             str: subdomain of function
         """
         cache_result = self.db.cache_classify_function(api_name, function_name)
-        if(cache_result is None):
-            subdomain, _a , _b, context_count, response_count, context, response = super().classify_function(api_name, function_name, api_domain)
-            self.db.store_function_classification(api_name, function_name, subdomain, context_count, response_count, context, response)
+        if cache_result is None:
+            subdomain, _a, _b, context_count, response_count, context, response = (
+                super().classify_function(api_name, function_name, api_domain)
+            )
+            self.db.store_function_classification(
+                api_name,
+                function_name,
+                subdomain,
+                context_count,
+                response_count,
+                context,
+                response,
+            )
             return subdomain
         else:
             return cache_result
@@ -316,14 +365,14 @@ class AICachedClassifier(AIClassifier):
             str: subdomain of function
         """
         api_name = fullname.split("::")[0]
-        domain  = self.classify_API(api_name)
+        domain = self.classify_API(api_name)
         function_name = fullname.split("::")[1]
-        subdomain  = self.classify_function(api_name, function_name, domain)
+        subdomain = self.classify_function(api_name, function_name, domain)
         return domain, subdomain
 
 
-#Load File
-def load_data(filename : str) -> dict:
+# Load File
+def load_data(filename: str) -> dict:
     """Load JSON Dict from filename
 
     Args:
@@ -335,19 +384,24 @@ def load_data(filename : str) -> dict:
     with open(filename) as file:
         return json.load(file)
 
-#Ideas for improvement
-#Pinecone Database - somehow having a database with GENERAL context on functions and APIs non dependent on the language this could improve
-#the model and ai request without there being bottleneck to a specefic language
+
+# Ideas for improvement
+# Pinecone Database - somehow having a database with GENERAL context on functions and APIs non dependent on the language this could improve
+# the model and ai request without there being bottleneck to a specefic language
 
 
 def main() -> None:
     """Testing Script"""
 
-    #-----------------------
-    #Removed anything in () after the main name of the labels just incase openAI forgot to put it in the response
-    API_listing_file = './data/domain_labels.json' #Dont change, specefic file needed in folder
-    sub_domain_listing_file = './data/subdomain_labels.json' #Dont Change, Specefic File Needed in Folder
-    #-----------------------
+    # -----------------------
+    # Removed anything in () after the main name of the labels just incase openAI forgot to put it in the response
+    API_listing_file = (
+        "./data/domain_labels.json"  # Dont change, specefic file needed in folder
+    )
+    sub_domain_listing_file = (
+        "./data/subdomain_labels.json"  # Dont Change, Specefic File Needed in Folder
+    )
+    # -----------------------
 
     api_domain_listing = load_data(API_listing_file)
     sub_domain_listing = load_data(sub_domain_listing_file)
@@ -358,19 +412,21 @@ def main() -> None:
 
     # For testing purposes we can keep these until needed since we arent calling on the main as of right now
     api_name = fullName.split("::")[0]
-    domain, description, response  = classifier.classify_API(api_name)
+    domain, description, response = classifier.classify_API(api_name)
     print("DOMAIN: ", domain)
-    print("DESCRIPTION: ",description)
+    print("DESCRIPTION: ", description)
     print("RESPONSE: ", response)
     print("\n")
     function_name = fullName.split("::")[1]
-    #When calling the classify function we need the api_domain that the api is apart of. This is because we are getting a sub domain for the function.
+    # When calling the classify function we need the api_domain that the api is apart of. This is because we are getting a sub domain for the function.
     # For example... api_name java.sql.connection falls under the domain "Database (DB), if the function_name is createStatement the sub_domain
     # will be one of the ones under the Database (DB) domain, so it would be Quert Execution according to AI
     # THe goal here is to give the AI as much context as possible because I realized when it understood the API and api domain it made better function classifications when testing
-    function_sub_domain, description, response = classifier.classify_function(api_name, function_name, domain)
+    function_sub_domain, description, response = classifier.classify_function(
+        api_name, function_name, domain
+    )
     print("FUNCTION SUBDOMAIN: ", function_sub_domain)
-    print("DESCRIPTION: ",description)
+    print("DESCRIPTION: ", description)
     print("RESPONSE: ", response)
 
 

@@ -15,14 +15,14 @@ import pickle
 from joblib import Memory
 
 import pandas as pd
-from src.database_manager import DatabaseManager
-from src.open_issue_classification import (
+from .database_manager import DatabaseManager
+from .classifier import (
     generate_system_message,
     get_gpt_response_one_issue,
     clean_text_rf,
     predict_open_issues,
 )
-from src.issue_class import Issue
+from .issue_class import Issue
 
 
 class External_Model_Interface:
@@ -35,6 +35,7 @@ class External_Model_Interface:
         subdomain_file: str,
         response_cache_key: str,
         response_cache_directory: str,
+        bytes_limit: int = 1024 * 1024 * 20,
     ):
 
         with open(model_file, "rb") as f:
@@ -50,21 +51,32 @@ class External_Model_Interface:
         self.model_file_name = model_file
         self.__open_ai_key = open_ai_key
         self.response_cache_key = response_cache_key
-        self.memory = Memory(response_cache_directory, verbose=0)
-        self.__cached_predictions = self.memory.cache(
-            self.__predict_issue, ignore=["num"]
-        )
+        self.bytes_limit = bytes_limit
+        if self.response_cache_key is None:
+            # no caching!
+            self.__cached_predictions = self.__predict_issue
+        else:
+            self.memory = Memory(response_cache_directory, verbose=0)
+            self.__cached_predictions = self.memory.cache(
+                self.__predict_issue, ignore=["num"]
+            )
 
     def predict_issue(self, issue: Issue):
         # Cache key incorporates the model to ensure updates to the model invalidate the cache
         cache_key = f"{self.response_cache_key}_{self.model['type']}_{self.model_file_name}_{issue.number}"
 
-        return self.__cached_predictions(
+        if self.response_cache_key is None:
+            out = self.__cached_predictions(issue.number, issue.title, issue.body, None)
+            return out
+
+        out = self.__cached_predictions(
             issue.number, issue.title, issue.body, cache_key
         )
+        self.memory.reduce_size(bytes_limit=self.bytes_limit)
+        return out
 
     def __predict_issue(self, num, title, body, _ignore_me):
-
+        print("Cache Miss")
         issue = Issue(num, title, body)  # for caching.
 
         if self.model["type"] == "gpt":

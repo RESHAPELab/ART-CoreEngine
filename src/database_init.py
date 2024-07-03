@@ -2,7 +2,7 @@ from datetime import datetime
 import json
 import os
 import sqlite3
-from src.database_manager import DatabaseManager
+from .database_manager import DatabaseManager
 
 
 RED_COLOR = "\033[1m\033[38;5;9m"

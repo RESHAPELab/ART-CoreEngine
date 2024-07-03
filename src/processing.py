@@ -8,11 +8,11 @@
 import os
 import sys
 import tqdm
-from src import github_pull
-from src.ai_taxonomy import AICachedClassifier, load_data
-from src.database_manager import DatabaseManager
-from src.generate_ast import generate_ast
-from src.java_ast import JavaProgram
+from . import github_pull
+from .ai_taxonomy import AICachedClassifier, load_data
+from .database_manager import DatabaseManager
+from .generate_ast import generate_ast
+from .java_ast import JavaProgram
 
 
 RED_COLOR = "\033[1m\033[38;5;9m"

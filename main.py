@@ -9,7 +9,7 @@ import sys
 
 import pandas as pd
 
-import src as CoreEngine
+import src as CoreEngine  # change to `import CoreEngine.src as CoreEngine` in submodules
 
 from dotenv import load_dotenv
 

@@ -19,7 +19,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import MultiLabelBinarizer
 from dotenv import load_dotenv
-from src.issue_class import Issue
+from .issue_class import Issue
 
 load_dotenv()
 
@@ -255,6 +255,11 @@ def fine_tune_gpt(output_jsonl):
             return
 
 
+# copy / rename of get_open_issues for imports
+def git_helper_get_open_issues(owner, repo, access_token) -> list[Issue]:
+    return get_open_issues(owner, repo, access_token)
+
+
 def get_open_issues(owner, repo, access_token) -> list[Issue]:
     data = []
     # GitHub API URL for fetching issues
@@ -289,6 +294,8 @@ def get_open_issues(owner, repo, access_token) -> list[Issue]:
 
     # Add extracted issues to dataframe
     for i in issues:
+        if i["body"] is None:
+            i["body"] = ""
         data.append(Issue(i["number"], i["title"], i["body"]))
     print(f"Total issues fetched: {len(issues)}")
 
@@ -328,6 +335,8 @@ def get_open_issues_without_token(owner: str, repo: str) -> list[Issue]:
 
     # Add extracted issues to list
     for i in issues:
+        if i["body"] is None:
+            i["body"] = ""
         data.append(Issue(i["number"], i["title"], i["body"]))
     print(f"Total issues fetched: {len(issues)}")
 

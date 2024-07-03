@@ -1,4 +1,4 @@
-import src.repo_extractor.conf
-import src.repo_extractor.schema
-import src.repo_extractor.utils
-import src.repo_extractor.extractor
+from . import conf
+from . import schema
+from . import utils
+from . import extractor
