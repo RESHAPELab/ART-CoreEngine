@@ -9,6 +9,7 @@
 # Open AI Key
 
 import os
+import time
 from dotenv import load_dotenv
 import src as CoreEngine
 
@@ -23,11 +24,17 @@ if __name__ == "__main__":
 
     # Recommended to use os.getenv(). Look up dotenv()
     openai_key = os.getenv("OPENAI_API_KEY")
+    if openai_key is None:
+        print("Environment variable `OPENAI_API_KEY` is not set.")
+        exit()
+
     external = CoreEngine.External_Model_Interface(
         openai_key,
         db,
-        "./output/rf_model.pkl",
+        "./output/gpt_model.pkl",
+        "./data/domain_labels.json",
         "./data/subdomain_labels.json",
+        str(time.time()),
         "./output/response_cache/",
     )
 

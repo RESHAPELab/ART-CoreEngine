@@ -32,7 +32,9 @@ class External_Model_Interface:
         db: DatabaseManager,
         model_file: str,
         domain_file: str,
-        response_cache: str,
+        subdomain_file: str,
+        response_cache_key: str,
+        response_cache_directory: str,
     ):
 
         with open(model_file, "rb") as f:
@@ -41,16 +43,25 @@ class External_Model_Interface:
         with open(domain_file, "r") as f:
             self.domains = json.load(f)
 
+        with open(subdomain_file, "r") as f:
+            self.subdomains = json.load(f)
+
         self.db = db
         self.model_file_name = model_file
         self.__open_ai_key = open_ai_key
-        self.memory = Memory(response_cache)
-        self.__cached_pi = self.memory.cache(self.__predict_issue, ignore=["num"])
+        self.response_cache_key = response_cache_key
+        self.memory = Memory(response_cache_directory, verbose=0)
+        self.__cached_predictions = self.memory.cache(
+            self.__predict_issue, ignore=["num"]
+        )
 
     def predict_issue(self, issue: Issue):
-        # Simply to force new cache if model changes.
-        cache_unique = f"{self.model['type']} {self.model_file_name}"
-        return self.__cached_pi(issue.number, issue.title, issue.body, cache_unique)
+        # Cache key incorporates the model to ensure updates to the model invalidate the cache
+        cache_key = f"{self.response_cache_key}_{self.model['type']}_{self.model_file_name}_{issue.number}"
+
+        return self.__cached_predictions(
+            issue.number, issue.title, issue.body, cache_key
+        )
 
     def __predict_issue(self, num, title, body, _ignore_me):
 
@@ -70,11 +81,12 @@ class External_Model_Interface:
         empty = [list(range(len(columns)))]
         df = pd.DataFrame(data=empty, columns=columns)
 
-        system_message, assistant_message = generate_system_message(self.domains, df)
-
+        domains, subdomains, assistant_message = generate_system_message(
+            self.domains, self.subdomains, df
+        )
         # equiv to get_gpt_responses()
         response = get_gpt_response_one_issue(
-            issue, llm_classifier, system_message, self.__open_ai_key
+            issue, llm_classifier, domains, subdomains, self.__open_ai_key
         )
 
         return response

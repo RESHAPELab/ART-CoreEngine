@@ -7,7 +7,7 @@ import os
 import random
 import re
 import string
-
+import sys
 import emoji
 import numpy as np
 import pandas as pd
@@ -19,7 +19,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import MultiLabelBinarizer
 from dotenv import load_dotenv
-
 from src.issue_class import Issue
 
 load_dotenv()
@@ -115,25 +114,47 @@ def filter_domains(df):
     return get_top_domains(num_of_domains, occurrence_dictionary, df)
 
 
-def generate_system_message(domain_dictionary, df):
+def generate_system_message(domain_dictionary, subdomain_dictionary, df):
     formatted_domains = {}
+    formatted_subdomains = {}
     assistant_message = {}
 
-    # reformat domains to increase clarity for gpt model and create dictionary with only domains/subdomains (to serve as expected gpt output)
+    # Iterate through each domain and format it based on its presence in df.columns
     for key, value in domain_dictionary.items():
+        # Check if the domain is one of the df columns
         if key in df.columns:
-            formatted_domains[key] = "Domain"
-            assistant_message[key] = 0
-        # iterate through each subdomain in list and add to dictionary
-        for i in range(len(value)):
-            subdomain, description = list(value[i].items())[0]
-            if subdomain in df.columns:
-                formatted_domains[subdomain] = description
-                assistant_message[subdomain] = 0
+            formatted_domains[key] = (
+                "Domain"  # Mark it specifically as "Domain" if in df.columns
+            )
+            assistant_message[key] = 0  # Initialize message count for this domain
 
+        # Always use the domain description from the dictionary
+        formatted_domains[key] = value
+
+        # Prepare subdomains for this domain if any
+        if key in subdomain_dictionary:
+            # Create a subdomain entry for each subdomain under this domain
+            subdomain_list = subdomain_dictionary[key]
+            subdomain_pairs = []
+            for subdomain in subdomain_list:
+                subdomain_name = list(subdomain.keys())[
+                    0
+                ]  # Assumes each subdomain dict has one key
+                # Create the domain-subdomain pair format
+                subdomain_pairs.append(f"{key}-{subdomain_name}")
+            formatted_subdomains[key] = (
+                subdomain_pairs  # Store subdomain details under the domain
+            )
+
+    # Convert the subdomains to a single string with domain-subdomain pairs
+    subdomain_str = ", ".join(
+        [f"['{pair}']" for sublist in formatted_subdomains.values() for pair in sublist]
+    )
+
+    # The system_message could be adjusted to include just domain names if detailed info is not needed
     system_message = str(formatted_domains)
 
-    return system_message, assistant_message
+    return system_message, subdomain_str, assistant_message
 
 
 def generate_gpt_messages(system_message, gpt_output, df, out_jsonl):
@@ -274,10 +295,48 @@ def get_open_issues(owner, repo, access_token) -> list[Issue]:
     return data
 
 
+def get_open_issues_without_token(owner: str, repo: str) -> list[Issue]:
+    data = []
+    # GitHub API URL for fetching issues
+    url = f"https://api.github.com/repos/{owner}/{repo}/issues"
+
+    # Headers for the request
+    headers = {
+        "Accept": "application/vnd.github.v3+json",
+    }
+
+    # Parameters to fetch only open issues
+    params = {
+        "state": "open",
+        "per_page": 100,  # Number of issues per page (maximum is 100)
+        "page": 1,  # Page number to start fetching from
+    }
+
+    issues = []
+    while True:
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code != 200:
+            print(f"Error: {response.status_code}")
+            break
+
+        issues_page = response.json()
+        if not issues_page:
+            break
+
+        issues.extend(issues_page)
+        params["page"] += 1
+
+    # Add extracted issues to list
+    for i in issues:
+        data.append(Issue(i["number"], i["title"], i["body"]))
+    print(f"Total issues fetched: {len(issues)}")
+
+    return data
+
+
 def query_gpt(user_message, issue_classifier, openai_key, max_retries=5):
     client = OpenAI(api_key=openai_key)
     attempt = 0
-
     # attempt to query model
     while attempt < max_retries:
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -303,7 +362,7 @@ def get_gpt_responses(open_issue_df, issue_classifier, domains_string, openai_ke
     for index, row in open_issue_df.iterrows():
         # create user and system messages
         user_message = (
-            f"Classify a GitHub issue by indicating up to THREE domains and subdomains that are relevant to the issue based on its title: [{row['Title']}] "
+            f"Classify a GitHub issue by indicating up to THREE domains and THREE subdomains that are relevant to the issue based on its title: [{row['Title']}] "
             f"and body: [{row['Body']}]. Prioritize positive precision by marking an issue with a 1 only when VERY CERTAIN a domain is relevant to the issue text. Ensure that you only provide three domains and refer to ONLY THESE domains and subdomains when classifying: {domains_string}."
             f"\n\nImportant: only provide the name of the domains in list format."
         )
@@ -318,12 +377,14 @@ def get_gpt_responses(open_issue_df, issue_classifier, domains_string, openai_ke
     return responses
 
 
-def get_gpt_response_one_issue(issue, issue_classifier, domains_string, openai_key):
+def get_gpt_response_one_issue(
+    issue, issue_classifier, domains_string, subdomain_string, openai_key
+):
     # create user and system messages
     user_message = (
-        f"Classify a GitHub issue by indicating up to THREE domains and subdomains that are relevant to the issue based on its title: [{issue.title}] "
-        f"and body: [{issue.body}]. Prioritize positive precision by marking an issue with a 1 only when VERY CERTAIN a domain is relevant to the issue text. Ensure that you only provide three domains and refer to ONLY THESE domains and subdomains when classifying: {domains_string}."
-        f"\n\nImportant: only provide the name of the domains in list format."
+        f"Classify a GitHub issue by indicating up to THREE domains and THREE subdomains (every domain has a corresponding 5 subdomains so make sure the subdomain matches up to the corresponding domain) that are relevant to the issue based on its title: [{issue.title}] "
+        f"and body: [{issue.body}]. Prioritize positive precision by marking an issue with a 1 only when VERY CERTAIN a domain is relevant to the issue text. Ensure that you only provide three domains and refer to ONLY THESE domains and subdomains when classifying. Domains: {domains_string}. Domains with corresponding Subdomains: {subdomain_string}"
+        f"\n\nImportant: ONLY provide the NAME of the domains and subdomains in the following format. DO NOT PROVIDE ANY DESCRIPTIONS: ['First Domain-First Subdomain', 'Second Domain-Second Subdomain', 'Third Domain-Third Subdomain']."
     )
 
     # query fine tuned model
