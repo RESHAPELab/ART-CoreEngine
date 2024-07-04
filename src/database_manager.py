@@ -521,6 +521,9 @@ class DatabaseManager:
             if not (is_pr):
                 continue  # skip if not pr.
 
+            if self.check_if_pr_already_done(num):
+                continue
+
             issue_num = num
             issue_title = clean_text(data["title"])
             issue_body = clean_text(data["body"])
@@ -529,7 +532,15 @@ class DatabaseManager:
             userlogin = clean_text(data["userlogin"])
             comments = clean_text(get_comments(data))
 
+            if not (data["is_merged"]):
+                cur.execute(
+                    "INSERT INTO pull_requests (pullNumber, title, descriptionText, created, userlogin) VALUES (?,?,?,?,?)",
+                    (issue_num, issue_title, issue_body, created, userlogin),
+                )
+                continue  # only extract merged PRs
+
             commit_hashes, files_changed = get_commits(data)
+
             newest_commit_hash = commit_hashes[0]
             author = newest_commit_hash[2]
 
