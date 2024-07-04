@@ -599,7 +599,7 @@ class DatabaseManager:
             full_data.append(curr_entry)
 
         print(
-            f"Processed {len(full_data)}. Skipped {len(full_data) - len(prs)} empty PRs"
+            f"Processed {len(full_data)}. Skipped {len(prs) - len(full_data)} empty PRs"
         )
 
         df = pd.DataFrame(data=full_data, columns=self.get_df_column_names())

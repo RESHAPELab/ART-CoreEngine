@@ -7,50 +7,43 @@ import os
 import pickle
 import sys
 
-from dotenv import load_dotenv  # do a pip install dotenv
 import pandas as pd
 
-from src import (
-    ai_taxonomy,
-    database_init,
-    database_manager,
-    open_issue_classification as classifier,
-    processing,
-)
-from src.repo_extractor import (
-    conf,
-    extractor,
-    schema,
-    utils,
-)
+import src as CoreEngine  # change to `import CoreEngine.src as CoreEngine` in submodules
+
+from dotenv import load_dotenv
 
 
 def main():
     """Driver function for GitHub Repo Extractor."""
     print("Connecting to database...")
+
+    load_dotenv()
     init_db()
 
     cfg_dict: dict = get_user_cfg()
-    cfg_obj = conf.Cfg(cfg_dict, schema.cfg_schema)
-    db = database_manager.DatabaseManager()
+    cfg_obj = CoreEngine.repo_extractor.conf.Cfg(
+        cfg_dict, CoreEngine.configuration_schema.cfg_schema
+    )
+    db = CoreEngine.DatabaseManager()
 
-    gh_ext = extractor.Extractor(cfg_obj)
+    gh_ext = CoreEngine.repo_extractor.extractor.Extractor(cfg_obj)
     prs = gh_ext.get_repo_issues_data(db)
 
-    api_labels = utils.read_jsonfile_into_dict(
+    api_labels = CoreEngine.utils.read_jsonfile_into_dict(
         cfg_obj.get_cfg_val("api_domain_label_listing")
     )
-    sub_labels = utils.read_jsonfile_into_dict(
+    sub_labels = CoreEngine.utils.read_jsonfile_into_dict(
         cfg_obj.get_cfg_val("api_subdomain_label_listing")
     )
-    ai = ai_taxonomy.AICachedClassifier(api_labels, sub_labels, db)
+    ai = CoreEngine.AICachedClassifier(api_labels, sub_labels, db)
 
     for pr in prs:
         print(f"\nClassifying files from PR {pr} for predictions training ")
 
         # Here is where ASTs and classification are done;
         # all the "heavy lifting" of the core engine
-        processing.process_files(ai, db, pr)
+        CoreEngine.process_files(ai, db, pr)
 
     db.save()
 
@@ -60,12 +53,26 @@ def main():
     df = get_prs_df(db, prs)
 
     if method == "gpt":
-        system_message, assistant_message = classifier.generate_system_message(
-            sub_labels, df
-        )
-        classifier.generate_gpt_messages(system_message, assistant_message, df)
+        json_open = cfg_obj.get_cfg_val("gpt_jsonl_path")
 
-        llm_classifier = classifier.fine_tune_gpt()
+        if len(prs) < 10:
+            print("Too Few PRs to train! Quitting")
+            exit()
+
+        system_message, _, assistant_message = (
+            CoreEngine.classifier.generate_system_message(api_labels, sub_labels, df)
+        )
+        CoreEngine.classifier.generate_gpt_messages(
+            system_message, assistant_message, df, json_open
+        )
+
+        llm_classifier = CoreEngine.classifier.fine_tune_gpt(json_open)
+
+        if llm_classifier is None:
+            print(
+                "Error training! See https://platform.openai.com/finetune/ for details. Exiting.."
+            )
+            exit()
 
         # Save Model
         with open(cfg_dict["clf_model_out_path"], "wb") as f:
@@ -99,13 +106,13 @@ def main():
         df = df.dropna()
 
         print("\nTraining Model...")
-        x_text_features, _ = classifier.extract_text_features(df)
+        x_text_features, vx = CoreEngine.classifier.extract_text_features(df)
 
         # Transform labels
-        y_df, _ = classifier.transform_labels(df)
+        y_df, _ = CoreEngine.classifier.transform_labels(df)
 
         # Combine features
-        x_combined = classifier.create_combined_features(x_text_features)
+        x_combined = CoreEngine.classifier.create_combined_features(x_text_features)
 
         # Perform MLSMOTE to augment the data
 
@@ -114,7 +121,7 @@ def main():
             return
 
         print("\nbalancing classes...")
-        x_augmented, y_augmented = classifier.perform_mlsmote(
+        x_augmented, y_augmented = CoreEngine.classifier.perform_mlsmote(
             x_combined, y_df, n_sample=500
         )
 
@@ -123,13 +130,15 @@ def main():
         y_combined = pd.concat([y_df, y_augmented], axis=0)
 
         # Train
-        clf = classifier.train_random_forest(x_combined, y_combined)
+        clf = CoreEngine.classifier.train_random_forest(x_combined, y_combined)
 
         # Save Model
         with open(cfg_dict["clf_model_out_path"], "wb") as f:
             dat = {
                 "time_saved": datetime.now(),
                 "model": clf,
+                "vectorizer": vx,
+                "labels": y_df,
                 "type": "rf",
             }
             pickle.dump(dat, f)
@@ -148,7 +157,7 @@ def init_db():
         os.remove(file)
 
     os.makedirs(downloads_path, exist_ok=True)
-    database_init.start()
+    CoreEngine.database_init.start()
 
     #  def setup_db():
     #      """TODO."""
@@ -165,7 +174,7 @@ def get_user_cfg() -> dict:
     """
     cfg_path = get_cli_args()
 
-    return utils.read_jsonfile_into_dict(cfg_path)
+    return CoreEngine.utils.read_jsonfile_into_dict(cfg_path)
 
 
 def get_cli_args() -> str:
@@ -189,14 +198,16 @@ def get_cli_args() -> str:
     return arg_parser.parse_args().extractor_cfg_file
 
 
-def get_prs_df(db: database_manager.DatabaseManager, prs):
+def get_prs_df(db: CoreEngine.DatabaseManager, prs):
     """Todo."""
     df = db.get_df(prs)
     columns_to_convert = df.columns[15:]
     df[columns_to_convert] = df[columns_to_convert].map(lambda x: 1 if x > 0 else 0)
-    df["issue text"] = df["issue text"].apply(classifier.clean_text)
-    df["issue description"] = df["issue description"].apply(classifier.clean_text)
-    df = classifier.filter_domains(df)
+    df["issue text"] = df["issue text"].apply(CoreEngine.classifier.clean_text)
+    df["issue description"] = df["issue description"].apply(
+        CoreEngine.classifier.clean_text
+    )
+    df = CoreEngine.classifier.filter_domains(df)
 
     return df
 

@@ -7,8 +7,8 @@ import time
 import traceback
 from typing import List
 import github
-from src.database_manager import DatabaseManager
-from src.repo_extractor import conf, schema, utils
+from ..database_manager import DatabaseManager
+from . import conf, schema, utils
 
 
 # ANSI escape sequence for clearing a row in the console:

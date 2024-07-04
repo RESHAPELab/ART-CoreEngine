@@ -2,25 +2,27 @@ import csv
 import sqlite3
 import ast
 
-from src import store_result
+import store_result
 
 
 def read_specific_column(filepath, column_name):
-    with open(filepath, 'r') as file:
+    with open(filepath, "r") as file:
         csv_reader = csv.DictReader(file)
         column_values = []
         for row in csv_reader:
             column_values.append(row[column_name])
-        return [column.split(',') for column in column_values]
+        return [column.split(",") for column in column_values]
 
 
 def read_full_column(filepath, column_name):
-    with open(filepath, 'r') as file:
+    with open(filepath, "r") as file:
         csv_reader = csv.DictReader(file)
         column_values = []
         for row in csv_reader:
             column_values.append(row[column_name])
         return [column for column in column_values]
+
+
 # File path
 # file_path = './issues_data2.csv'
 # column_name = 'PR Files'
@@ -32,7 +34,7 @@ def pull_csv(file_path, column_name):
 
     for column in column_data:
         for item in column:
-            item = item.replace('[', '').replace(']', '').replace("'", "")
+            item = item.replace("[", "").replace("]", "").replace("'", "")
             if item.endswith(".java"):
                 change_files.add(item)
     return change_files
@@ -40,15 +42,15 @@ def pull_csv(file_path, column_name):
 
 ## NEEDS UPDATE
 def update_csv_with_results(file_path, column_name, results):
-    with open(file_path, 'r') as file:
+    with open(file_path, "r") as file:
         csv_reader = csv.DictReader(file)
-        fieldnames = csv_reader.fieldnames + ['Result']  # Add 'Result' as a new field
+        fieldnames = csv_reader.fieldnames + ["Result"]  # Add 'Result' as a new field
         rows = []
         for row in csv_reader:
-            row['Result'] = results.pop(0)  # Add result to the row
+            row["Result"] = results.pop(0)  # Add result to the row
             rows.append(row)
 
-    with open(file_path, 'w', newline='') as file:
+    with open(file_path, "w", newline="") as file:
         csv_writer = csv.DictWriter(file, fieldnames=fieldnames)
         csv_writer.writeheader()
         csv_writer.writerows(rows)
@@ -57,14 +59,15 @@ def update_csv_with_results(file_path, column_name, results):
 def grab_values_at_files(file_list):
     results = []
     for file in file_list:
-        #print("LOOK JHERE: " + str(file))
-        if store_result.in_file('./output/file_data.db', file):
+        # print("LOOK JHERE: " + str(file))
+        if store_result.in_file("./output/file_data.db", file):
             # Connect to SQLite database
-            conn = sqlite3.connect('./output/file_data.db')
+            conn = sqlite3.connect("./output/file_data.db")
             cur = conn.cursor()
 
             # Execute query to retrieve data
-            cur.execute('''
+            cur.execute(
+                """
                 SELECT domains, subdomains, "Application", "Application Performance Manager", "Big Data",
                     "Cloud", "Computer Graphics", "Data Structure", "Databases",
                     "Software Development and IT Operations", "Error Handling", "Event Handling",
@@ -130,7 +133,9 @@ def grab_values_at_files(file_list):
                     "User Interface-Accessibility", "User Interface-Animation", "User Interface-Responsive Design", "User Interface-User Feedback", "Utility-Data Conversion", "Utility-System Tools",
                     "Utility-Automation Scripts", "Utility-Performance Tools", "Utility-Diagnostic Utilities", "Utility-Backup Tools", "Test-Unit Testing", "Test-Integration Testing",
                     "Test-Performance Testing", "Test-Security Testing", "Test-Usability Testing", "Test-Regression Testing" FROM storage WHERE filename = ?;
-            ''', (file,))
+            """,
+                (file,),
+            )
 
             # Fetch all rows
             rows = cur.fetchall()
@@ -172,7 +177,6 @@ def grab_values_at_files(file_list):
     return domains, subdomains, counts
 
 
-
 # column_data = read_full_column('issues_data2.csv', 'PR Files')
 # results = []
 #
@@ -195,7 +199,7 @@ def grab_values_at_files(file_list):
 #     results.append(array_of_results)
 #
 # update_csv_with_results('issues_data2 test.csv', 'PR Files', results)
-    # print(array[0])
-    #
-    # # Print the array
-    # print("Yippee: " + str(array))
+# print(array[0])
+#
+# # Print the array
+# print("Yippee: " + str(array))
