@@ -1,7 +1,8 @@
 # ART-CoreEngine
-By Benjamin Carter, Dylan Johnson, Hunter Jenkins, and Jacob McAuley Penney
 Parser and code understanding engine
-
+<br>
+By Benjamin Carter, Dylan Johnson, Hunter Jenkins, and Jacob McAuley Penney
+ 
 > Please run `on_clone.sh` when repo is cloned for the first time!!!!
 
 ## ART Project Overview:
