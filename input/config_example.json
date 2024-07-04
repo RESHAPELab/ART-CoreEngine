@@ -1,0 +1,37 @@
+{
+    "repo": "JabRef/jabref",
+    "auth_path": "input/mp_auth.txt",
+    "output_path": "output/extractor_out.json",
+    "gpt_jsonl_path" : "output/gpt_jsonl_path.json",
+    "api_domain_label_listing" : "data/domain_labels.json",
+    "api_subdomain_label_listing" : "data/subdomain_labels.json",
+    "clf_method" : "rf",
+    "clf_model_out_path" : "output/rf_model.pkl", 
+    "range": [
+        1,
+        30
+    ],
+    "state": "closed",
+    "comments": [
+        "userid",
+        "userlogin",
+        "body"
+    ],
+    "commits": [
+        "author_name",
+        "committer",
+        "date",
+        "sha",
+        "message",
+        "files"
+    ],
+    "issues": [
+        "userid",
+        "userlogin",
+        "title",
+        "body",
+        "num_comments",
+        "created_at",
+        "closed_at"
+    ]
+}
