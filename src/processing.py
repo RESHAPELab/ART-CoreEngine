@@ -34,7 +34,7 @@ def process_files(ai: AICachedClassifier, db: DatabaseManager, pr=None):
     files_done = set()
 
     # Go file by file
-    for fileElement in tqdm.tqdm(files, smoothing=0.05):
+    for fileElement in tqdm.tqdm(files, smoothing=0.05, leave=False):
         # extract file path and commit_hash
         file = fileElement[0]
         commit_hash = fileElement[1]
