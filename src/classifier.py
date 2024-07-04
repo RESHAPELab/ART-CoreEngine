@@ -371,8 +371,8 @@ def get_gpt_responses(open_issue_df, issue_classifier, domains_string, openai_ke
     for index, row in open_issue_df.iterrows():
         # create user and system messages
         user_message = (
-            f"Classify a GitHub issue by indicating up to THREE domains and THREE subdomains that are relevant to the issue based on its title: [{row['Title']}] "
-            f"and body: [{row['Body']}]. Prioritize positive precision by marking an issue with a 1 only when VERY CERTAIN a domain is relevant to the issue text. Ensure that you only provide three domains and refer to ONLY THESE domains and subdomains when classifying: {domains_string}."
+            f"Classify a GitHub issue by indicating up to THREE domains that are relevant to the issue based on its title: [{row['Title']}] "
+            f"and body: [{row['Body']}]. Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text. Ensure that you only provide three domains and provide ONLY the names of the domains and exclude their descriptions. Refer to ONLY THESE domains and subdomains when classifying: {domains_string}."
             f"\n\nImportant: only provide the name of the domains in list format."
         )
 
