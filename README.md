@@ -24,6 +24,8 @@ In training, the CoreEngine extracts all the PRs as specified in the JSON file a
 either a Random Forest model or a GPT model (as specified in the JSON file). After training, it 
 saves the model at the location specified in the JSON configuration.
 
+> Training has been tested from the [`JabRef`](https://github.com/JabRef/JabRef/) repository. Recommended to use that for training.
+
 #### Example instructions for training a model:
 > Make sure poetry is installed [See here for instructions](https://python-poetry.org/docs/)
 1. Run `poetry install` -- this sets up the virtual environment
@@ -90,7 +92,7 @@ in the output directory when switching between repositories for training.
 SAVE `ai_result_backup.db` in the `output` directory as this keeps track of AI artifacts. Deleting this file can result in having to redo OpenAI calls, costing money!
 
 > :information_source: **Info**<br>
-If you want to restart the analysis from a clean state, delete **ONLY** the `main.db` file in the `output` directory.
+If you want to restart the analysis from a clean state, delete **ONLY** the `main.db` file in the `output` directory. You should rarely have to delete `main.db`, except when switching repositories. `main.db` caches all extracted data to prevent re-download.
 
 
 ### Predicting issues from the saved models.
