@@ -23,7 +23,7 @@ def main():
 
     cfg_dict: dict = get_user_cfg()
     cfg_obj = CoreEngine.repo_extractor.conf.Cfg(
-        cfg_dict, CoreEngine.configuration_schema.cfg_schema
+        cfg_dict, CoreEngine.repo_extractor.schema.cfg_schema
     )
     db = CoreEngine.DatabaseManager()
 
