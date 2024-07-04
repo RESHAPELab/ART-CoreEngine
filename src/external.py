@@ -103,10 +103,6 @@ class External_Model_Interface:
 
         return response
 
-    def __get_rf_distribution():
-        # akdjbfkadjbgaks
-
-
     def __rf_predict(self, issue: Issue):
         clf = self.model["model"]
         vx = self.model["vectorizer"]
