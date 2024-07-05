@@ -59,11 +59,11 @@ def main():
             print("Too Few PRs to train! Quitting")
             exit()
 
-        system_message, _, assistant_message = (
+        domain_message, subdomain_message = (
             CoreEngine.classifier.generate_system_message(api_labels, sub_labels, df)
         )
         CoreEngine.classifier.generate_gpt_messages(
-            system_message, assistant_message, df, json_open
+            domain_message, subdomain_message, df, json_open
         )
 
         llm_classifier = CoreEngine.classifier.fine_tune_gpt(json_open)

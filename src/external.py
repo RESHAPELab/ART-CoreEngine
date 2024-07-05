@@ -94,9 +94,7 @@ class External_Model_Interface:
         empty = [list(range(len(columns)))]
         df = pd.DataFrame(data=empty, columns=columns)
 
-        domains, subdomains, assistant_message = generate_system_message(
-            self.domains, self.subdomains, df
-        )
+        domains, subdomains = generate_system_message(self.domains, self.subdomains, df)
         # equiv to get_gpt_responses()
         response = get_gpt_response_one_issue(
             issue, llm_classifier, domains, subdomains, self.__open_ai_key
