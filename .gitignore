@@ -190,3 +190,4 @@ cython_debug/
 !tree-sitter-java/script/run-javaparser/target/
 !input/config_example.json
 input/mp_auth.txt
+input/*
