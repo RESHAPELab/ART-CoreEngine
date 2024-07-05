@@ -1,10 +1,12 @@
-#  DatabaseManager.py
-#  Benjamin Carter
-#  5/22/2024
-#
-#  This file holds the DatabaseManager class, which holds all the main procedures to enact on the databases.
-#  Short procedures. This does not include large data import/exports (like in database_init.py)
-#  See database_init.py for structure of database.
+"""
+ DatabaseManager.py
+ Anonymous Author
+ 5/22/2024
+
+ This file holds the DatabaseManager class, which holds all the main procedures to enact on the databases.
+ Short procedures. This does not include large data import/exports (like in database_init.py)
+ See database_init.py for structure of database.
+"""
 
 from datetime import datetime
 import json

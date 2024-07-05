@@ -1,5 +1,6 @@
 """
-ART-CoreEngine - 2024 - Benjamin Carter 
+ART-CoreEngine - 2024 
+Anonymous Authors 
 
 This file holds the outbound API calls that the UI team can later use.
 It is meant to be imported into any external application

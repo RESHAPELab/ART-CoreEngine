@@ -1,7 +1,7 @@
 # ART-CoreEngine
 Parser and code understanding engine
 <br>
-By Benjamin Carter, Dylan Johnson, Hunter Jenkins, and Jacob McAuley Penney
+By Anonymous Authors
 
 ## ART Project Overview:
 

@@ -1,13 +1,13 @@
 """
-GenerateAST.py
+Generate_ast.py
 
 This file generates a AST from a java source file.
 To do this, it uses the tree_sitter library which in turn
 calls a java parser. This approach means that it is configured to
 accept any and all java programs and syntaxes.
 
-By Benjamin Carter, TJ Potter, and Brent McLennan
-2/13/2024
+By Anonymous Authors
+7/4/2024
 """
 
 import json

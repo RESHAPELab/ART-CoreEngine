@@ -1,4 +1,4 @@
-# Hunter Jenkins
+# Anonymous Author
 # Taxonomy Tests Version 1
 # AI function calls
 
