@@ -601,7 +601,7 @@ class DatabaseManager:
         # Path to your SQLite database
         full_data = []
         # Iterate through PR numbers until none are found
-        for pr in tqdm.tqdm(prs):
+        for pr in tqdm.tqdm(prs, leave=False):
             curr_entry = self.get_pr_data(pr=pr)
 
             if curr_entry is None:
