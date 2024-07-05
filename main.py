@@ -85,7 +85,7 @@ def main():
         # classifier.save_model(llm_classifier)
         print(f"Your model has been saved {llm_classifier}")
 
-    if method == "rf":
+        if method == "rf":
         df = df.drop(
             columns=[
                 "PR #",
@@ -114,6 +114,11 @@ def main():
         # Combine features
         x_combined = CoreEngine.classifier.create_combined_features(x_text_features)
 
+        # Get class distribution before MLSMOTE
+        print("\nClass distribution before MLSMOTE:")
+        class_distribution_before = y_df.sum(axis=0)
+        print(class_distribution_before)
+
         # Perform MLSMOTE to augment the data
 
         if len(prs) < 3:
@@ -124,6 +129,12 @@ def main():
         x_augmented, y_augmented = CoreEngine.classifier.perform_mlsmote(
             x_combined, y_df, n_sample=500
         )
+
+        # Get class distribution after MLSMOTE
+        print("\nClass distribution after MLSMOTE:")
+        y_combined = pd.concat([y_df, y_augmented], axis=0)
+        class_distribution_after = y_combined.sum(axis=0)
+        print(class_distribution_after)
 
         print("\nTraining RF model...")
         x_combined = pd.concat([x_combined, x_augmented], axis=0)
