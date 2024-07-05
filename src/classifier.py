@@ -376,14 +376,40 @@ def get_gpt_response_one_issue(
     # create user and system messages
     combined = domains | subdomains
 
+    # print("Initial Domains: ", list(domains.keys()))
+
     user_message = (
         f"Classify a GitHub issue by indicating up to THREE domains that are relevant to the issue based on its title: [{issue.title}] "
-        f"and body: [{issue.body}]. Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text. Ensure that you only provide three domains and provide ONLY the names of the domains and exclude their descriptions. Refer to ONLY THESE domains when classifying: {list(combined.keys())}."
+        f"and body: [{issue.body}]. Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text. Ensure that you only provide three domains and provide ONLY the names of the domains and exclude their descriptions. Refer to ONLY THESE domains when classifying: {list(domains.keys())}."
         f"\n\nImportant: Ensure that you only provide the name of the domains in LIST FORMAT. ie [Application-Integration, Cloud, Big Data-Data Storage, Computer Graphics-Animation]"
     )
 
     # query fine tuned model
     response = query_gpt(user_message, issue_classifier, openai_key)
+
+    response = (
+        response.replace("[", "").replace("]", "").split(", ")
+    )  # convert response to list list
+
+    # print("Domain Response: ", response)
+
+    filtered_subdomains = {}
+    for response_domain in response:
+        for subdomain in subdomains:
+            if subdomain.find(response_domain) != -1:
+                filtered_subdomains[subdomain] = subdomains[subdomain]
+
+    # print("Filter: ", list(filtered_subdomains.keys()))
+    user_message = (
+        f"Classify a GitHub issue by indicating up to THREE domains that are relevant to the issue based on its title: [{issue.title}] "
+        f"and body: [{issue.body}]. Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text. Ensure that you only provide three domains and provide ONLY the names of the domains and exclude their descriptions. Refer to ONLY THESE domains when classifying: {list(filtered_subdomains.keys())}."
+        f"\n\nImportant: Ensure that you only provide the name of the domains in LIST FORMAT. ie [Application-Integration, Cloud, Big Data-Data Storage, Computer Graphics-Animation]"
+    )
+
+    response = query_gpt(user_message, issue_classifier, openai_key)
+
+    # print("Response after filter: ", response)
+
     return response
 
 
