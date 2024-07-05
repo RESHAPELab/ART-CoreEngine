@@ -1,6 +1,6 @@
 ### Configuration Options
 
-Following are descriptions of the currently available configuration options. Please have the [example configuration](./example_io/example_input.json) open as you read the below information. Because the configuration JSON object is treated as a Python dictionary, the entries in the configuration may be in any order. They are given below in the order of the example input.
+Following are descriptions of the currently available configuration options. Please have the [example configuration](./example_input.json) or the [filled out example configuration](/input/config_example.json) open as you read the below information. Because the configuration JSON object is treated as a Python dictionary, the entries in the configuration may be in any order. They are given below in the order of the example input.
 
 `🚩 Attention:` To GitHub, all PRs are issues, but not all issues are PRs. When gathering PRs, they are first mined as issues (meaning from the issues endpoints) then checked to see if they are also PRs. This information is relevant to understanding certain options below, such as `state`, and how the possible fields options, such as `issues` and `comments`, work.
 
@@ -18,7 +18,7 @@ Following are descriptions of the currently available configuration options. Ple
 
 #### Other Notes
 
-**You do not need to ask for:**
+**Items extracted automatically without needing to be defined in the configuration file:**
 
 - issue numbers
 - whether an issue is also a PR

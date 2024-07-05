@@ -30,7 +30,7 @@ saves the model at the location specified in the JSON configuration.
 > Make sure poetry is installed [See here for instructions](https://python-poetry.org/docs/)
 1. Run `poetry install` -- this sets up the virtual environment
 2. Create a GitHub Personal Access Token to use for downloading issues from GitHub and save it in a file
-3. Set up a configuration file for training like below (see `/input/config_example.json` for default)
+3. Set up a configuration file for training like below (see [example pre-filled configuration](/input/config_example.json) for default)
 
 ``` json
 {
