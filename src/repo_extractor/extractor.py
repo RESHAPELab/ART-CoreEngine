@@ -411,12 +411,12 @@ class Extractor:
             else:
                 processed_prs_out.append(cur_issue.number)
                 out_data |= issue_data
+                db.save_pr_data(issue_data)
 
                 print(f"{CLR}{TAB * 2}Issue: {cur_issue.number}, ", end="")
                 print(f"calls: {self.gh_sesh.get_remaining_calls()}", end="\r")
 
         db.save_pr_data(out_data)
-
         print()
         return processed_prs_out
 

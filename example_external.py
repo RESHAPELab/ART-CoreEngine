@@ -31,7 +31,7 @@ if __name__ == "__main__":
     external = CoreEngine.External_Model_Interface(
         openai_key,
         db,
-        "./output/gpt_model.pkl",
+        "./output/rf_model.pkl",
         "./data/domain_labels.json",
         "./data/subdomain_labels.json",
         str(time.time()),
@@ -48,12 +48,35 @@ if __name__ == "__main__":
     # issue.body --> body
 
     issue = CoreEngine.Issue(
-        1,
+        2,
         "Database connection fails when power goes off.",
         """Hey, I noticed that when I unplug my computer, the database server on my computer stops working.
                 This is definitely an issue.""",
     )
-    print(external.predict_issue(issue))  # Returns string of top domain.
+
+    # issue = CoreEngine.Issue(
+    #     10,
+    #     "Input-output operations fail during high data transfer",
+    #     """When performing input-output operations with high data transfer rates, the
+    #     system fails to manage the operations correctly.
+    #     This issue occurs particularly when transferring data rates exceed 100MB/s.
+    #     The input-output handling mechanism should be reviewed and optimized to ensure efficient and error-free
+    #     data transfer, regardless of the volume and rate of data""",
+    # )
+
+    # issue = CoreEngine.Issue(
+    #     10,
+    #     "Graphics system failing. Window does not go into fullscreen",
+    #     """When starting the program, the window fails to enter full screen and
+    #     gives a message saying that the system ran out of video memory.
+    #     This results in a graphics system crash.
+
+    #     This occurs particularly when running other fullscreen programs at the same time.
+    #     The graphics handling mechanism should be reviewed and optimized to ensure efficient and error-free
+    #     video transfer, regardless of what other programs are utilizing video ram""",
+    # )
+
+    print(external.predict_issue(issue))  # Returns top 3 domains.
 
     # It is also possible to download a repository's open issues like this:
     issues = CoreEngine.git_helper_get_open_issues(

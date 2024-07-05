@@ -34,7 +34,7 @@ def process_files(ai: AICachedClassifier, db: DatabaseManager, pr=None):
     files_done = set()
 
     # Go file by file
-    for fileElement in tqdm.tqdm(files, smoothing=0.05):
+    for fileElement in tqdm.tqdm(files, smoothing=0.05, leave=False):
         # extract file path and commit_hash
         file = fileElement[0]
         commit_hash = fileElement[1]
@@ -80,7 +80,7 @@ def process_files(ai: AICachedClassifier, db: DatabaseManager, pr=None):
             functions = pgrm.getFunctions().keys()
         except:
             print(
-                f"\t{RED_COLOR}ERROR PARSING JAVA PROGRAM {saveLocation}. Please submit bug ticket! Send the file '{saveLocation}' in the bug ticket{RESET_COLOR}",
+                f"\t{YELLOW_COLOR}Can't parse Java Program {saveLocation}. {RESET_COLOR}",
                 file=sys.stderr,
             )
             db.mark_file_as_processed(file, commit_hash, status="ERROR in Java Parsing")
