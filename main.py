@@ -85,7 +85,7 @@ def main():
         # classifier.save_model(llm_classifier)
         print(f"Your model has been saved {llm_classifier}")
 
-        if method == "rf":
+    if method == "rf":
         df = df.drop(
             columns=[
                 "PR #",
