@@ -104,39 +104,41 @@ class External_Model_Interface:
         return response
 
     def __rf_predict(self, issue: Issue):
-        print("rf")
+        # print("rf")
         clf = self.model["model"]
         vx = self.model["vectorizer"]
         y_df = self.model["labels"]
 
+        # Uncomment print statements for verbose debugging output
+
         # Creating DataFrame for the issue
-        print("Starting Random Forest Prediction")
-        print("Creating DataFrame for the issue")
+        # print("Starting Random Forest Prediction")
+        # print("Creating DataFrame for the issue")
         df = pd.DataFrame(columns=["Issue #", "Title", "Body"], data=[issue.get_data()])
-        print("DataFrame created: ")
-        print(df)
-        
+        # print("DataFrame created: ")
+        # print(df)
+
         # Cleaning and vectorizing text
-        print("Cleaning and vectorizing text")
+        # print("Cleaning and vectorizing text")
         vectorized_text = clean_text_rf(vx, df)
-        print("Vectorized text: ")
-        print(vectorized_text)
-        
+        # print("Vectorized text: ")
+        # print(vectorized_text)
+
         # Predicting open issues
-        print("Predicting open issues")
+        # print("Predicting open issues")
         predictions = predict_open_issues(df, clf, vectorized_text, y_df)
-        print("Predictions DataFrame: ")
-        print(predictions)
+        # print("Predictions DataFrame: ")
+        # print(predictions)
 
         # Calculate label frequencies
         label_frequencies = y_df.mean(axis=0)
-        print("Label frequencies:")
-        print(label_frequencies)
+        # print("Label frequencies:")
+        # print(label_frequencies)
 
         # Filter out labels with more than 60% occurrence
         frequent_labels = label_frequencies[label_frequencies > 0.6].index.tolist()
-        print("Frequent labels to be dropped:")
-        print(frequent_labels)
+        # print("Frequent labels to be dropped:")
+        # print(frequent_labels)
 
         value_out: list[float] = []
         columns: list[str] = []
@@ -145,7 +147,7 @@ class External_Model_Interface:
             if len(column) < 3 or column == "Issue #" or column in frequent_labels:
                 continue
             value = predictions[column][0]
-            print(f"Label: {column}, Predicted Probability: {value}")
+            # print(f"Label: {column}, Predicted Probability: {value}")
 
             if len(value_out) == 0:
                 value_out.insert(0, value)
@@ -157,6 +159,6 @@ class External_Model_Interface:
                 value_out.insert(x, value)
                 columns.insert(x, column)
 
-        print("Top 3 predictions:")
-        print(columns[:3])
+        # print("Top 3 predictions:")
+        # print(columns[:3])
         return columns[:3]
