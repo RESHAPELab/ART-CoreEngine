@@ -372,8 +372,8 @@ def get_gpt_responses(open_issue_df, issue_classifier, domains_string, openai_ke
         # create user and system messages
         user_message = (
             f"Classify a GitHub issue by indicating up to THREE domains that are relevant to the issue based on its title: [{row['Title']}] "
-            f"and body: [{row['Body']}]. Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text. Ensure that you only provide three domains and provide ONLY the names of the domains and exclude their descriptions. Refer to ONLY THESE domains and subdomains when classifying: {domains_string}."
-            f"\n\nImportant: only provide the name of the domains in list format."
+            f"and body: [{row['Body']}]. Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text. Ensure that you only provide three domains and provide ONLY the names of the domains and exclude their descriptions. Refer to ONLY THESE domains when classifying: {domains_string}."
+            f"\n\nImportant: Ensure that you only provide the name of the domains in LIST FORMAT. ie [Application-Integration, Big Data-Data Storage, Computer Graphics-Animation]"
         )
 
         # query fine tuned model
@@ -391,10 +391,10 @@ def get_gpt_response_one_issue(
 ):
     # create user and system messages
     user_message = (
-        f"Classify a GitHub issue by indicating up to THREE domains that are relevant to the issue based on its title: [{issue.title}] "
-        f"and body: [{issue.body}]. Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text. Ensure that you only provide three domains and provide ONLY the names of the domains and exclude their descriptions. Refer to ONLY THESE domains and subdomains when classifying: {domains_string}."
-        f"\n\nImportant: only provide the name of the domains in list format."
-    )
+            f"Classify a GitHub issue by indicating up to THREE domains that are relevant to the issue based on its title: [{row['Title']}] "
+            f"and body: [{row['Body']}]. Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text. Ensure that you only provide three domains and provide ONLY the names of the domains and exclude their descriptions. Refer to ONLY THESE domains when classifying: {domains_string}."
+            f"\n\nImportant: Ensure that you only provide the name of the domains in LIST FORMAT. ie [Application-Integration, Big Data-Data Storage, Computer Graphics-Animation]"
+        )
 
     # query fine tuned model
     response = query_gpt(user_message, issue_classifier, openai_key)
