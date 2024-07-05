@@ -485,22 +485,23 @@ def clean_text_rf(vectorizer, df):
 
 
 def predict_open_issues(open_issue_df, model, data, y_df):
-    # Predict probabilities for open issues
-    predicted_probabilities = model.predict_proba(data)
 
-    # Get used domains from y_df and issue numbers from open_issue_df
+    # predict for open issues
+    predicted_values = model.predict(data)
+
+    # get used domains from csv and issue numbers from df
     columns = y_df.columns
     columns = columns.insert(0, "Issue #")
     issue_numbers = open_issue_df["Issue #"].values
 
-    # Link issue number with predictions and add to data
+    # link issue number with predictions and add to data
     prediction_data = []
-    for i in range(data.shape[0]):
-        curr_prediction = [proba[i][1] for proba in predicted_probabilities]  # Extract the probability of the positive class
+    for i in range(len(predicted_values)):
+        curr_prediction = predicted_values[i].tolist()
         curr_issue = [issue_numbers[i]]
         prediction_data.append(curr_issue + curr_prediction)
 
-    # Convert data to DataFrame
+    # convert data to df
     prediction_df = pd.DataFrame(columns=columns, data=prediction_data)
     return prediction_df
 
