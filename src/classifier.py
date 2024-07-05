@@ -117,50 +117,32 @@ def filter_domains(df):
 def generate_system_message(domain_dictionary, subdomain_dictionary, df):
     formatted_domains = {}
     formatted_subdomains = {}
-    assistant_message = {}
 
-    # Iterate through each domain and format it based on its presence in df.columns
-    for key, value in domain_dictionary.items():
-        # Check if the domain is one of the df columns
-        if key in df.columns:
-            formatted_domains[key] = (
-                "Domain"  # Mark it specifically as "Domain" if in df.columns
-            )
-            assistant_message[key] = 0  # Initialize message count for this domain
+    for item in domain_dictionary["Items"]:
+        domain = tuple(item.keys())[0]
+        domain_description = item[domain]
 
-        # Always use the domain description from the dictionary
-        formatted_domains[key] = value
+        formatted_domains[domain] = domain_description
 
-        # Prepare subdomains for this domain if any
-        if key in subdomain_dictionary:
+        if domain in subdomain_dictionary:
+            # formatted_subdomains[domain] = subdomain_dictionary[domain]
             # Create a subdomain entry for each subdomain under this domain
-            subdomain_list = subdomain_dictionary[key]
-            subdomain_pairs = []
-            for subdomain in subdomain_list:
-                subdomain_name = list(subdomain.keys())[
-                    0
-                ]  # Assumes each subdomain dict has one key
-                # Create the domain-subdomain pair format
-                subdomain_pairs.append(f"{key}-{subdomain_name}")
-            formatted_subdomains[key] = (
-                subdomain_pairs  # Store subdomain details under the domain
-            )
+            subdomain_list = subdomain_dictionary[domain]
+            for subdomain_info in subdomain_list:
+                subdomain = tuple(subdomain_info.keys())[0]
+                subdomain_description = subdomain_info[subdomain]
 
-    # Convert the subdomains to a single string with domain-subdomain pairs
-    subdomain_str = ", ".join(
-        [f"['{pair}']" for sublist in formatted_subdomains.values() for pair in sublist]
-    )
+                formatted_subdomains[f"{domain}-{subdomain}"] = subdomain_description
 
     # The system_message could be adjusted to include just domain names if detailed info is not needed
-    system_message = str(formatted_domains)
 
-    return system_message, subdomain_str, assistant_message
+    return formatted_domains, formatted_subdomains
 
 
-def generate_gpt_messages(system_message, gpt_output, df, out_jsonl):
+def generate_gpt_messages(domain_message, subdomain_message, df, out_jsonl):
     # Open the file in write mode
+    assistant_message = {}
     with open(out_jsonl, "w", encoding="utf-8") as f:
-        assistant_message = gpt_output
         # Iterate over the rows in the DataFrame
         for index, row in df.iterrows():
             # Create the user message by formatting the prompt with the title and body
@@ -171,19 +153,19 @@ def generate_gpt_messages(system_message, gpt_output, df, out_jsonl):
 
             # logic to update assistant message with values in df
             for column in df.columns:
-                if column in gpt_output:
+                if column in subdomain_message:
                     if row[column] > 0:
                         assistant_message[column] = 1
                     else:
                         assistant_message[column] = 0
-
             # Construct the conversation object
+            combined = domain_message | subdomain_message
             conversation_object = {
                 "messages": [
                     {
                         "role": "system",
-                        "content": "Refer to these domains and subdomains when classifying "
-                        + system_message,
+                        "content": f"Refer to these domains and subdomains {combined}"
+                        + " for definitions when classifying",
                     },
                     {"role": "user", "content": user_message},
                     {"role": "assistant", "content": str(assistant_message)},
@@ -194,13 +176,14 @@ def generate_gpt_messages(system_message, gpt_output, df, out_jsonl):
             f.write(json.dumps(conversation_object, ensure_ascii=False) + "\n")
 
 
-def generate_gpt_message_one_issue(system_message, gpt_output, issue):
+def generate_gpt_message_one_issue(system_message, gpt_output, issue: Issue):
+    raise NotImplementedError  # Must be fixed!
     # Open the file in write mode
 
     # Create the user message by formatting the prompt with the title and body
     user_message = (
-        f"Classify a GitHub issue by indicating whether each domain and subdomain is relevant to the issue based on its title: [{row['issue text']}] "
-        f"and body: [{row['issue description']}]. Ensure that every domain/subdomain is accounted for, and its relevance is indicated with a 1 (relevant) or a 0 (not relevant)."
+        f"Classify a GitHub issue by indicating whether each domain and subdomain is relevant to the issue based on its title: [{issue.title}] "
+        f"and body: [{issue.body}]. Ensure that every domain/subdomain is accounted for, and its relevance is indicated with a 1 (relevant) or a 0 (not relevant)."
     )
 
     # logic to update assistant message with values in df
@@ -367,13 +350,14 @@ def query_gpt(user_message, issue_classifier, openai_key, max_retries=5):
 
 
 def get_gpt_responses(open_issue_df, issue_classifier, domains_string, openai_key):
+    raise NotImplementedError  # Use get_gpt_response_one_issue() instead
     responses = {}
     for index, row in open_issue_df.iterrows():
         # create user and system messages
         user_message = (
             f"Classify a GitHub issue by indicating up to THREE domains that are relevant to the issue based on its title: [{row['Title']}] "
-            f"and body: [{row['Body']}]. Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text. Ensure that you only provide three domains and provide ONLY the names of the domains and exclude their descriptions. Refer to ONLY THESE domains and subdomains when classifying: {domains_string}."
-            f"\n\nImportant: only provide the name of the domains in list format."
+            f"and body: [{row['Body']}]. Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text. Ensure that you only provide three domains and provide ONLY the names of the domains and exclude their descriptions. Refer to ONLY THESE domains when classifying: {domains_string}."
+            f"\n\nImportant: Ensure that you only provide the name of the domains in LIST FORMAT. ie [Application-Integration, Big Data-Data Storage, Computer Graphics-Animation]"
         )
 
         # query fine tuned model
@@ -387,13 +371,15 @@ def get_gpt_responses(open_issue_df, issue_classifier, domains_string, openai_ke
 
 
 def get_gpt_response_one_issue(
-    issue, issue_classifier, domains_string, subdomain_string, openai_key
+    issue, issue_classifier, domains, subdomains, openai_key
 ):
     # create user and system messages
+    combined = domains | subdomains
+
     user_message = (
         f"Classify a GitHub issue by indicating up to THREE domains that are relevant to the issue based on its title: [{issue.title}] "
-        f"and body: [{issue.body}]. Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text. Ensure that you only provide three domains and provide ONLY the names of the domains and exclude their descriptions. Refer to ONLY THESE domains and subdomains when classifying: {domains_string}."
-        f"\n\nImportant: only provide the name of the domains in list format."
+        f"and body: [{issue.body}]. Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text. Ensure that you only provide three domains and provide ONLY the names of the domains and exclude their descriptions. Refer to ONLY THESE domains when classifying: {list(combined.keys())}."
+        f"\n\nImportant: Ensure that you only provide the name of the domains in LIST FORMAT. ie [Application-Integration, Cloud, Big Data-Data Storage, Computer Graphics-Animation]"
     )
 
     # query fine tuned model
@@ -442,7 +428,9 @@ def create_combined_features(x_text_features):
 def perform_mlsmote(X, y, n_sample):
 
     def nearest_neighbour(X):
-        nbs = NearestNeighbors(n_neighbors=3, metric="euclidean", algorithm="kd_tree").fit(X)
+        nbs = NearestNeighbors(
+            n_neighbors=3, metric="euclidean", algorithm="kd_tree"
+        ).fit(X)
         _, indices = nbs.kneighbors(X)
         return indices
 
@@ -485,30 +473,47 @@ def perform_mlsmote(X, y, n_sample):
 
 def train_random_forest(x_train, y_train):
     param_grid = {
-        'estimator__n_estimators': [200],
-        'estimator__max_depth': [20],
-        'estimator__min_samples_split': [10],
-        'estimator__min_samples_leaf': [1],
-        'estimator__max_features': ['sqrt']
+        "estimator__n_estimators": [200],
+        "estimator__max_depth": [20],
+        "estimator__min_samples_split": [10],
+        "estimator__min_samples_leaf": [1],
+        "estimator__max_features": ["sqrt"],
     }
 
     rf = RandomForestClassifier(random_state=4, class_weight="balanced")
     multi_rf = MultiOutputClassifier(rf)
-    
-    grid_search = GridSearchCV(estimator=multi_rf, param_grid=param_grid, cv=5, n_jobs=-1, scoring=make_scorer(f1_score, average='macro', zero_division=1))
+
+    grid_search = GridSearchCV(
+        estimator=multi_rf,
+        param_grid=param_grid,
+        cv=5,
+        n_jobs=-1,
+        scoring=make_scorer(f1_score, average="macro", zero_division=1),
+    )
     grid_search.fit(x_train, y_train)
 
     best_rf = grid_search.best_estimator_
     print(f"Best parameters found: {grid_search.best_params_}")
 
-    scores = cross_val_score(best_rf, x_train, y_train, cv=5, scoring=make_scorer(f1_score, average='macro', zero_division=1))
+    scores = cross_val_score(
+        best_rf,
+        x_train,
+        y_train,
+        cv=5,
+        scoring=make_scorer(f1_score, average="macro", zero_division=1),
+    )
     print(f"Cross-validation F1 scores: {scores}")
     print(f"Mean F1 score: {scores.mean()}")
 
     # Feature importances for multilabel classifier
-    importances = np.mean([
-        tree.feature_importances_ for estimator in best_rf.estimators_ for tree in estimator.estimators_
-    ], axis=0)
+    importances = np.mean(
+        [
+            tree.feature_importances_
+            for estimator in best_rf.estimators_
+            for tree in estimator.estimators_
+        ],
+        axis=0,
+    )
     indices = np.argsort(importances)[::-1]
 
     print("Feature ranking:")
@@ -546,7 +551,9 @@ def predict_open_issues(open_issue_df, model, data, y_df):
     # Link issue number with predictions and add to data
     prediction_data = []
     for i in range(data.shape[0]):
-        curr_prediction = [proba[i][1] for proba in predicted_probabilities]  # Extract the probability of the positive class
+        curr_prediction = [
+            proba[i][1] for proba in predicted_probabilities
+        ]  # Extract the probability of the positive class
         curr_issue = [issue_numbers[i]]
         prediction_data.append(curr_issue + curr_prediction)
 
