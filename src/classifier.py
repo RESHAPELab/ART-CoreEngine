@@ -439,33 +439,83 @@ def create_combined_features(x_text_features):
     return X_combined
 
 
-def perform_mlsmote(X, y, n_sample=500):
+def perform_mlsmote(X, y, n_sample):
+
     def nearest_neighbour(X):
-        nbs = NearestNeighbors(
-            n_neighbors=3, metric="euclidean", algorithm="kd_tree"
-        ).fit(X)
+        nbs = NearestNeighbors(n_neighbors=3, metric="euclidean", algorithm="kd_tree").fit(X)
         _, indices = nbs.kneighbors(X)
         return indices
 
+    # Calculate class distribution
+    class_distribution = y.sum(axis=0)
+    max_class_count = class_distribution.max()
+
+    # Determine the number of samples needed for each class
+    samples_needed = (max_class_count - class_distribution).astype(int)
+
     indices2 = nearest_neighbour(X.values)
     n = len(indices2)
-    new_X = np.zeros((n_sample, X.shape[1]))
-    target = np.zeros((n_sample, y.shape[1]))
-    for i in range(n_sample):
-        reference = random.randint(0, n - 1)
-        neighbour = random.choice(indices2[reference, 1:])
-        all_point = indices2[reference]
-        nn_df = y[y.index.isin(all_point)]
-        ser = nn_df.sum(axis=0, skipna=True)
-        target[i] = np.array([1 if val > 2 else 0 for val in ser])
-        ratio = random.random()
-        gap = X.loc[reference, :] - X.loc[neighbour, :]
-        new_X[i] = np.array(X.loc[reference, :] + ratio * gap)
+    new_X = []
+    target = []
+
+    for class_idx, samples in samples_needed.items():
+        if samples > 0:
+            for _ in range(samples):
+                reference = random.randint(0, n - 1)
+                neighbour = random.choice(indices2[reference, 1:])
+                all_point = indices2[reference]
+                nn_df = y[y.index.isin(all_point)]
+                ser = nn_df.sum(axis=0, skipna=True)
+                new_target = np.array([1 if val > 2 else 0 for val in ser])
+                ratio = random.random()
+                gap = X.loc[reference, :] - X.loc[neighbour, :]
+                new_sample = np.array(X.loc[reference, :] + ratio * gap)
+                new_X.append(new_sample)
+                target.append(new_target)
+
     new_X = pd.DataFrame(new_X, columns=X.columns)
     target = pd.DataFrame(target, columns=y.columns)
-    new_X = pd.concat([X, new_X], axis=0)
-    target = pd.concat([y, target], axis=0)
-    return new_X, target
+
+    # Append the new samples to the original data
+    X_combined = pd.concat([X, new_X], axis=0)
+    y_combined = pd.concat([y, target], axis=0)
+
+    return X_combined, y_combined
+
+
+def train_random_forest(x_train, y_train):
+    param_grid = {
+        'estimator__n_estimators': [200],
+        'estimator__max_depth': [20],
+        'estimator__min_samples_split': [10],
+        'estimator__min_samples_leaf': [1],
+        'estimator__max_features': ['sqrt']
+    }
+
+    rf = RandomForestClassifier(random_state=4, class_weight="balanced")
+    multi_rf = MultiOutputClassifier(rf)
+    
+    grid_search = GridSearchCV(estimator=multi_rf, param_grid=param_grid, cv=5, n_jobs=-1, scoring=make_scorer(f1_score, average='macro', zero_division=1))
+    grid_search.fit(x_train, y_train)
+
+    best_rf = grid_search.best_estimator_
+    print(f"Best parameters found: {grid_search.best_params_}")
+
+    scores = cross_val_score(best_rf, x_train, y_train, cv=5, scoring=make_scorer(f1_score, average='macro', zero_division=1))
+    print(f"Cross-validation F1 scores: {scores}")
+    print(f"Mean F1 score: {scores.mean()}")
+
+    # Feature importances for multilabel classifier
+    importances = np.mean([
+        tree.feature_importances_ for estimator in best_rf.estimators_ for tree in estimator.estimators_
+    ], axis=0)
+    indices = np.argsort(importances)[::-1]
+
+    print("Feature ranking:")
+    for f in range(x_train.shape[1]):
+        print(f"{f + 1}. Feature {indices[f]} ({importances[indices[f]]})")
+
+    return best_rf
 
 
 def train_random_forest(x_train, y_train):
