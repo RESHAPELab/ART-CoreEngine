@@ -115,11 +115,14 @@ def filter_domains(df):
 
 
 def generate_system_message(domain_dictionary, subdomain_dictionary, df):
+    formatted_domains = {}
     formatted_subdomains = {}
 
     for item in domain_dictionary["Items"]:
         domain = tuple(item.keys())[0]
         domain_description = item[domain]
+
+        formatted_domains[domain] = domain_description
 
         if domain in subdomain_dictionary:
             # formatted_subdomains[domain] = subdomain_dictionary[domain]
@@ -133,7 +136,7 @@ def generate_system_message(domain_dictionary, subdomain_dictionary, df):
 
     # The system_message could be adjusted to include just domain names if detailed info is not needed
 
-    return domain_dictionary, formatted_subdomains
+    return formatted_domains, formatted_subdomains
 
 
 def generate_gpt_messages(domain_message, subdomain_message, df, out_jsonl):
@@ -156,12 +159,13 @@ def generate_gpt_messages(domain_message, subdomain_message, df, out_jsonl):
                     else:
                         assistant_message[column] = 0
             # Construct the conversation object
+            combined = domain_message | subdomain_message
             conversation_object = {
                 "messages": [
                     {
                         "role": "system",
-                        "content": f"Refer to these domains {domain_message} and subdomains {subdomain_message}"
-                        + " when classifying",
+                        "content": f"Refer to these domains and subdomains {combined}"
+                        + " for definitions when classifying",
                     },
                     {"role": "user", "content": user_message},
                     {"role": "assistant", "content": str(assistant_message)},
@@ -346,6 +350,7 @@ def query_gpt(user_message, issue_classifier, openai_key, max_retries=5):
 
 
 def get_gpt_responses(open_issue_df, issue_classifier, domains_string, openai_key):
+    raise NotImplementedError  # Use get_gpt_response_one_issue() instead
     responses = {}
     for index, row in open_issue_df.iterrows():
         # create user and system messages
@@ -369,10 +374,12 @@ def get_gpt_response_one_issue(
     issue, issue_classifier, domains, subdomains, openai_key
 ):
     # create user and system messages
+    combined = domains | subdomains
+
     user_message = (
         f"Classify a GitHub issue by indicating up to THREE domains that are relevant to the issue based on its title: [{issue.title}] "
-        f"and body: [{issue.body}]. Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text. Ensure that you only provide three domains and provide ONLY the names of the domains and exclude their descriptions. Refer to ONLY THESE domains when classifying: {subdomains}."
-        f"\n\nImportant: Ensure that you only provide the name of the domains in LIST FORMAT. ie [Application-Integration, Big Data-Data Storage, Computer Graphics-Animation]"
+        f"and body: [{issue.body}]. Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text. Ensure that you only provide three domains and provide ONLY the names of the domains and exclude their descriptions. Refer to ONLY THESE domains when classifying: {list(combined.keys())}."
+        f"\n\nImportant: Ensure that you only provide the name of the domains in LIST FORMAT. ie [Application-Integration, Cloud, Big Data-Data Storage, Computer Graphics-Animation]"
     )
 
     # query fine tuned model
