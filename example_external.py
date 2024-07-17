@@ -129,12 +129,18 @@ if __name__ == "__main__":
 
     for issue in tqdm.tqdm(issues, leave=False):
         # issue is of type CoreEngine.Issue, issues opened.
+        try:
+            prediction_gpt = external_gpt.predict_issue(issue)
+            prediction_rf = external_rf.predict_issue(issue)
+        except:
+            continue
+
         data_out["Issue Number"].append(issue.number)
         data_out["Issue Title"].append(issue.title)
         data_out["Issue Body"].append(issue.body)
         data_out["Is Open"].append(True)
-        data_out["GPT Predictions"].append(external_gpt.predict_issue(issue))
-        data_out["RF Predictions"].append(external_rf.predict_issue(issue))
+        data_out["GPT Predictions"].append(prediction_gpt)
+        data_out["RF Predictions"].append(prediction_rf)
 
     # Get closed issues
     issues = CoreEngine.git_helper_get_issues(
@@ -150,12 +156,18 @@ if __name__ == "__main__":
     print(f"Classifying {len(issues)} closed issues....")
     for issue in tqdm.tqdm(issues, leave=False):
         # issue is of type CoreEngine.Issue, issues closed.
+        try:
+            prediction_gpt = external_gpt.predict_issue(issue)
+            prediction_rf = external_rf.predict_issue(issue)
+        except:
+            continue
+
         data_out["Issue Number"].append(issue.number)
         data_out["Issue Title"].append(issue.title)
         data_out["Issue Body"].append(issue.body.replace('"', "'"))
         data_out["Is Open"].append(False)
-        data_out["GPT Predictions"].append(external_gpt.predict_issue(issue))
-        data_out["RF Predictions"].append(external_rf.predict_issue(issue))
+        data_out["GPT Predictions"].append(prediction_gpt)
+        data_out["RF Predictions"].append(prediction_rf)
 
     data = pd.DataFrame(data=data_out)
     data["Issue Body"] = data["Issue Body"].apply(CoreEngine.classifier.clean_text)
