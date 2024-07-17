@@ -35,7 +35,7 @@ class External_Model_Interface:
         subdomain_file: str,
         response_cache_key: str,
         response_cache_directory: str,
-        bytes_limit: int = 1024 * 1024 * 20,
+        bytes_limit: int = 1024 * 1024 * 40,  # 40 MB cache
     ):
 
         with open(model_file, "rb") as f:
@@ -68,12 +68,12 @@ class External_Model_Interface:
         else:
             self.memory = Memory(response_cache_directory, verbose=0)
             self.__cached_predictions = self.memory.cache(
-                self.__predict_issue, ignore=["num"]
+                self.__predict_issue, ignore=["num", "title", "body", "self"]
             )
 
     def predict_issue(self, issue: Issue):
         # Cache key incorporates the model to ensure updates to the model invalidate the cache
-        cache_key = f"{self.response_cache_key}_{self.model['type']}_{self.model_file_name}_{issue.number}"
+        cache_key = f"{self.response_cache_key}_{self.model['type']}_{self.model.get('save_version')}_{self.model_file_name}_{issue.number}_{issue.title}"
 
         if self.response_cache_key is None:
             out = self.__cached_predictions(issue.number, issue.title, issue.body, None)
@@ -82,11 +82,16 @@ class External_Model_Interface:
         out = self.__cached_predictions(
             issue.number, issue.title, issue.body, cache_key
         )
+        # print(
+        #     f"Predict Issue Cache Store - {cache_key}"
+        # )  # Any changes to this function will invalidate cache!
         self.memory.reduce_size(bytes_limit=self.bytes_limit)
         return out
 
     def __predict_issue(self, num, title, body, _ignore_me):
-        print("Cache Miss")
+        print(
+            f"Predict Issue Cache Miss - {_ignore_me}"
+        )  # Any changes to this function will invalidate cache!
         issue = Issue(num, title, body)  # for caching.
 
         if self.model["type"] == "gpt":
