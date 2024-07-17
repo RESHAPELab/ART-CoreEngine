@@ -20,5 +20,6 @@ from . import repo_extractor
 from .repo_extractor import utils
 from .processing import process_files
 from .classifier import git_helper_get_open_issues
+from .classifier import git_helper_get_issues
 from .repo_extractor import conf
 from .repo_extractor import schema

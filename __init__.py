@@ -1,3 +1,7 @@
 # from .src import *
 # from . import src
-__version__ = "1.0.0"
+__version__ = "1.1.0"
+
+import os
+
+os.environ["CORE_ENGINE_VERSION"] = __version__

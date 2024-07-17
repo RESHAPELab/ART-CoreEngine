@@ -12,6 +12,7 @@ import pandas as pd
 import src as CoreEngine  # change to `import CoreEngine.src as CoreEngine` in submodules
 
 from dotenv import load_dotenv
+from __init__ import __version__
 
 
 def main():
@@ -80,6 +81,7 @@ def main():
                 "time_saved": datetime.now(),
                 "model": llm_classifier,
                 "type": "gpt",
+                "save_version": __version__,
             }
             pickle.dump(dat, f)
         # classifier.save_model(llm_classifier)
@@ -151,6 +153,7 @@ def main():
                 "vectorizer": vx,
                 "labels": y_df,
                 "type": "rf",
+                "save_version": __version__,
             }
             pickle.dump(dat, f)
         print(f"Your model has been saved {clf}")

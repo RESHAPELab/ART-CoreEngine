@@ -47,6 +47,16 @@ class External_Model_Interface:
         with open(subdomain_file, "r") as f:
             self.subdomains = json.load(f)
 
+        if "save_version" in self.model and self.model["save_version"] == os.getenv(
+            "CORE_ENGINE_VERSION"
+        ):
+            pass
+        else:
+            print(
+                f"""Model save version does match current CoreEngine version. This may cause future errors
+\tCoreEngine Version: {os.getenv("CORE_ENGINE_VERSION")}   Model Version: {self.model.get("save_version")}"""
+            )
+
         self.db = db
         self.model_file_name = model_file
         self.__open_ai_key = open_ai_key
