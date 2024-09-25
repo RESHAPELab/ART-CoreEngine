@@ -7,10 +7,11 @@
 
 import os
 import sys
+from typing import Optional
 import tqdm
 from . import github_pull
 from .ai_taxonomy import AICachedClassifier, load_data
-from .database_manager import DatabaseManager
+from .database_manager import DatabaseManager, Repository
 from .generate_ast import generate_ast
 from .java_ast import JavaProgram
 
@@ -20,16 +21,26 @@ YELLOW_COLOR = "\033[1m\033[38;5;11m"
 RESET_COLOR = "\033[0m"
 
 
-def process_files(ai: AICachedClassifier, db: DatabaseManager, pr=None):
+def process_files(
+    ai: AICachedClassifier,
+    db: DatabaseManager,
+    pr=None,
+    repo: Optional[Repository] = None,
+):
     """Process files that have not been processed yet
 
     Args:
         ai (AICachedClassifier): AI Classifier Engine
         db (DatabaseManager): Database Engine
-        pr (Optional[int], default=None): Set to pr # for processing files from a specific PR #
+        pr (Optional[int], default=None): Set to pr # for processing files from a specific PR # (None for all.)
+        repo (Optional[Repository], default=None): Set to repo # for processing files from a specific repo.
     """
+    if repo is None and pr is not None:
+        raise NotImplementedError(
+            "If specifying PR #, please indicate Repository # too"
+        )
 
-    files = db.get_unprocessed_files(pr)
+    files = db.get_unprocessed_files(pr, repo)
     # later change to process files from one PR! db.get_unprocessed_files(pr)
     files_done = set()
 
@@ -38,6 +49,7 @@ def process_files(ai: AICachedClassifier, db: DatabaseManager, pr=None):
         # extract file path and commit_hash
         file = fileElement[0]
         commit_hash = fileElement[1]
+        spc_repo = fileElement[2]
 
         # verify if there are no repeat files!
         if (file, commit_hash) in files_done:
@@ -46,23 +58,30 @@ def process_files(ai: AICachedClassifier, db: DatabaseManager, pr=None):
         files_done.add((file, commit_hash))
 
         # download from GitHub
-        saveLocation = db.manageDownload(file, commit_hash)
+        saveLocation = db.manageDownload(file, commit_hash, spc_repo)
 
         # quick hack to skip all files except java files to save time!
         name, ending = os.path.splitext(file)
         if ending != ".java":
-            db.mark_file_as_processed(file, commit_hash, status="Time Save Not Java")
+            db.mark_file_as_processed(
+                file,
+                commit_hash,
+                repo=spc_repo,
+                status="Time Save Not Java",
+            )
             continue
         try:
             github_pull.get_github_single_file(
-                "JabRef", "jabref", commit_hash, file, saveLocation
+                spc_repo.owner, spc_repo.name, commit_hash, file, saveLocation
             )
         except Exception as e:
             print(
                 f"\t{YELLOW_COLOR}Error downloading file {commit_hash, file}. Likely requires a different commit. Please check. \n Error: {e}{RESET_COLOR}",
                 file=sys.stderr,
             )
-            db.mark_file_as_processed(file, commit_hash, status="Error downloading")
+            db.mark_file_as_processed(
+                file, commit_hash, status="Error downloading", repo=spc_repo
+            )
             continue
         # print("\tDownloaded: ", commit_hash, file)
 
@@ -70,7 +89,9 @@ def process_files(ai: AICachedClassifier, db: DatabaseManager, pr=None):
         try:
             result = generate_ast(saveLocation)
         except:
-            db.mark_file_as_processed(file, commit_hash, status="unsupported lang")
+            db.mark_file_as_processed(
+                file, commit_hash, status="unsupported lang", repo=spc_repo
+            )
             continue
 
         # parse AST
@@ -83,7 +104,9 @@ def process_files(ai: AICachedClassifier, db: DatabaseManager, pr=None):
                 f"\t{YELLOW_COLOR}Can't parse Java Program {saveLocation}. {RESET_COLOR}",
                 file=sys.stderr,
             )
-            db.mark_file_as_processed(file, commit_hash, status="ERROR in Java Parsing")
+            db.mark_file_as_processed(
+                file, commit_hash, status="ERROR in Java Parsing", repo=spc_repo
+            )
             continue
 
         # classify api's
@@ -91,7 +114,7 @@ def process_files(ai: AICachedClassifier, db: DatabaseManager, pr=None):
         for class_name in plain_classes:
             domain = ai.classify_API(class_name)  # automatically saves it to cache.
             local_domain_cache[class_name] = domain
-            db.mark_file_api_use(file, commit_hash, class_name)
+            db.mark_file_api_use(file, commit_hash, class_name, spc_repo)
         db.save()
 
         # classify functions
@@ -106,10 +129,12 @@ def process_files(ai: AICachedClassifier, db: DatabaseManager, pr=None):
             ai.classify_function(
                 class_name, function_name, class_domain
             )  # automatically saves it to cache. Save for later.
-            db.mark_file_function_use(file, commit_hash, class_name, function_name)
+            db.mark_file_function_use(
+                file, commit_hash, class_name, function_name, spc_repo
+            )
 
         # mark as processed and continue
-        db.mark_file_as_processed(file, commit_hash)
+        db.mark_file_as_processed(file, commit_hash, spc_repo)
         os.unlink(saveLocation)
         db.save()
 

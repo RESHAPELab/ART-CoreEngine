@@ -26,9 +26,11 @@ def main():
     cfg_obj = CoreEngine.repo_extractor.conf.Cfg(
         cfg_dict, CoreEngine.repo_extractor.schema.cfg_schema
     )
-    db = CoreEngine.DatabaseManager()
 
-    gh_ext = CoreEngine.repo_extractor.extractor.Extractor(cfg_obj)
+    db = CoreEngine.DatabaseManager()
+    repo = db.allocate_repo(cfg_dict["repo"])
+
+    gh_ext = CoreEngine.repo_extractor.extractor.Extractor(cfg_obj, db)
     prs = gh_ext.get_repo_issues_data(db)
 
     api_labels = CoreEngine.utils.read_jsonfile_into_dict(
@@ -44,14 +46,14 @@ def main():
 
         # Here is where ASTs and classification are done;
         # all the "heavy lifting" of the core engine
-        CoreEngine.process_files(ai, db, pr)
+        CoreEngine.process_files(ai, db, pr, repo)
 
     db.save()
 
     method = cfg_dict["clf_method"]
 
     print("\nPreparing data frame")
-    df = get_prs_df(db, prs)
+    df = get_prs_df(db, prs, repo)
 
     if method == "gpt":
         json_open = cfg_obj.get_cfg_val("gpt_jsonl_path")
@@ -90,6 +92,7 @@ def main():
     if method == "rf":
         df = df.drop(
             columns=[
+                "Repo Name",
                 "PR #",
                 "Pull Request",
                 "created_at",
@@ -212,10 +215,12 @@ def get_cli_args() -> str:
     return arg_parser.parse_args().extractor_cfg_file
 
 
-def get_prs_df(db: CoreEngine.DatabaseManager, prs):
+def get_prs_df(
+    db: CoreEngine.DatabaseManager, prs, repo: CoreEngine.database_manager.Repository
+):
     """Todo."""
-    df = db.get_df(prs)
-    columns_to_convert = df.columns[15:]
+    df = db.get_df(prs, repo)
+    columns_to_convert = df.columns[16:]
     df[columns_to_convert] = df[columns_to_convert].map(lambda x: 1 if x > 0 else 0)
     df["issue text"] = df["issue text"].apply(CoreEngine.classifier.clean_text)
     df["issue description"] = df["issue description"].apply(

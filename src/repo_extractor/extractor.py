@@ -115,7 +115,7 @@ class Extractor:
     # ----------------------------------------------------------------------
     # Initialization tools
     # ----------------------------------------------------------------------
-    def __init__(self, cfg_obj: conf.Cfg) -> None:
+    def __init__(self, cfg_obj: conf.Cfg, db: DatabaseManager) -> None:
         """
         Extractor object initialization.
 
@@ -143,6 +143,7 @@ class Extractor:
         )
 
         self.cfg.set_cfg_val("range", self.__get_sanitized_cfg_range())
+        self.repo_obj = db.allocate_repo(self.cfg.get_cfg_val("repo"))
 
     def __get_repo_obj(self):
         """
@@ -362,7 +363,7 @@ class Extractor:
         print(f"{TAB}Starting mining at #{issue_range[0]}...")
 
         for cur_issue in repo_slice:
-            if db.check_if_pr_already_done(cur_issue.number):
+            if db.check_if_pr_already_done(cur_issue.number, self.repo_obj):
                 processed_prs_out.append(cur_issue.number)
                 print(
                     f"{TAB}{TAB}Skipping issue {cur_issue.number} as it already has been extracted"
@@ -386,7 +387,7 @@ class Extractor:
                 issue_data: dict = {cur_issue.number: cur_issue_data}
 
             except github.RateLimitExceededException:
-                db.save_pr_data(out_data)
+                db.save_pr_data(out_data, self.repo_obj)
 
                 # clear dictionary so that it isn't massive and holding
                 # onto data that we have already written to output
@@ -401,7 +402,7 @@ class Extractor:
                 socket.gaierror,
             ):
                 print("\nWriting gathered data...")
-                db.save_pr_data(out_data)
+                db.save_pr_data(out_data, self.repo_obj)
 
                 print(f"{TAB}Terminating at item #{cur_issue.number}\n")
                 print("---------------------------------------------\n\n")
@@ -411,12 +412,12 @@ class Extractor:
             else:
                 processed_prs_out.append(cur_issue.number)
                 out_data |= issue_data
-                db.save_pr_data(issue_data)
+                db.save_pr_data(issue_data, self.repo_obj)
 
                 print(f"{CLR}{TAB * 2}Issue: {cur_issue.number}, ", end="")
                 print(f"calls: {self.gh_sesh.get_remaining_calls()}", end="\r")
 
-        db.save_pr_data(out_data)
+        db.save_pr_data(out_data, self.repo_obj)
         print()
         return processed_prs_out
 
