@@ -22,7 +22,9 @@ def main():
     load_dotenv()
     init_db()
 
-    cfg_dict: dict = get_user_cfg()
+    cfg_path, skip_train = get_cli_args()
+    cfg_dict = CoreEngine.utils.read_jsonfile_into_dict(cfg_path)
+
     cfg_obj = CoreEngine.repo_extractor.conf.Cfg(
         cfg_dict, CoreEngine.repo_extractor.schema.cfg_schema
     )
@@ -41,14 +43,21 @@ def main():
     )
     ai = CoreEngine.AICachedClassifier(api_labels, sub_labels, db)
 
+    print("Classifying APIs in files")
     for pr in prs:
-        print(f"\nClassifying files from PR {pr} for predictions training ")
+        print(f"\tClassifying files from PR {pr} for predictions training ")
 
         # Here is where ASTs and classification are done;
         # all the "heavy lifting" of the core engine
         CoreEngine.process_files(ai, db, pr, repo)
 
+        # CoreEngine.process_files(ai, db)  <-- Run this to process PRs from any repo!
+
     db.save()
+
+    if skip_train:
+        print("\nSkipping Model Training. \nDone.")
+        sys.exit()
 
     method = cfg_dict["clf_method"]
 
@@ -60,8 +69,20 @@ def main():
     # Instead, you can use this below to get ALL data from all PRs and Repos stored
     df = get_all_data(db)
 
+    print("Getting data from all extracted repositories:\n")
+    repos_processed = db.get_all_repos()
+    for repo_process in repos_processed:
+        prs = len(db.get_prs_of_repo(repo_process))
+
+        print(
+            f"\tIncluding data for: {repo_process.owner}/{repo_process.name} PRs: {prs}"
+        )
+    print()
+
     # Here is where you can do processing with the dataframe to isolate/manipulate it.
     # Or, put it in the below if statements for gpt or random forest...
+
+    print(f"Training... {method} model")
 
     if method == "gpt":
         json_open = cfg_obj.get_cfg_val("gpt_jsonl_path")
@@ -190,24 +211,13 @@ def init_db():
     #      database_init.setup_caches()
 
 
-def get_user_cfg() -> dict:
-    """
-    Get path to and read from configuration file.
-
-    :return: dict of configuration values
-    :rtype: dict
-    """
-    cfg_path = get_cli_args()
-
-    return CoreEngine.utils.read_jsonfile_into_dict(cfg_path)
-
-
-def get_cli_args() -> str:
+def get_cli_args() -> tuple[str, bool]:
     """
     Get initializing arguments from CLI.
 
     Returns:
         str: path to file with arguments to program
+        bool: skip training flag
     """
     # establish positional argument capability
     arg_parser = argparse.ArgumentParser(
@@ -219,8 +229,15 @@ def get_cli_args() -> str:
         "extractor_cfg_file",
         help="Path to JSON configuration file",
     )
+    arg_parser.add_argument(
+        "-s",
+        action="store_true",
+        help="Skip training of model",
+    )
 
-    return arg_parser.parse_args().extractor_cfg_file
+    args = arg_parser.parse_args()
+
+    return args.extractor_cfg_file, args.s
 
 
 def get_all_data(db: CoreEngine.DatabaseManager) -> pd.DataFrame:

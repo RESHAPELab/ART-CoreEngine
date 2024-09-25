@@ -651,7 +651,7 @@ class DatabaseManager:
 
             if not (data["is_merged"]):
                 cur.execute(
-                    "INSERT INTO pull_requests (pullNumber, title, descriptionText, created, userlogin) VALUES (?,?,?,?,?,?)",
+                    "INSERT INTO pull_requests (pullNumber, title, descriptionText, created, userlogin, repoNum) VALUES (?,?,?,?,?,?)",
                     (issue_num, issue_title, issue_body, created, userlogin, repo.num),
                 )
                 continue  # only extract merged PRs
@@ -796,7 +796,7 @@ class DatabaseManager:
         # Path to your SQLite database
         full_data = []
         # Iterate through PR numbers until none are found
-        pbar = tqdm.tqdm(total=self.get_len_prs(), leave=False)
+        pbar = tqdm.tqdm(total=self.get_len_prs(), leave=True)
         for repo in all_repos:
             prs = self.get_prs_of_repo(repo)
             for pr in prs:
