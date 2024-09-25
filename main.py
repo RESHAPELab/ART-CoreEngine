@@ -53,7 +53,15 @@ def main():
     method = cfg_dict["clf_method"]
 
     print("\nPreparing data frame")
-    df = get_prs_df(db, prs, repo)
+
+    # this gets data from a specific PR from a specific Repository
+    # df = get_prs_df(db, prs, repo)
+
+    # Instead, you can use this below to get ALL data from all PRs and Repos stored
+    df = get_all_data(db)
+
+    # Here is where you can do processing with the dataframe to isolate/manipulate it.
+    # Or, put it in the below if statements for gpt or random forest...
 
     if method == "gpt":
         json_open = cfg_obj.get_cfg_val("gpt_jsonl_path")
@@ -215,10 +223,44 @@ def get_cli_args() -> str:
     return arg_parser.parse_args().extractor_cfg_file
 
 
+def get_all_data(db: CoreEngine.DatabaseManager) -> pd.DataFrame:
+    """Get all extracted data from all Repos/PRs
+
+    Can be used for training
+
+    Args:
+        db (CoreEngine.DatabaseManager): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    df = db.get_df_all()
+    columns_to_convert = df.columns[16:]
+    df[columns_to_convert] = df[columns_to_convert].map(lambda x: 1 if x > 0 else 0)
+    df["issue text"] = df["issue text"].apply(CoreEngine.classifier.clean_text)
+    df["issue description"] = df["issue description"].apply(
+        CoreEngine.classifier.clean_text
+    )
+    df = CoreEngine.classifier.filter_domains(df)
+
+    return df
+
+
 def get_prs_df(
-    db: CoreEngine.DatabaseManager, prs, repo: CoreEngine.database_manager.Repository
+    db: CoreEngine.DatabaseManager,
+    prs: list[int],
+    repo: CoreEngine.database_manager.Repository,
 ):
-    """Todo."""
+    """Get extracted data for a specific series of PRs from a given repository
+
+    Args:
+        db (CoreEngine.DatabaseManager): Database connector
+        prs (list[int]): List of PR numbers to pull from
+        repo (Repository): Repository to pull from
+
+    Returns:
+        pd.Dataframe: Dataframe of the extracted data.
+    """
     df = db.get_df(prs, repo)
     columns_to_convert = df.columns[16:]
     df[columns_to_convert] = df[columns_to_convert].map(lambda x: 1 if x > 0 else 0)

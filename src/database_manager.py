@@ -19,12 +19,21 @@ import tqdm
 
 
 class Repository:
+    """A struct to hold repository information"""
+
     def __init__(
         self,
         repoOwner: Optional[str] = None,
         repoName: Optional[str] = None,
         repoNum: Optional[int] = None,
     ):
+        """Create repository data structure
+
+        Args:
+            repoOwner (Optional[str], optional): Owner. Defaults to None.
+            repoName (Optional[str], optional): Repo Name. Defaults to None.
+            repoNum (Optional[int], optional): PR # from GitHub. Defaults to None.
+        """
         self.owner = repoOwner
         self.name = repoName
         self.num = repoNum
@@ -53,7 +62,16 @@ class DatabaseManager:
         with open(label_file, "r", encoding="UTF-8") as f:
             self.domain_labels = json.load(f)
 
-    def allocate_repo(self, gitpath: str):
+    def allocate_repo(self, gitpath: str) -> Repository:
+        """Inform the database that a certain repository exists and if not, generate a repository ID for it.
+
+
+        Args:
+            gitpath (str): The github naming convention: "JabRef/jabref" for instance.
+
+        Returns:
+            Repository: Repository structure
+        """
         repo_tokens = gitpath.split("/")
         cur = self.conn.cursor()
         params = tuple(repo_tokens)
@@ -103,7 +121,15 @@ class DatabaseManager:
         out = cur.fetchone()
         return out is not None
 
-    def fetch_repo_data(self, repoNum: int):
+    def fetch_repo_data(self, repoNum: int) -> Repository:
+        """Fetch repository information given repository ID
+
+        Args:
+            repoNum (int): repository ID
+
+        Returns:
+            Repository: repo struct filled with information.
+        """
         cur = self.conn.cursor()
         cur.execute(
             "SELECT repo_owner, repo_name FROM repositories WHERE repoNum = ?",
@@ -537,6 +563,13 @@ class DatabaseManager:
         backup_connection.close()
 
     def save_pr_data(self, pr_data: dict, repo: Repository):
+        """Save data from a PR into the database
+
+        Args:
+            pr_data (dict): PR fields/data
+            repo (Repository): Repository of the PR
+        """
+
         def clean_text(text):
             """Replace newline characters with spaces, handling None values."""
             if text is None:
@@ -678,7 +711,16 @@ class DatabaseManager:
 
         self.conn.commit()
 
-    def get_df(self, prs, repo: Repository):
+    def get_df(self, prs: list[int], repo: Repository) -> pd.DataFrame:
+        """Get Dataframe for specific PR and Repository
+
+        Args:
+            prs (list[int]): PR #'s to extract
+            repo (Repository): Repository of the PRs
+
+        Returns:
+            pd.DataFrame: Dataframe of the extracted data.
+        """
         # Path to your SQLite database
         full_data = []
         # Iterate through PR numbers until none are found
@@ -697,6 +739,82 @@ class DatabaseManager:
         df = pd.DataFrame(data=full_data, columns=self.get_df_column_names())
         return df
 
+    def get_len_prs(self) -> int:
+        """Return number of PRs fetched
+
+        Returns:
+            int: number of PRs
+        """
+        cur = self.conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM pull_requests")
+        return cur.fetchone()[0]
+
+    def get_all_repos(self) -> list[Repository]:
+        """Return all repositories fetched
+
+        Returns:
+            list[Repository]: List of Repositories
+        """
+        cur = self.conn.cursor()
+        cur.execute("SELECT repoNum, repo_owner, repo_name FROM repositories")
+        result = cur.fetchall()
+        out = []
+        for x in result:
+            out.append(Repository(x[1], x[2], x[0]))
+        return out
+
+    def get_prs_of_repo(self, repo: Repository) -> list[int]:
+        """Get PR numbers of repository
+
+        Args:
+            repo (Repository): Repository
+
+        Returns:
+            list[int]: PR IDs of repository
+        """
+
+        cur = self.conn.cursor()
+        cur.execute(
+            "SELECT pullNumber FROM pull_requests WHERE repoNum = ?", (repo.num,)
+        )
+        result = cur.fetchall()
+        out = []
+        for x in result:
+            out.append(x[0])
+        return out
+
+    def get_df_all(self) -> pd.DataFrame:
+        """Get a dataframe with all the repositories/prs downloaded.
+
+        Returns:
+            pd.Dataframe: Dataframe of all extracted PRs/repositories.
+                          Run get_df_column_names() for column names
+        """
+
+        all_repos = self.get_all_repos()
+
+        # Path to your SQLite database
+        full_data = []
+        # Iterate through PR numbers until none are found
+        pbar = tqdm.tqdm(total=self.get_len_prs(), leave=False)
+        for repo in all_repos:
+            prs = self.get_prs_of_repo(repo)
+            for pr in prs:
+                curr_entry = self.get_pr_data(pr=pr, repo=repo)
+
+                pbar.update(1)
+                if curr_entry is None:
+                    continue
+
+                full_data.append(curr_entry)
+        # pbar.close()
+        print(
+            f"Processed {len(full_data)}. Skipped {len(prs) - len(full_data)} empty PRs"
+        )
+
+        df = pd.DataFrame(data=full_data, columns=self.get_df_column_names())
+        return df
+
     def get_df_column_names(self):
         """TODO. Change later to static column list"""
         cursor = self.conn.cursor()
@@ -707,6 +825,8 @@ class DatabaseManager:
     # drop in replacement for get_pr_data without needing the extra db connection
 
     def get_pr_meta_data(self, pr: int, repo: Repository):
+        """Fetch PR metadata for use for DF export"""
+
         cursor = self.conn.cursor()
 
         cursor.execute(
@@ -728,6 +848,12 @@ class DatabaseManager:
         return cursor.fetchone()
 
     def get_pr_data(self, pr, repo: Repository):
+        """Get a dataframe for a specific repository/pr downloaded.
+
+        Returns:
+            pd.Dataframe: Dataframe of all extracted PRs/repositories.
+                          Run get_df_column_names() for column names
+        """
 
         cursor = self.conn.cursor()
         # An equivalent to outputTable but much faster!
@@ -813,9 +939,10 @@ class DatabaseManager:
             return data_entry
 
     def get_pr_data_old(self, pr):
+        """Same as PR data but the outdated version. Not as tested!"""
 
         cursor = self.conn.cursor()
-        # An equivalent to outputTable but much faster!
+        # Using Output Table!
 
         query = f'SELECT * FROM outputTable WHERE "PR #" = ?'
         cursor.execute(query, (pr,))
