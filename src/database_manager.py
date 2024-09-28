@@ -657,6 +657,8 @@ class DatabaseManager:
                 continue  # only extract merged PRs
 
             commit_hashes, files_changed = get_commits(data)
+            if len(commit_hashes) == 0:
+                continue  # no commits in the PR!
 
             newest_commit_hash = commit_hashes[0]
             author = newest_commit_hash[2]
