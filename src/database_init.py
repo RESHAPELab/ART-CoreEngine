@@ -122,6 +122,16 @@ def __init_output_db():
     )
     cur.execute(
         """
+            CREATE TABLE IF NOT EXISTS "repositories" (
+            "repoNum"	INTEGER PRIMARY KEY AUTOINCREMENT,
+            "repo_owner" TEXT,
+            "repo_name"	TEXT
+            )
+            """
+    )
+
+    cur.execute(
+        """
                       CREATE TABLE IF NOT EXISTS "pull_request_commits" (
                         "rowID"	INTEGER PRIMARY KEY AUTOINCREMENT,
                         "commit_hash" TEXT
@@ -150,7 +160,7 @@ def __init_output_db():
         """
                       CREATE TABLE IF NOT EXISTS "pull_requests" (
                         "rowID"	INTEGER PRIMARY KEY AUTOINCREMENT,
-                        "pullNumber"	INTEGER UNIQUE NOT NULL,
+                        "pullNumber"	INTEGER NOT NULL,
                         "title"	TEXT NOT NULL,
                         "descriptionText"	TEXT,
                         "created"	TEXT NOT NULL,
@@ -223,6 +233,7 @@ def __init_output_db():
         f"""
                 CREATE VIEW IF NOT EXISTS outputTable AS
                     SELECT
+                        r.repo_name as "Repo Name",
                         a.pullNumber as "PR #",
                         'True' as "Pull Request",
                         a.title as "issue text",
@@ -249,14 +260,16 @@ def __init_output_db():
                         files_changed as b,
                         api_file_register as c,
                         api_cache as d,
-                        function_cache as f
+                        function_cache as f,
+                        repositories as r
                     WHERE
                         a.pullNumber = b.pullNumber AND
                         b.filename = c.filename AND
                         b.commit_hash = c.commit_hash AND
                         c.function_name = f.function_name AND
                         c.classname = f.classname AND
-                        c.classname = d.classname
+                        c.classname = d.classname AND
+                        r.repoNum = a.repoNum
                 ;
                 """
     )
@@ -294,9 +307,28 @@ def __init_output_db():
             "ALTER TABLE api_file_register ADD COLUMN function_name TEXT REFERENCES function_cache(function_name)"
         )
         cur.execute(
+            "ALTER TABLE api_file_register ADD COLUMN repoNum INTEGER REFERENCES repositories(repoNum)"
+        )
+        cur.execute(
+            "ALTER TABLE files_changed ADD COLUMN repoNum INTEGER REFERENCES repositories(repoNum)"
+        )
+        cur.execute(
+            "ALTER TABLE files_downloaded ADD COLUMN repoNum INTEGER REFERENCES repositories(repoNum)"
+        )
+        cur.execute(
+            "ALTER TABLE pull_request_comments ADD COLUMN repoNum INTEGER REFERENCES repositories(repoNum)"
+        )
+        cur.execute(
+            "ALTER TABLE pull_request_commits ADD COLUMN repoNum INTEGER REFERENCES repositories(repoNum)"
+        )
+        cur.execute(
+            "ALTER TABLE pull_requests ADD COLUMN repoNum INTEGER REFERENCES repositories(repoNum)"
+        )
+        cur.execute(
             "INSERT INTO settings (key, value) VALUES ('create', ?)",
             (datetime.now(),),
         )
+
         conn.commit()
         cur.close()
         conn.close()

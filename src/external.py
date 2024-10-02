@@ -149,7 +149,11 @@ class External_Model_Interface:
         # print(label_frequencies)
 
         # Filter out labels with more than 60% occurrence
-        frequent_labels = label_frequencies[label_frequencies > 0.6].index.tolist()
+        frequent_labels = label_frequencies[
+            label_frequencies > 0.6
+        ].index.tolist()  # TODO: Make this a parameter, specifies threshold of predictions.
+        # TODO: limit subdomains by parameter.
+
         # print("Frequent labels to be dropped:")
         # print(frequent_labels)
 
