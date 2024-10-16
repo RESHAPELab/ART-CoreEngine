@@ -9,7 +9,7 @@
     "clf_model_out_path" : "output/rf_model.pkl", 
     "range": [
         1,
-        30
+        12
     ],
     "state": "closed",
     "comments": [

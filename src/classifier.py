@@ -90,7 +90,7 @@ def get_top_domains(n, d, df):
 
 
 def filter_domains(df):
-    domains = df.columns[15:]
+    domains = df.columns[16:]
     columns_to_drop = []
     occurrence_dictionary = {}
     for domain in domains:
