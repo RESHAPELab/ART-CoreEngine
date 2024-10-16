@@ -183,7 +183,7 @@
         {"Bandwidth Optimization": "Enhances the efficiency of data transfer rates within network constraints."},
         {"Network Monitoring": "Involves overseeing a network's operations to detect potential issues or threats."}
     ],
-    "Operating System)": [
+    "Operating System": [
         {"Process Management": "Handles the creation, scheduling, and termination of processes."},
         {"Memory Management": "Involves the allocation and management of memory within the computer system."},
         {"Device Drivers": "Software that communicates with and controls hardware attached to the computer."},

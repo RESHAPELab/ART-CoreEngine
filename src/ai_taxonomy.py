@@ -18,6 +18,7 @@ import random
 import tiktoken  # pip install tiktoken
 import lzma
 import pickle
+import spacy
 
 from .database_manager import DatabaseManager
 
@@ -33,10 +34,99 @@ USE_DEBUG_VALUES = False
 # `tail -n 100 -f output/ai_log.csv`
 
 load_dotenv()
+nlp = spacy.load("en_core_web_md")
 
-# The comments below the function signatures are called docstrings
-# and can be autoformatted with a VS Code extension. I use "autoDocstring"
-# from https://marketplace.visualstudio.com/items?itemName=njpwerner.autodocstring
+
+def clean_domains(
+    domain_input: str, description: str, domain_labels: dict[str, str], formatted=False
+) -> str:
+    """Match a domain to the domain list using string simularity.
+
+    Args:
+        domain_input (str): Domain predicted from GPT
+        description (str): Description given from GPT
+        domain_labels (dict[str, str]): List of correct domain labels.
+
+    Returns:
+        str: Fixed domain.
+    """
+    # force domain_input to pick the closest domain_label.
+
+    if not (formatted):
+        domains_available = {}
+        for item in domain_labels["Items"]:
+            domains_available[list(item.keys())[0]] = item[list(item.keys())[0]]
+    else:
+        domains_available = domain_labels
+
+    if domain_input in domains_available:
+        return domain_input
+
+    print(f"API hallucinated value! It gave back: {domain_input}: {description}")
+
+    if description == "No description found":
+        description = ""
+
+    compare = f"{domain_input.lower()}: {description.lower()}"
+    doc1_input = nlp(compare)
+
+    max_similarity = 0.0
+    max_record = None
+
+    for domain_label, desc_label in domains_available.items():
+        cmp_str = f"{domain_label.lower()}: {desc_label.lower()}"
+        doc2 = nlp(cmp_str)
+        sm = doc1_input.similarity(doc2)
+        if sm > max_similarity:
+            max_similarity = sm
+            max_record = domain_label
+
+    return max_record
+
+
+def clean_subdomains(
+    subdomain_input: str,
+    description: str,
+    subdomain_labels: list[str],
+    subdomain_descriptions: list[str],
+) -> str:
+    """Match a subdomain to the domain list using string simularity.
+
+    Args:
+        domain_input (str): Domain predicted from GPT
+        description (str): Description given from GPT
+        domain_labels (dict[str, str]): List of correct subdomain labels.
+
+    Returns:
+        str: Fixed domain.
+    """
+    # force domain_input to pick the closest domain_label.
+
+    if subdomain_input in subdomain_labels:
+        return subdomain_input
+
+    print(f"API hallucinated value! It gave back: {subdomain_input}: {description}")
+
+    if description == "No description found":
+        description = ""
+
+    compare = f"{subdomain_input}: {description}"
+    doc1_input = nlp(compare)
+
+    max_similarity = 0.0
+    max_record = None
+
+    for domain_label, desc_label in zip(subdomain_labels, subdomain_descriptions):
+        cmp_str = f"{domain_label}: {desc_label}"
+        doc2 = nlp(cmp_str)
+        sm = doc1_input.similarity(doc2)
+        if sm > max_similarity:
+            max_similarity = sm
+            max_record = domain_label
+
+    print(f"Fixed to: {max_record}")
+
+    return max_record
 
 
 class AIClassifier:
@@ -106,7 +196,7 @@ class AIClassifier:
 
         # Convert the JSON data into a text format suitable for asking questions
         text = json.dumps(
-            self.api_label_listing, indent=2
+            self.api_label_listing["Items"], indent=2
         )  # You might still want to convert it to ensure it's readable
 
         # Directly include the full question in the OpenAI API call
@@ -125,7 +215,7 @@ class AIClassifier:
             context_tokens = self.tokenizer.encode(question)
 
             completion = self.client.chat.completions.create(
-                model="gpt-3.5-turbo-0125",
+                model="gpt-4o-mini",
                 messages=[{"role": "user", "content": question}],
             )
             # Accessing the chat response correctly
@@ -141,9 +231,11 @@ class AIClassifier:
             # Use "real" dummy data... instead of animals, use the actual label names
             response = random.choice(list(self.subdomain_label_listing.keys()))
 
-        ##print(response)
-
         domain, description = self.parse_domain_description(response)
+
+        # Clean domain text.
+        # domains are the top level key in the subdomain file
+        domain = clean_domains(domain, description, self.api_label_listing)
 
         with open(self.LOG_FILE, "a") as file:
             file.write(f",{domain},{len(context_tokens)},{len(response_tokens)}\n")
@@ -201,11 +293,11 @@ class AIClassifier:
                 sub_domain_selection.append(sub_domain)
 
         # Join all sub-domain descriptions into a single string for the query
-        sub_domains_descriptions_str = "\n ".join(sub_domains_descriptions)
+        sub_domains_descriptions_str = "\n".join(sub_domains_descriptions)
 
         prompt_text = (
             f"Analyze the following information about the API function '{function_name}' which is part of the '{api_name}' in the '{api_domain}' domain. "
-            f"Choose the most relevant classification from these available sub-domain options: \n{sub_domains_descriptions_str}. "
+            f"Choose the most relevant classification from these available sub-domain options: \n{sub_domains_descriptions_str}. \n\n"
             f"Please provide only the name of the most appropriate subdomain and the description of it, without any additional details or explanation."
         )
 
@@ -215,7 +307,7 @@ class AIClassifier:
             # Query the OpenAI API
             context_tokens = self.tokenizer.encode(prompt_text)
             completion = self.client.chat.completions.create(
-                model="gpt-3.5-turbo-0125",
+                model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt_text}],
             )
             # print(completion.choices[0].message.content)
@@ -234,6 +326,11 @@ class AIClassifier:
         ##print(response)
 
         sub_domain, description = self.parse_domain_description(response)
+
+        # CLEAN...
+        sub_domain = clean_subdomains(
+            sub_domain, description, sub_domain_selection, sub_domains_descriptions
+        )
 
         with open(self.LOG_FILE, "a") as file:
             file.write(f",{sub_domain},{len(context_tokens)},{len(response_tokens)}\n")

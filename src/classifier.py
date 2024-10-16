@@ -19,6 +19,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import MultiLabelBinarizer
 from dotenv import load_dotenv
+
+from src.ai_taxonomy import clean_domains, clean_subdomains
 from .issue_class import Issue
 
 load_dotenv()
@@ -221,7 +223,7 @@ def fine_tune_gpt(output_jsonl):
     # creating a fine-tuned model
     ft_job_dc = client.fine_tuning.jobs.create(
         training_file=domain_classifier_training_file.id,
-        model="gpt-3.5-turbo",
+        model="gpt-4o-mini",
         suffix="issue_classifier",
     )
 
@@ -338,23 +340,6 @@ def query_gpt(user_message, issue_classifier, openai_key, max_retries=5):
 
 def get_gpt_responses(open_issue_df, issue_classifier, domains_string, openai_key):
     raise NotImplementedError  # Use get_gpt_response_one_issue() instead
-    responses = {}
-    for index, row in open_issue_df.iterrows():
-        # create user and system messages
-        user_message = (
-            f"Classify a GitHub issue by indicating up to THREE domains that are relevant to the issue based on its title: [{row['Title']}] "
-            f"and body: [{row['Body']}]. Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text. Ensure that you only provide three domains and provide ONLY the names of the domains and exclude their descriptions. Refer to ONLY THESE domains when classifying: {domains_string}."
-            f"\n\nImportant: Ensure that you only provide the name of the domains in LIST FORMAT. ie [Application-Integration, Big Data-Data Storage, Computer Graphics-Animation]"
-        )
-
-        # query fine tuned model
-        response = query_gpt(user_message, issue_classifier, openai_key)
-        responses[row["Issue #"]] = response
-        print("Issue #" + str(row["Issue #"]) + " complete")
-
-    with open("GPT_Responses.json", "w") as json_file:
-        json.dump(responses, json_file, indent=4)
-    return responses
 
 
 def get_gpt_response_one_issue(
@@ -364,40 +349,96 @@ def get_gpt_response_one_issue(
     combined = domains | subdomains
 
     # print("Initial Domains: ", list(domains.keys()))
+    text = json.dumps(
+        domains, indent=2
+    )  # You might still want to convert it to ensure it's readable
 
     user_message = (
         f"Classify a GitHub issue by indicating up to THREE domains that are relevant to the issue based on its title: [{issue.title}] "
-        f"and body: [{issue.body}]. Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text. Ensure that you only provide three domains and provide ONLY the names of the domains and exclude their descriptions. Refer to ONLY THESE domains when classifying: {list(domains.keys())}."
-        f"\n\nImportant: Ensure that you only provide the name of the domains in LIST FORMAT. ie [Application-Integration, Cloud, Big Data-Data Storage, Computer Graphics-Animation]"
+        f"and body: [{issue.body}]. \n"
+        f"Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text. Return as a JSON list with each key being the domain and value being a brief description of this domain. Refer to ONLY THESE domains and their descriptions when classifying: {text}."
+        f'\n\nImportant: Ensure that you provide the name and description of THREE domains in JSON LIST FORMAT. ie [{{"Integration" : "Description"}}, {{"Cloud": "Description"}},  {{"Computer Graphics": "Description"}}]'
     )
 
     # query fine tuned model
     response = query_gpt(user_message, issue_classifier, openai_key)
 
-    response = (
-        response.replace("[", "").replace("]", "").split(", ")
-    )  # convert response to list list
+    # Clean response and match to domains
+    response_clean = []
+    malformed = False
+    basic_response = []
+    try:
+        response = json.loads(response)
+    except:
+        # print(f"Malformed JSON: {response}")
+        basic_response = response.split('"}')
+        malformed = True
+        # pass each string.
 
-    # print("Domain Response: ", response)
+    if malformed:
+        for domain in basic_response:
+            if len(domain) < 5:
+                continue
+            domain = clean_domains(
+                domain, "", domains, formatted=True
+            )  # from AI Taxonomy
+            response_clean.append(domain)
+    else:
+        for item in response:
+            dname = list(item.keys())[0]
+            desc = item[dname]
+            domain = clean_domains(
+                dname, desc, domains, formatted=True
+            )  # from AI Taxonomy
+            response_clean.append(domain)
 
     filtered_subdomains = {}
-    for response_domain in response:
+    for response_domain in response_clean:
         for subdomain in subdomains:
             if subdomain.find(response_domain) != -1:
                 filtered_subdomains[subdomain] = subdomains[subdomain]
 
     # print("Filter: ", list(filtered_subdomains.keys()))
+    text = json.dumps(
+        filtered_subdomains, indent=2
+    )  # You might still want to convert it to ensure it's readable
+
     user_message = (
         f"Classify a GitHub issue by indicating up to THREE domains that are relevant to the issue based on its title: [{issue.title}] "
-        f"and body: [{issue.body}]. Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text. Ensure that you only provide three domains and provide ONLY the names of the domains and exclude their descriptions. Refer to ONLY THESE domains when classifying: {list(filtered_subdomains.keys())}."
-        f"\n\nImportant: Ensure that you only provide the name of the domains in LIST FORMAT. ie [Application-Integration, Cloud, Big Data-Data Storage, Computer Graphics-Animation]"
+        f"and body: [{issue.body}]. \n"
+        f"Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text.  Return as a JSON list with each key being the domain and value being a brief description of this domain. Refer to ONLY THESE domains when classifying: {text}."
+        f'\n\nImportant: Ensure that you provide the name and description of THREE domains in JSON LIST FORMAT. ie [{{"Application-Integration" : "Description"}}, {{"Cloud-Scalability": "Description"}},  {{"Computer Graphics-3D Rendering": "Description"}}]'
     )
 
     response = query_gpt(user_message, issue_classifier, openai_key)
 
-    # print("Response after filter: ", response)
+    # Clean response and match to domains
+    response_clean = []
+    malformed = False
+    basic_response = []
+    try:
+        response = json.loads(response)
+    except:
+        basic_response = response.split('"}')
+        malformed = True
+        # pass each string.
 
-    return response
+    if malformed:
+        for domain in basic_response:
+            if len(domain) < 5:
+                continue
+            domain = clean_subdomains(domain, "", filtered_subdomains)
+            # from AI Taxonomy
+            response_clean.append(domain)
+    else:
+        for item in response:
+            dname = list(item.keys())[0]
+            desc = item[dname]
+            domain = clean_subdomains(dname, desc, filtered_subdomains)
+            # from AI Taxonomy
+            response_clean.append(domain)
+
+    return response_clean
 
 
 def responses_to_csv(gpt_responses):

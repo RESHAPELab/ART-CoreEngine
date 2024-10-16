@@ -29,8 +29,9 @@ saves the model at the location specified in the JSON configuration.
 #### Example instructions for training a model:
 > Make sure poetry is installed [See here for instructions](https://python-poetry.org/docs/)
 1. Run `poetry install` -- this sets up the virtual environment
-2. Create a GitHub Personal Access Token to use for downloading issues from GitHub and save it in a file
-3. Set up a configuration file for training like below (see [example pre-filled configuration](/input/config_example.json) for default)
+2. Run `poetry run python3 -m spacy download en_core_web_md` to download the language file
+3. Create a GitHub Personal Access Token to use for downloading issues from GitHub and save it in a file
+4. Set up a configuration file for training like below (see [example pre-filled configuration](/input/config_example.json) for default)
 
 ``` json
 {
@@ -73,8 +74,8 @@ saves the model at the location specified in the JSON configuration.
     ]
 }
 ```
-4. Set an environment variable in a `.env` file with the `OPENAI_API_KEY` set to an OpenAI key
-5. Run `poetry run python3 main.py path/to/config.json` where the json is the one set 
+5. Set an environment variable in a `.env` file with the `OPENAI_API_KEY` set to an OpenAI key
+6. Run `poetry run python3 main.py path/to/config.json` where the json is the one set 
 up from step three. This will download, analyze, and train the model. It stores the results in 
 a cache, preventing repeated calls. It is recommended to delete the generated `main.db` file 
 in the output directory when switching between repositories for training.
