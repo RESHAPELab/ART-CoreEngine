@@ -26,6 +26,75 @@ from .issue_class import Issue
 load_dotenv()
 
 
+# ------ LLM Updated functions for UI ------ #
+
+# Function to query gpt model, parameters are prompt and model
+def query_gpt_update(prompt, model):
+    attempt = 0
+    max_retries = 3
+
+    # attempt to query model
+    while attempt < max_retries:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(
+                client.chat.completions.create,
+                model=model,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            try:
+                response = future.result()
+                return response.choices[0].message.content
+            except Exception as e:
+                print(f"Attempt {attempt + 1}/{max_retries} - An error occurred: {e}")
+            finally:
+                attempt += 1
+
+    print("Failed to get a response after several retries.")
+    return None
+
+
+# Function to get labels for issue. 
+# 'gpt_models' is a dictionary containing the contents of the file 'data/gpt_models'
+# 'domain_labels' is a dictionary containing the contents of the file data/formatted_domain_labels
+# The function returns a dictionary with the predictions for each domain and their subdomains
+def label_issue(issue_title, issue_text, gpt_models, domain_labels):
+    response_dic = {}
+
+    for domain, data in domain_labels.items():
+        print(f"Getting predictions for domain: {domain}")
+        # Load domain and subdomain models
+        domain_model = gpt_models[domain]['domain_model']
+        subdomain_model = gpt_models[domain]['subdomain_model']
+
+        # Create prompt for domain
+        domain_prompt = (
+            f"Classify a GitHub issue by indicating whether the following domain: [{domain}:{data['domain_description']}] is relevant to the issue given its title: [{issue_title}], "
+            f"body: [{issue_text}']. Ensure that you provide ONLY a 0 (not relevant) or a 1 (relevant) to determine whether the domains fits."
+            f" Example response: 0")
+
+        domain_response = prompt_gpt(domain_prompt, domain_model) # Prompt GPT model
+        
+        # check if domain_response is 1 (domain applies to issue)
+        if domain_response == '1':
+            print(f"    Getting subdomain predictions for domain: {domain}")
+            subdomain_string = str({k: v for k, v in data.items() if k != 'domain_description'}).replace('}', '').replace('{', '')       
+            subdomain_prompt = (
+            f"Classify a GitHub issue by indicating whether each subdomain in the list [{subdomain_string}] is relevant to the issue given its title: [{issue_title}], "
+            f"and body: [{issue_text}]. Ensure that you provide ONLY a list of relevant subdomains and that each subdomain is in the list shown before"
+            )
+            subdomain_response = prompt_gpt(subdomain_prompt, subdomain_model) # Prompt GPT model
+
+        else:
+            subdomain_response = '[]'
+
+        response_dic[domain] = {'domain_response': domain_response, 'subdomain_response': subdomain_response}
+
+    return response_dic
+# ------------------------------------------ #
+
+
 def clean_text(text):
     cleaned_count = 0
     original_count = 0
