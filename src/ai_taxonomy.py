@@ -87,8 +87,7 @@ def clean_domains(
 def clean_subdomains(
     subdomain_input: str,
     description: str,
-    subdomain_labels: list[str],
-    subdomain_descriptions: list[str],
+    subdomains: dict[str, str],
 ) -> str:
     """Match a subdomain to the domain list using string simularity.
 
@@ -102,7 +101,7 @@ def clean_subdomains(
     """
     # force domain_input to pick the closest domain_label.
 
-    if subdomain_input in subdomain_labels:
+    if subdomain_input in subdomains:
         return subdomain_input
 
     print(f"API hallucinated value! It gave back: {subdomain_input}: {description}")
@@ -116,7 +115,7 @@ def clean_subdomains(
     max_similarity = 0.0
     max_record = None
 
-    for domain_label, desc_label in zip(subdomain_labels, subdomain_descriptions):
+    for domain_label, desc_label in subdomains.items():
         cmp_str = f"{domain_label}: {desc_label}"
         doc2 = nlp(cmp_str)
         sm = doc1_input.similarity(doc2)
