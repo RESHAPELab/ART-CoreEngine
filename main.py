@@ -16,7 +16,7 @@ from __init__ import __version__
 
 
 def main():
-    """Driver function for GitHub Repo Extractor."""
+    """Driver function for GitHub Repo Extractor. Used to TRAIN models"""
     print("Connecting to database...")
 
     load_dotenv()
@@ -113,6 +113,23 @@ def main():
                 "time_saved": datetime.now(),
                 "model": llm_classifier,
                 "type": "gpt",
+                "save_version": __version__,
+            }
+            pickle.dump(dat, f)
+        # classifier.save_model(llm_classifier)
+        print(f"Your model has been saved {llm_classifier}")
+
+    if method == "gpt-combined":
+        json_open = cfg_obj.get_cfg_val("gpt_jsonl_path")
+
+        # Training goes here ....
+
+        # Save Model ... keep this part.
+        with open(cfg_dict["clf_model_out_path"], "wb") as f:
+            dat = {
+                "time_saved": datetime.now(),
+                "model": llm_classifier,
+                "type": "gpt-combined",
                 "save_version": __version__,
             }
             pickle.dump(dat, f)

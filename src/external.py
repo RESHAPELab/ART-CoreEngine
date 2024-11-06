@@ -20,6 +20,7 @@ from .classifier import (
     generate_system_message,
     get_gpt_response_one_issue,
     clean_text_rf,
+    label_issue_binary_classification,
     predict_open_issues,
 )
 from .issue_class import Issue
@@ -33,6 +34,7 @@ class External_Model_Interface:
         model_file: str,
         domain_file: str,
         subdomain_file: str,
+        formatted_domain_file: str,
         response_cache_key: str,
         response_cache_directory: str,
         bytes_limit: int = 1024 * 1024 * 40,  # 40 MB cache
@@ -46,6 +48,9 @@ class External_Model_Interface:
 
         with open(subdomain_file, "r") as f:
             self.subdomains = json.load(f)
+
+        with open(formatted_domain_file, "r") as f:
+            self.formatted_domains = json.load(f)
 
         if "save_version" in self.model and self.model["save_version"] == os.getenv(
             "CORE_ENGINE_VERSION"
@@ -96,6 +101,8 @@ class External_Model_Interface:
 
         if self.model["type"] == "gpt":
             return self.__gpt_predict(issue)
+        if self.model["type"] == "gpt-combined":
+            return self.__gpt_combined_predict(issue)
         elif self.model["type"] == "rf":
             return self.__rf_predict(issue)
         else:
@@ -112,6 +119,15 @@ class External_Model_Interface:
         # equiv to get_gpt_responses()
         response = get_gpt_response_one_issue(
             issue, llm_classifier, domains, subdomains, self.__open_ai_key
+        )
+
+        return response
+
+    def __gpt_combined_predict(self, issue: Issue):
+        gpt_models = self.model["model_table"]
+
+        response = label_issue_binary_classification(
+            issue, gpt_models, self.formatted_domains, self.__open_ai_key
         )
 
         return response
