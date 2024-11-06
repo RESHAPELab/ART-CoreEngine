@@ -20,7 +20,7 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import MultiLabelBinarizer
 from dotenv import load_dotenv
 
-from src.ai_taxonomy import clean_domains, clean_subdomains
+from .ai_taxonomy import clean_domains, clean_subdomains
 from .issue_class import Issue
 
 load_dotenv()
