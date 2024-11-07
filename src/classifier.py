@@ -26,6 +26,121 @@ from .issue_class import Issue
 load_dotenv()
 
 
+# Function to get labels for issue.
+# 'gpt_models' is a dictionary containing the contents of the file 'data/gpt_models'
+# 'domain_labels' is a dictionary containing the contents of the file data/formatted_domain_labels
+# The function returns a dictionary with the predictions for each domain and their subdomains
+def label_issue_binary_classification(
+    issue: Issue, gpt_models, domain_labels, openai_key
+):
+    """Function to get labels for issue.
+
+    Args:
+        issue_title (Issue): Issue to classify
+        gpt_models (dict[str, dict[str, Any]]): Dictionary of models by domain.
+        domain_labels (dict[str, dict[str, Any]]): Domain label dictionary from `formatted_domain_labels.json`
+
+    Returns:
+        dict[str, dict[str, Any]]: Responses from the domain label dictionary.
+    """
+    response_dic = {}
+
+    for domain, data in domain_labels.items():
+        print(f"Getting predictions for domain: {domain}")
+        # Load domain and subdomain models
+        domain_model = gpt_models[domain]["domain_model"]
+        subdomain_model = gpt_models[domain]["subdomain_model"]
+
+        # Create prompt for domain
+        domain_prompt = (
+            f"Classify a GitHub issue by indicating whether the following domain: [{domain}:{data['domain_description']}] is relevant to the issue given its title: [{issue.title}], "
+            f"body: [{issue.body}']. Ensure that you provide ONLY a 0 (not relevant) or a 1 (relevant) to determine whether the domains fits."
+            f" Example response: 0"
+        )
+
+        domain_response = query_gpt(
+            domain_prompt, domain_model, openai_key
+        )  # Prompt GPT model
+
+        try:
+            domain_response = int(clean_text(domain_response))
+        except:
+            domain_response = 0
+
+        # check if domain_response is 1 (domain applies to issue)
+        if domain_response == 1:
+            print(f"\tGetting subdomain predictions for domain: {domain}")
+
+            subdomain_dict = {}
+            for subdomain_key, subdomain_description in data.items():
+                if subdomain_key == "domain_description":
+                    continue
+                subdomain_dict[subdomain_key] = subdomain_description
+
+            subdomain_string = json.dumps(
+                subdomain_dict, indent=2
+            )  # You might still want to convert it to ensure it's readable
+
+            # subdomain_prompt = (
+            #     f"Classify a GitHub issue by indicating whether each subdomain in the list [{subdomain_string}] is relevant to the issue given its title: [{issue.title}], "
+            #     f"and body: [{issue.body}]. Ensure that you provide ONLY a list of relevant subdomains and that each subdomain is in the list shown before"
+            # )
+
+            subdomain_prompt = (
+                f"Classify a GitHub issue by indicating up to THREE domains that are relevant to the issue based on its title: [{issue.title}] "
+                f"and body: [{issue.body}]. \n"
+                f"Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text.  Return as a JSON list with each key being the domain and value being a brief description of this domain. Refer to ONLY THESE domains when classifying: {subdomain_string}."
+                f'\n\nImportant: Ensure that you provide the name and description of THREE domains in JSON LIST FORMAT. ie [{{"Application-Integration" : "Description"}}, {{"Cloud-Scalability": "Description"}},  {{"Computer Graphics-3D Rendering": "Description"}}]'
+            )
+
+            subdomain_response = query_gpt(
+                subdomain_prompt, subdomain_model, openai_key
+            )  # Prompt GPT model
+
+            response_clean = []
+            malformed = False
+            basic_response = []
+            try:
+                response = json.loads(response)
+            except:
+                # print(f"Malformed JSON: {response}")
+                basic_response = response.split('"}')
+                malformed = True
+                # pass each string.
+
+            if malformed:
+                for domain in basic_response:
+                    if len(domain) < 5:
+                        continue
+                    domain = clean_domains(
+                        domain, "", subdomain_dict
+                    )  # from AI Taxonomy
+                    response_clean.append(domain)
+            else:
+                for item in response:
+                    dname = list(item.keys())[0]
+                    desc = item[dname]
+                    domain = clean_domains(
+                        dname, desc, subdomain_dict
+                    )  # from AI Taxonomy
+                    response_clean.append(domain)
+
+            subdomain_response = response_clean
+
+        else:
+            subdomain_response = []
+
+        response_dic[domain] = {
+            "domain_response": domain_response,
+            "subdomain_response": subdomain_response,
+        }
+
+    return response_dic
+
+
+# ------------------------------------------ #
+
+
 def clean_text(text):
     cleaned_count = 0
     original_count = 0
@@ -324,7 +439,13 @@ def get_issues_without_token(
     return get_issues(owner, repo, None, open_issues=open_issues, max_count=max_count)
 
 
-def query_gpt(user_message, issue_classifier, openai_key, max_retries=5):
+def query_gpt(prompt, model, openai_key, max_retries=5):
+    """Function to query gpt model, parameters are prompt and model
+
+    Args:
+        prompt (str): Prompt text
+        model (Any): Pretrained model to use
+    """
     client = OpenAI(api_key=openai_key)
     attempt = 0
     # attempt to query model
@@ -332,8 +453,8 @@ def query_gpt(user_message, issue_classifier, openai_key, max_retries=5):
         with concurrent.futures.ThreadPoolExecutor() as executor:
             future = executor.submit(
                 client.chat.completions.create,
-                model=issue_classifier,
-                messages=[{"role": "user", "content": user_message}],
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
             )
             try:
                 response = future.result()
@@ -351,9 +472,11 @@ def get_gpt_responses(open_issue_df, issue_classifier, domains_string, openai_ke
     raise NotImplementedError  # Use get_gpt_response_one_issue() instead
 
 
-def get_gpt_response_one_issue(
-    issue, issue_classifier, domains, subdomains, openai_key
-):
+def label_issue_tiered_classification(issue, model, domains, subdomains, openai_key):
+    return get_gpt_response_one_issue(issue, model, domains, subdomains, openai_key)
+
+
+def get_gpt_response_one_issue(issue, model, domains, subdomains, openai_key):
     # create user and system messages
     combined = domains | subdomains
 
@@ -370,7 +493,7 @@ def get_gpt_response_one_issue(
     )
 
     # query fine tuned model
-    response = query_gpt(user_message, issue_classifier, openai_key)
+    response = query_gpt(user_message, model, openai_key)
 
     # Clean response and match to domains
     response_clean = []
@@ -419,7 +542,7 @@ def get_gpt_response_one_issue(
         f'\n\nImportant: Ensure that you provide the name and description of THREE domains in JSON LIST FORMAT. ie [{{"Application-Integration" : "Description"}}, {{"Cloud-Scalability": "Description"}},  {{"Computer Graphics-3D Rendering": "Description"}}]'
     )
 
-    response = query_gpt(user_message, issue_classifier, openai_key)
+    response = query_gpt(user_message, model, openai_key)
 
     # Clean response and match to domains
     response_clean = []

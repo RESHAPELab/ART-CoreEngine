@@ -1,0 +1,174 @@
+{
+    "Application Performance Manager": {
+        "Application Performance Manager-Diagnostic Tools": "Provides utilities to analyze, diagnose, and resolve issues in application performance.",
+        "domain_description": "Tools or software components that help monitor and manage the performance of applications. They track various performance metrics and benchmarks to ensure that the application is running efficiently and to identify any potential performance issues."
+    },
+    "Big Data": {
+        "Big Data-Data Processing": "Handles the manipulation and transformation of large data sets for analysis and reporting.",
+        "Big Data-Real-Time Processing": "Deals with the processing of data as it is received, providing immediate outputs and responses.",
+        "domain_description": "Involves APIs and libraries that handle the processing, storage, and analysis of large volumes of data. These tools are capable of dealing with data in various formats and sizes, often in real-time or through batch processing, to extract valuable insights."
+    },
+    "Cloud": {
+        "Cloud-Resource Management": "Focuses on the efficient use of cloud resources to optimize cost and performance.",
+        "Cloud-Service Configuration": "Involves setting up cloud services according to specifications and requirements.",
+        "domain_description": "Pertains to APIs and services that enable software to run online or on cloud platforms. These APIs facilitate access to cloud-based resources, allowing for scalable, flexible, and often cost-effective solutions for hosting and managing applications."
+    },
+    "Computer Graphics": {
+        "Computer Graphics-Image Rendering": "Converts data from a model into a visual format that can be viewed as images or animations.",
+        "Computer Graphics-Animation": "The process of creating the illusion of movement by displaying a series of pictures or frames.",
+        "Computer Graphics-Modeling": "The creation of 3D objects within a scene.",
+        "Computer Graphics-Texture Mapping": "Applies a surface texture to a 3D model to give it more realism.",
+        "Computer Graphics-Visual Effects": "Techniques used in media to create imagined environments and characters.",
+        "Computer Graphics-Graphics Optimization": "Enhances the performance and quality of the graphical output.",
+        "domain_description": "Deals with the generation, manipulation, and representation of visual content in software applications. This includes rendering images, animations, and visual effects, often used in gaming, simulations, and multimedia applications."
+    },
+    "Data Structure": {
+        "Data Structure-Linear Structures": "Manages data elements arranged in a linear sequence, such as arrays and lists.",
+        "Data Structure-Tree Structures": "Handles hierarchical data structures where each node contains one or more child nodes.",
+        "Data Structure-Graph Structures": "Deals with data elements organized as a network of interconnected nodes.",
+        "Data Structure-Data Sorting": "Involves arranging data into a defined order based on their attributes.",
+        "Data Structure-Search Algorithms": "Methods used to locate specific data among a collection of data.",
+        "Data Structure-Data Manipulation": "The process of changing data to make it more organized and easier to read.",
+        "domain_description": "Focuses on organizing, managing, and storing data efficiently. This includes various patterns and structures like arrays, lists, trees, and graphs, each suited for different types of data handling and algorithmic processing."
+    },
+    "Databases": {
+        "Databases-Query Execution": "Handles the process of executing queries to retrieve or manipulate data within a database.",
+        "Databases-Transaction Management": "Manages database transactions to ensure data integrity and handle concurrent access.",
+        "Databases-Schema Design": "Involves designing the structure of databases including tables, relationships, and data types.",
+        "Databases-Database Security": "Focuses on protecting database content from unauthorized access or corruption.",
+        "Databases-Backup and Recovery": "Deals with creating backups of data and restoring data from backups in case of data loss.",
+        "Databases-Database Optimization": "Enhances the performance of the database by optimizing queries and indices.",
+        "domain_description": "Related to the storage, retrieval, and management of structured data. APIs in this category allow for interactions with database systems, including queries, updates, and database schema management."
+    },
+    "Software Development and IT Operations": {
+        "Software Development and IT Operations-Automated Testing": "Utilizes tools to automatically execute tests and report outcomes, improving software quality.",
+        "Software Development and IT Operations-Configuration Management": "Manages the configuration of software and systems to maintain consistency across environments.",
+        "Software Development and IT Operations-Monitoring and Logging": "Involves tracking and logging the system's operational status to help diagnose faults and predict future issues.",
+        "domain_description": "Encompasses tools and libraries that support software development processes, including version control, continuous integration (CI), and continuous delivery (CD), facilitating better collaboration and efficiency in software projects."
+    },
+    "Error Handling": {
+        "Error Handling-Exception Handling": "Involves techniques for catching and managing exceptions that occur during the execution of software.",
+        "Error Handling-Error Logging": "Records errors and exceptions that occur during operation, allowing for later review and debugging.",
+        "Error Handling-Debugging Tools": "Tools and techniques used to identify, trace, and correct errors in software.",
+        "domain_description": "Involves mechanisms and practices for detecting, reporting, and responding to errors in software. Effective error handling helps in maintaining the stability and reliability of applications by managing exceptions and unexpected situations gracefully."
+    },
+    "Event Handling": {
+        "Event Handling-User Interactions": "Manages how software responds to user inputs and actions.",
+        "Event Handling-Event Logging": "Records events that occur within the system, providing a history that can be analyzed for patterns or issues.",
+        "Event Handling-Event Driven Processing": "A programming paradigm in which the flow of the program is determined by events such as user actions or sensor outputs.",
+        "domain_description": "Concerns the management and response to events or actions within a software system, like user interactions or system triggers. Event handling mechanisms allow software to react dynamically to various events."
+    },
+    "Input-Output": {
+        "Input-Output-Data Reading": "Involves reading data from various inputs such as files or external devices.",
+        "Input-Output-Data Writing": "Handles writing data to various outputs like files or network connections.",
+        "Input-Output-Stream Management": "Manages continuous data streams for real-time processing.",
+        "Input-Output-Buffering Strategies": "Utilizes techniques to manage data buffers for efficient input/output operations.",
+        "Input-Output-File Management": "Deals with creating, modifying, and deleting files.",
+        "domain_description": "Refers to the operations related to reading from and writing to various forms of data sources and sinks, including files, network streams, and other data streams."
+    },
+    "Interpreter": {
+        "Interpreter-Script Execution": "Executes written scripts in a programming language.",
+        "Interpreter-Code Translation": "Translates code from one programming language to another.",
+        "Interpreter-Memory Management": "Oversees the allocation and deallocation of memory during program execution.",
+        "Interpreter-Syntax Analysis": "Analyzes code to ensure it adheres to the rules of the programming language.",
+        "Interpreter-Optimization": "Improves the performance of script execution through various techniques.",
+        "Interpreter-Debugging": "Identifies and resolves issues within the scripts or programming code.",
+        "domain_description": "Concerns software mechanisms that execute instructions written in a programming or scripting language, translating them into executable actions without the need for compilation."
+    },
+    "Logic": {
+        "Logic-Control Structures": "Handles logical constructs that manage the flow of a program, such as loops and conditionals.",
+        "Logic-Algorithm Implementation": "Involves the creation and utilization of algorithms to solve problems.",
+        "Logic-Logic Optimization": "Enhances logical operations to improve efficiency and performance.",
+        "Logic-Validation Checks": "Ensures that data inputs or configurations are valid before processing.",
+        "Logic-Rule Processing": "Manages and executes sets of rules within software applications.",
+        "Logic-Decision Making": "Implements decision-making processes based on data or predefined rules.",
+        "domain_description": "Represents the foundational frameworks and patterns that dictate the flow and control structures of software applications, including architectural and design patterns that guide the application's structure and behavior."
+    },
+    "Language": {
+        "Language-Syntax Features": "Focuses on the specific syntactical elements and capabilities of a programming language.",
+        "Language-Compiler/Interpreter Enhancements": "Refers to improvements and optimizations in the language's compilation or interpretation processes.",
+        "Language-Runtime Optimization": "Involves techniques to enhance the execution performance of programs.",
+        "Language-Standard Libraries": "Pertains to the set of pre-written code and functionalities commonly used in programming.",
+        "Language-Language Extensions": "Enables the addition of new features and capabilities to a programming language.",
+        "Language-Type Systems": "Deals with the classification of data types within a language and the enforcement of type-related rules.",
+        "domain_description": "Focuses on features and utilities that are intrinsic to the programming language itself, including syntactic sugar, language constructs, and standard libraries that facilitate code development and execution."
+    },
+    "Logging": {
+        "Logging-System Monitoring": "Involves continuously observing system operations to detect and respond to changes or problems.",
+        "Logging-Error Logs": "Maintains a record of error messages and system malfunctions for debugging purposes.",
+        "Logging-User Activity Logs": "Logs actions taken by users to monitor behavior and interactions within the application.",
+        "Logging-Audit Trails": "Provides a secure, chronological record of system activities to enable the reconstruction and examination of the sequence of events.",
+        "domain_description": "Involves the creation and management of logs, which are records of events, processes, and operations within a software application, aiding in monitoring, debugging, and auditing."
+    },
+    "Machine Learning": {
+        "Machine Learning-Training Models": "Involves developing and training algorithms to perform tasks based on data.",
+        "Machine Learning-Prediction": "Utilizes trained models to make predictions or decisions based on input data.",
+        "Machine Learning-Data Preprocessing": "Prepares raw data for processing and analysis, ensuring it is suitable for use in machine learning models.",
+        "Machine Learning-Feature Extraction": "Identifies and selects specific attributes of data that are most relevant to the prediction or analysis tasks.",
+        "Machine Learning-Model Evaluation": "Assesses the performance and accuracy of machine learning models.",
+        "Machine Learning-Deployment": "Involves the integration of trained machine learning models into production environments.",
+        "domain_description": "Pertains to algorithms and statistical models that enable software systems to improve their performance on specific tasks over time without explicit programming, based on data."
+    },
+    "Multimedia": {
+        "Multimedia-Media Playback": "Controls the playing of audio and video files.",
+        "Multimedia-Encoding and Decoding": "Processes that convert data to and from various media formats.",
+        "Multimedia-Streaming": "Delivers content in real-time over the internet.",
+        "Multimedia-Content Delivery": "Distributes multimedia content to end-users efficiently.",
+        "Multimedia-Media Storage": "Involves the storage and retrieval of multimedia content.",
+        "domain_description": "Encompasses tools and APIs that handle various forms of media content, including text, images, audio, and video, often used in the creation and manipulation of multimedia applications."
+    },
+    "Multi-Thread": {
+        "Multi-Thread-Concurrency Control": "Manages access to shared resources when multiple threads or processes are involved.",
+        "Multi-Thread-Thread Safety": "Ensures that program behavior is free from unwanted issues when multiple threads operate concurrently.",
+        "domain_description": "Relates to the capability of a software application to execute multiple threads of execution concurrently, allowing for more efficient use of resources and faster processing."
+    },
+    "Natural Language Processing": {
+        "Natural Language Processing-Text Analysis": "The process of deriving high-quality information from text.",
+        "domain_description": "Involves the interaction between computers and humans using natural language, including speech recognition, text analysis, and language generation."
+    },
+    "Network": {
+        "Network-Protocol Implementation": "Involves implementing network protocols that govern the exchange of data over a network.",
+        "Network-Connection Management": "Manages the establishment, maintenance, and termination of network connections.",
+        "Network-Data Transmission": "Handles the transfer of data across a network.",
+        "Network-Network Security": "Ensures the protection and integrity of data transmitted across a network.",
+        "Network-Bandwidth Optimization": "Enhances the efficiency of data transfer rates within network constraints.",
+        "domain_description": "Encompasses the APIs and tools that allow software to communicate over different networking protocols and architectures, facilitating data exchange and connectivity."
+    },
+    "Parser": {
+        "Parser-Syntax Parsing": "Analyzes syntactic structure of input data based on formal grammar.",
+        "Parser-Error Recovery": "Techniques used to handle errors gracefully during parsing.",
+        "Parser-Data Conversion": "Transforms data from one format to another.",
+        "Parser-Validation": "Ensures that data conforms to established rules and formats.",
+        "domain_description": "Tools or libraries that interpret and convert data into a structured format, often used in the context of reading and processing languages or data formats."
+    },
+    "Search": {
+        "Search-Query Processing": "Handles the execution of queries by breaking down and interpreting search requests.",
+        "domain_description": "Involves tools and APIs that enable searching functionality within software applications, allowing for data retrieval based on query criteria."
+    },
+    "Security": {
+        "Security-Authentication": "Confirms the identity of a user or system.",
+        "Security-Encryption": "Secures data by encoding it.",
+        "Security-Data Integrity": "Maintains the accuracy and consistency of data over its lifecycle.",
+        "domain_description": "Focuses on ensuring the confidentiality, integrity, and availability of data in software applications, encompassing encryption, authentication, and secure communication protocols."
+    },
+    "User Interface": {
+        "User Interface-Layout Design": "Involves arranging visual elements within an interface.",
+        "User Interface-Interaction Design": "Designs interactive elements for effective human-computer interaction.",
+        "User Interface-Accessibility": "Ensures that interfaces are accessible to all users, including those with disabilities.",
+        "User Interface-Animation": "Applies dynamic visual effects to enhance user interface experience.",
+        "User Interface-Responsive Design": "Creates interfaces that adjust smoothly to different screen sizes and orientations.",
+        "User Interface-User Feedback": "Collects and integrates user responses to improve interface usability.",
+        "domain_description": "Involves the design and implementation of graphical elements that users interact with, including screens, buttons, menus, and other visual controls."
+    },
+    "Utility": {
+        "Utility-System Tools": "Provides utilities that help in the maintenance and monitoring of computer systems.",
+        "Utility-Automation Scripts": "Uses scripts to automate routine tasks to save time and reduce errors.",
+        "Utility-Performance Tools": "Tools designed to analyze and enhance system performance.",
+        "Utility-Diagnostic Utilities": "Helps diagnose and resolve system and software issues.",
+        "domain_description": "Refers to a collection of tools and functions that provide general-purpose features and functionalities to support various aspects of software development and execution."
+    },
+    "Test": {
+        "Test-Unit Testing": "Tests individual components of software for correct behavior.",
+        "domain_description": "Encompasses the tools and methodologies used for testing software to ensure its functionality, performance, and reliability, often involving automated testing frameworks and systems."
+    }
+}
