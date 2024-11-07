@@ -249,7 +249,7 @@ def git_helper_get_issues(owner, repo, access_token, open_issues=True) -> list[I
     return get_issues(owner, repo, access_token, open_issues)
 
 
-def get_issues(owner, repo, access_token, open_issues=True):
+def get_issues(owner, repo, access_token, open_issues=True, max_count=None):
     data = []
     # GitHub API URL for fetching issues
     url = f"https://api.github.com/repos/{owner}/{repo}/issues"
@@ -265,17 +265,22 @@ def get_issues(owner, repo, access_token, open_issues=True):
             "Accept": "application/vnd.github.v3+json",
         }
 
+    if max_count is None:
+        page_q = 100
+    else:
+        page_q = 20
+
     if open_issues:
         # Parameters to fetch only open issues
         params = {
             "state": "open",
-            "per_page": 100,  # Number of issues per page (maximum is 100)
+            "per_page": page_q,  # Number of issues per page (maximum is 100)
             "page": 1,  # Page number to start fetching from
         }
     else:
         params = {
             "state": "closed",
-            "per_page": 100,  # Number of issues per page (maximum is 100)
+            "per_page": page_q,  # Number of issues per page (maximum is 100)
             "page": 1,  # Page number to start fetching from
         }
 
@@ -291,6 +296,8 @@ def get_issues(owner, repo, access_token, open_issues=True):
             break
 
         issues.extend(issues_page)
+        if max_count is not None and max_count // page_q < params["page"]:
+            break  # stop! reached max.
         params["page"] += 1
 
     # Add extracted issues to dataframe
@@ -303,16 +310,18 @@ def get_issues(owner, repo, access_token, open_issues=True):
     return data
 
 
-def get_open_issues(owner, repo, access_token) -> list[Issue]:
-    return get_issues(owner, repo, access_token)
+def get_open_issues(owner, repo, access_token, max_count=None) -> list[Issue]:
+    return get_issues(owner, repo, access_token, max_count=max_count)
 
 
-def get_open_issues_without_token(owner: str, repo: str) -> list[Issue]:
-    return get_issues(owner, repo, None)
+def get_open_issues_without_token(owner: str, repo: str, max_count=None) -> list[Issue]:
+    return get_issues(owner, repo, None, max_count=max_count)
 
 
-def get_issues_without_token(owner: str, repo: str, open_issues=True) -> list[Issue]:
-    return get_issues(owner, repo, None, open_issues=open_issues)
+def get_issues_without_token(
+    owner: str, repo: str, open_issues=True, max_count=None
+) -> list[Issue]:
+    return get_issues(owner, repo, None, open_issues=open_issues, max_count=max_count)
 
 
 def query_gpt(user_message, issue_classifier, openai_key, max_retries=5):
