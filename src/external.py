@@ -130,7 +130,15 @@ class External_Model_Interface:
             issue, gpt_models, self.formatted_domains, self.__open_ai_key
         )
 
-        return response
+        # domain_response is 1 if apply. 0 if not.
+        output = {}
+
+        for domain, data in response.items():
+            if data["domain_response"] == 0:
+                continue
+            output[domain] = data["subdomain_response"]
+
+        return output
 
     def __rf_predict(self, issue: Issue):
         # print("rf")
