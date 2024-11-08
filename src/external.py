@@ -76,16 +76,18 @@ class External_Model_Interface:
                 self.__predict_issue, ignore=["num", "title", "body", "self"]
             )
 
-    def predict_issue(self, issue: Issue):
+    def predict_issue(self, issue: Issue, max_domains=None):
         # Cache key incorporates the model to ensure updates to the model invalidate the cache
         cache_key = f"{self.response_cache_key}_{self.model['type']}_{self.model.get('save_version')}_{self.model_file_name}_{issue.number}_{issue.title}"
 
         if self.response_cache_key is None:
-            out = self.__cached_predictions(issue.number, issue.title, issue.body, None)
+            out = self.__cached_predictions(
+                issue.number, issue.title, issue.body, None, max_domains
+            )
             return out
 
         out = self.__cached_predictions(
-            issue.number, issue.title, issue.body, cache_key
+            issue.number, issue.title, issue.body, cache_key, max_domains
         )
         # print(
         #     f"Predict Issue Cache Store - {cache_key}"
@@ -93,7 +95,7 @@ class External_Model_Interface:
         self.memory.reduce_size(bytes_limit=self.bytes_limit)
         return out
 
-    def __predict_issue(self, num, title, body, _ignore_me):
+    def __predict_issue(self, num, title, body, _ignore_me, max_domains=None):
         print(
             f"Predict Issue Cache Miss - {_ignore_me}"
         )  # Any changes to this function will invalidate cache!
@@ -102,7 +104,7 @@ class External_Model_Interface:
         if self.model["type"] == "gpt":
             return self.__gpt_predict(issue)
         if self.model["type"] == "gpt-combined":
-            return self.__gpt_combined_predict(issue)
+            return self.__gpt_combined_predict(issue, max_domains)
         elif self.model["type"] == "rf":
             return self.__rf_predict(issue)
         else:
@@ -123,14 +125,22 @@ class External_Model_Interface:
 
         return response
 
-    def __gpt_combined_predict(self, issue: Issue):
+    def __gpt_combined_predict(self, issue: Issue, max_domains=None):
         gpt_models = self.model["model_table"]
 
         response = label_issue_binary_classification(
-            issue, gpt_models, self.formatted_domains, self.__open_ai_key
+            issue, gpt_models, self.formatted_domains, self.__open_ai_key, max_domains
         )
 
-        return response
+        # domain_response is 1 if apply. 0 if not.
+        output = {}
+
+        for domain, data in response.items():
+            if data["domain_response"] == 0:
+                continue
+            output[domain] = data["subdomain_response"]
+
+        return output
 
     def __rf_predict(self, issue: Issue):
         # print("rf")
