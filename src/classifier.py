@@ -1,5 +1,3 @@
-"""TODO."""
-
 import argparse
 import concurrent.futures
 import json
@@ -31,7 +29,7 @@ load_dotenv()
 # 'domain_labels' is a dictionary containing the contents of the file data/formatted_domain_labels
 # The function returns a dictionary with the predictions for each domain and their subdomains
 def label_issue_binary_classification(
-    issue: Issue, gpt_models, domain_labels, openai_key
+    issue: Issue, gpt_models, domain_labels, openai_key, max_domains=None
 ):
     """Function to get labels for issue.
 
@@ -43,9 +41,13 @@ def label_issue_binary_classification(
     Returns:
         dict[str, dict[str, Any]]: Responses from the domain label dictionary.
     """
+    print("TITLE: ", issue.title)
     response_dic = {}
-
+    counter = 0
     for domain, data in domain_labels.items():
+        if max_domains is not None and counter > max_domains:
+            break  # skip after finding max REAL domains.
+
         print(f"Getting predictions for domain: {domain}")
         # Load domain and subdomain models
         domain_model = gpt_models[domain]["domain_model"]
@@ -69,76 +71,93 @@ def label_issue_binary_classification(
 
         # check if domain_response is 1 (domain applies to issue)
         if domain_response == 1:
+            counter += 1
             print(f"\tGetting subdomain predictions for domain: {domain}")
 
-            subdomain_dict = {}
-            for subdomain_key, subdomain_description in data.items():
-                if subdomain_key == "domain_description":
-                    continue
-                subdomain_dict[subdomain_key] = subdomain_description
+            response_clean = set()
+            fail_safe = 0
+            while len(response_clean) == 0:
+                recv = get_subdomain_bin_class(
+                    domain, data, issue, subdomain_model, openai_key
+                )
+                for i in recv:
+                    response_clean.add(i)
+                fail_safe += 1
+                if fail_safe > 5:
+                    break
 
-            subdomain_string = json.dumps(
-                subdomain_dict, indent=2
-            )  # You might still want to convert it to ensure it's readable
-
-            # subdomain_prompt = (
-            #     f"Classify a GitHub issue by indicating whether each subdomain in the list [{subdomain_string}] is relevant to the issue given its title: [{issue.title}], "
-            #     f"and body: [{issue.body}]. Ensure that you provide ONLY a list of relevant subdomains and that each subdomain is in the list shown before"
-            # )
-
-            subdomain_prompt = (
-                f"Classify a GitHub issue by indicating up to THREE domains that are relevant to the issue based on its title: [{issue.title}] "
-                f"and body: [{issue.body}]. \n"
-                f"Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text.  Return as a JSON list with each key being the domain and value being a brief description of this domain. Refer to ONLY THESE domains when classifying: {subdomain_string}."
-                f'\n\nImportant: Ensure that you provide the name and description of THREE domains in JSON LIST FORMAT. ie [{{"Application-Integration" : "Description"}}, {{"Cloud-Scalability": "Description"}},  {{"Computer Graphics-3D Rendering": "Description"}}]'
-            )
-
-            subdomain_response = query_gpt(
-                subdomain_prompt, subdomain_model, openai_key
-            )  # Prompt GPT model
-
-            response_clean = []
-            malformed = False
-            basic_response = []
-            try:
-                response = json.loads(response)
-            except:
-                # print(f"Malformed JSON: {response}")
-                basic_response = response.split('"}')
-                malformed = True
-                # pass each string.
-
-            if malformed:
-                for domain in basic_response:
-                    if len(domain) < 5:
-                        continue
-                    domain = clean_domains(
-                        domain, "", subdomain_dict
-                    )  # from AI Taxonomy
-                    response_clean.append(domain)
-            else:
-                for item in response:
-                    dname = list(item.keys())[0]
-                    desc = item[dname]
-                    domain = clean_domains(
-                        dname, desc, subdomain_dict
-                    )  # from AI Taxonomy
-                    response_clean.append(domain)
-
-            subdomain_response = response_clean
+            subdomain_response = list(response_clean)
 
         else:
             subdomain_response = []
+            continue
 
         response_dic[domain] = {
             "domain_response": domain_response,
             "subdomain_response": subdomain_response,
         }
 
+    print(response_dic)
     return response_dic
 
 
 # ------------------------------------------ #
+
+
+def get_subdomain_bin_class(domain, data, issue, subdomain_model, openai_key):
+    subdomain_dict = {}
+    for subdomain_key, subdomain_description in data.items():
+        if subdomain_key == "domain_description":
+            continue
+        subdomain_dict[subdomain_key] = subdomain_description
+
+    subdomain_string = json.dumps(
+        subdomain_dict, indent=2
+    )  # You might still want to convert it to ensure it's readable
+    # subdomain_prompt = (
+    #     f"Classify a GitHub issue by indicating whether each subdomain in the list [{subdomain_string}] is relevant to the issue given its title: [{issue.title}], "
+    #     f"and body: [{issue.body}]. Ensure that you provide ONLY a list of relevant subdomains and that each subdomain is in the list shown before"
+    # )
+
+    subdomain_prompt = (
+        f"Classify a GitHub issue by indicating TWO domains that are relevant to the issue based on its title: [{issue.title}] "
+        f"and body: [{issue.body}]. \n"
+        f"Prioritize positive precision by selecting a domain only when VERY CERTAIN it is relevant to the issue text.  Return as a JSON list with each key being the domain and value being a brief description of this domain. Refer to ONLY THESE domains when classifying: {subdomain_string}."
+        f'\n\nImportant: Ensure that you provide the name of TWO domains in JSON LIST FORMAT. TWO DOMAINS: ie ["Application-Integration", "Cloud-Scalability"]'
+    )
+    subdomain_response = query_gpt(
+        subdomain_prompt, subdomain_model, openai_key
+    )  # Prompt GPT model
+
+    subdomain_response = (
+        subdomain_response.replace("'", '"').replace("{", "[").replace("}", "]")
+    )
+    response_clean = []
+    malformed = False
+    basic_response = []
+    try:
+        response = json.loads(subdomain_response)
+    except:
+        # print(f"Malformed JSON: {subdomain_response}")
+        basic_response = subdomain_response.split('",')
+        malformed = True
+        # pass each string.
+
+    if malformed:
+        for domain in basic_response:
+            if len(domain) < 5:
+                continue
+            domain = clean_domains(
+                domain, "", subdomain_dict, formatted=True
+            )  # from AI Taxonomy
+            response_clean.append(domain)
+    else:
+        for item in response:
+            domain = clean_domains(
+                item, "", subdomain_dict, formatted=True
+            )  # from AI Taxonomy
+            response_clean.append(domain)
+    return response_clean
 
 
 def clean_text(text):
