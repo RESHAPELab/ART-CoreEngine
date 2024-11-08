@@ -6,7 +6,7 @@ import glob
 import os
 import pickle
 import sys
-
+from openai import OpenAI
 import pandas as pd
 
 import src as CoreEngine  # change to `import CoreEngine.src as CoreEngine` in submodules
@@ -123,12 +123,42 @@ def main():
         json_open = cfg_obj.get_cfg_val("gpt_jsonl_path")
 
         # Training goes here ....
+        
+        # Format labels
+        formatted_domains = CoreEngine.classifier.format_domain_labels(api_labels, sub_labels)
+        formatted_domains, df = CoreEngine.classifier.drop_rare_domains(df, formatted_domains)
+        formatted_domains, df = CoreEngine.classifier.drop_rare_subdomains(df, formatted_domains)
+
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+        # Create dataframe for each domain and set of subdomains
+        dataframe_dictionary = CoreEngine.classifier.populate_dataframe_dictionary(formatted_domains, df, client)
+        subdomain_dictionary = CoreEngine.classifier.populate_subdomain_dictionary(formatted_domains, df, client)
+
+        # Split dataframes
+        dataframe_dictionary = CoreEngine.classifier.split_domain_dataframes(dataframe_dictionary)
+        subdomain_dictionary = CoreEngine.classifier.split_subdomain_dataframes(subdomain_dictionary)
+
+        # Generate messages for finetune
+        dataframe_dictionary = CoreEngine.classifier.generate_domain_messages(dataframe_dictionary)
+        subdomain_dictionary = CoreEngine.classifier.generate_subdomain_messages(subdomain_dictionary, formatted_domains)
+
+        # Gine tune models
+        dataframe_dictionary = CoreEngine.classifier.get_domain_models(dataframe_dictionary, client)
+        subdomain_dictionary = CoreEngine.classifier.get_subdomain_models(subdomain_dictionary, client)
+
+        # Evaluate models and produce metrics csv
+        CoreEngine.classifier.produce_domain_csv(dataframe_dictionary, os.getenv("OPENAI_API_KEY"))
+        CoreEngine.classifier.produce_subdomain_csv(subdomain_dictionary, os.getenv("OPENAI_API_KEY"))
+
+        model_table = CoreEngine.classifier.get_model_json(dataframe_dictionary, subdomain_dictionary)
+        
 
         # Save Model ... keep this part.
         with open(cfg_dict["clf_model_out_path"], "wb") as f:
             dat = {
                 "time_saved": datetime.now(),
-                "model": llm_classifier,
+                "model": model_table,
                 "type": "gpt-combined",
                 "save_version": __version__,
             }
