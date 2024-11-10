@@ -33,11 +33,10 @@ def format_domain_labels(domain_labels, subdomain_labels):
         # iterate through each subdomain in list and add to dictionary
         for i in range(len(value)):
             subdomain, description = list(value[i].items())[0]
-            subdomain = key + '-' + subdomain
+            subdomain = key + "-" + subdomain
             temp_dictionary[subdomain] = description
         formatted_domains[key] = temp_dictionary
     return formatted_domains
-
 
 
 # Function to drop rare domains (those below ten)
@@ -74,7 +73,10 @@ def drop_rare_subdomains(df, formatted_domains):
 
     for domain, subdomains in formatted_domains.items():
 
-        for subdomain, description, in subdomains.items():
+        for (
+            subdomain,
+            description,
+        ) in subdomains.items():
             subdomains_df.append(subdomain)
             subdomains_json.append(subdomain)
 
@@ -104,7 +106,7 @@ def create_synthetic_data(issue_title, issue_description, client):
     )
 
     chat_completion = client.chat.completions.create(
-            messages=[
+        messages=[
             {
                 "role": "user",
                 "content": prompt_description,
@@ -121,7 +123,7 @@ def create_synthetic_data(issue_title, issue_description, client):
     )
 
     chat_completion = client.chat.completions.create(
-            messages=[
+        messages=[
             {
                 "role": "user",
                 "content": prompt_title,
@@ -147,16 +149,18 @@ def create_domain_df(domain, cntr, temp_df, average_samples, client):
 
     # Create synthetic instances for each instance
     for index, row in positive_df.iterrows():
-        curr_description = row['issue description']
-        curr_title = row['issue text']
+        curr_description = row["issue description"]
+        curr_title = row["issue text"]
         if total_samples >= average_samples:
             break
 
         # Create number of samples needed for each isntance to reach average
         for i in range(0, samples_needed):
             curr_row = list(row)
-            #curr_description, curr_title = 'test_title', 'test_text'
-            curr_description, curr_title = create_synthetic_data(curr_description, curr_title, client)
+            # curr_description, curr_title = 'test_title', 'test_text'
+            curr_description, curr_title = create_synthetic_data(
+                curr_description, curr_title, client
+            )
             curr_row[4] = curr_title
             curr_row[5] = curr_description
             curr_row[0] = cntr
@@ -183,7 +187,7 @@ def populate_dataframe_dictionary(formatted_domains, df, client):
     dataframe_dictionary = {}
     domains_list = list(formatted_domains.keys())
 
-    cntr = df['Index'].max() + 1
+    cntr = df["Index"].max() + 1
     average_samples = df[domains_list].sum().mean()
     majority_class_sample_size = 500
 
@@ -199,9 +203,11 @@ def populate_dataframe_dictionary(formatted_domains, df, client):
 
         if positive_count < average_samples:
             print(f"Creating synthetic data for domain: {domain}...")
-            temp, cntr = create_domain_df(domain, cntr, temp_df, average_samples, client)
+            temp, cntr = create_domain_df(
+                domain, cntr, temp_df, average_samples, client
+            )
             # Store the balanced dataframe
-            dataframe_dictionary[domain] = {'df': temp}
+            dataframe_dictionary[domain] = {"df": temp}
 
         elif positive_count > negative_count:
             # Majority class is positive
@@ -213,7 +219,9 @@ def populate_dataframe_dictionary(formatted_domains, df, client):
                 num_to_sample = len(negative_df)
 
             # Sample 500 positive instances
-            positive_df = temp_df[temp_df[domain] > 0].sample(n=num_to_sample, random_state=42)
+            positive_df = temp_df[temp_df[domain] > 0].sample(
+                n=num_to_sample, random_state=42
+            )
 
             # If the number of negative instances is less than 500, sample them all
             if len(negative_df) >= majority_class_sample_size:
@@ -223,7 +231,7 @@ def populate_dataframe_dictionary(formatted_domains, df, client):
             temp = pd.concat([negative_df, positive_df])
 
             # Store the balanced dataframe
-            dataframe_dictionary[domain] = {'df': temp}
+            dataframe_dictionary[domain] = {"df": temp}
 
         else:
             # Majority class is negative
@@ -236,7 +244,9 @@ def populate_dataframe_dictionary(formatted_domains, df, client):
                 num_to_sample = len(positive_df)
 
             # Sample 500 negative instances
-            negative_df = temp_df[temp_df[domain] <= 0].sample(n=num_to_sample, random_state=42)
+            negative_df = temp_df[temp_df[domain] <= 0].sample(
+                n=num_to_sample, random_state=42
+            )
 
             # If the number of positive instances is less than 500, sample them all
             if len(positive_df) >= majority_class_sample_size:
@@ -245,7 +255,7 @@ def populate_dataframe_dictionary(formatted_domains, df, client):
             # Concatenate the sampled positive instances with the negative instances
             temp = pd.concat([negative_df, positive_df])
             # Store the balanced dataframe
-            dataframe_dictionary[domain] = {'df': temp}
+            dataframe_dictionary[domain] = {"df": temp}
 
     return dataframe_dictionary
 
@@ -264,7 +274,15 @@ def get_combos(subdomains):
 
 
 # Function to balance subdomain data
-def balance_data(combos, count_dictionary, prompt_cntr, subdomains, subdomain_descriptions, average, client):
+def balance_data(
+    combos,
+    count_dictionary,
+    prompt_cntr,
+    subdomains,
+    subdomain_descriptions,
+    average,
+    client,
+):
     finished = False
     target = average
     cntr = 0
@@ -275,7 +293,9 @@ def balance_data(combos, count_dictionary, prompt_cntr, subdomains, subdomain_de
     while finished == False:
 
         # Create synthetic instance and drop combos including subdomains with 100 instances
-        title, text = create_synthetic_instance(count_dictionary, curr_combo, subdomains, subdomain_descriptions, client)
+        title, text = create_synthetic_instance(
+            count_dictionary, curr_combo, subdomains, subdomain_descriptions, client
+        )
         combos = drop_combos(count_dictionary, combos, target)
 
         # Finish when each subdomain has 100 instances
@@ -284,12 +304,16 @@ def balance_data(combos, count_dictionary, prompt_cntr, subdomains, subdomain_de
 
         # Update variables
         else:
-            encoded_labels = get_labels(subdomains, curr_combo)  # Get encoded labels based on current combo
+            encoded_labels = get_labels(
+                subdomains, curr_combo
+            )  # Get encoded labels based on current combo
             curr_combo = combos[(cntr + 1) % len(combos)]
             cntr += 1
             prompt_cntr += 1
 
-            data.append([prompt_cntr, title, text] + encoded_labels)  # Add to data, appending encoded labels
+            data.append(
+                [prompt_cntr, title, text] + encoded_labels
+            )  # Add to data, appending encoded labels
 
     return prompt_cntr, data
 
@@ -339,33 +363,40 @@ def get_labels(subdomains, combo):
 
 
 # Function to create synthetic instance of data
-def create_synthetic_instance(count_dictionary, combo, subdomains, subdomain_descriptions, client):
+def create_synthetic_instance(
+    count_dictionary, combo, subdomains, subdomain_descriptions, client
+):
     # Select random issue type
-    issue_types = ['Feature Addition', 'Feature Improvement', 'Bug Fix', 'Performance Optimization']
+    issue_types = [
+        "Feature Addition",
+        "Feature Improvement",
+        "Bug Fix",
+        "Performance Optimization",
+    ]
     type = random.choice(issue_types)  # Get a random value
 
     # Update count dictionary
     for domain in combo:
         count_dictionary[domain] += 1
 
-    title = 'title'
-    text = 'text'
+    title = "title"
+    text = "text"
 
     subdomains = str(subdomain_descriptions)
 
     # Create prompt based on subdomains and issue type
     prompt = (
-    f"Given the following labels and their descriptions: {subdomains}, generate a synthetic GitHub Issue that corresponds to all the listed labels. "
-    f"Your response should include only the issue title and the issue text, separated by '||'. "
-    f"Do not include any labels in your output. "
-    f"Example format: 'Implement Multi-Factor Authentication for User Login || We need to enhance the security of our user login process by implementing multi-factor authentication (MFA). This will require integrating an additional verification step, such as a one-time code sent via SMS or email.' "
-    f"Make sure to keep the content concise and relevant to the provided labels. "
-    f"NOTE: The issue type is {type}."
+        f"Given the following labels and their descriptions: {subdomains}, generate a synthetic GitHub Issue that corresponds to all the listed labels. "
+        f"Your response should include only the issue title and the issue text, separated by '||'. "
+        f"Do not include any labels in your output. "
+        f"Example format: 'Implement Multi-Factor Authentication for User Login || We need to enhance the security of our user login process by implementing multi-factor authentication (MFA). This will require integrating an additional verification step, such as a one-time code sent via SMS or email.' "
+        f"Make sure to keep the content concise and relevant to the provided labels. "
+        f"NOTE: The issue type is {type}."
     )
 
     # Prompt GPT
     chat_completion = client.chat.completions.create(
-            messages=[
+        messages=[
             {
                 "role": "user",
                 "content": prompt,
@@ -376,7 +407,7 @@ def create_synthetic_instance(count_dictionary, combo, subdomains, subdomain_des
 
     # Split into title and text, use cleaning function
     synthetic_issue = chat_completion.choices[0].message.content
-    split = synthetic_issue.split('||')
+    split = synthetic_issue.split("||")
     title = clean_text(split[0])
     text = clean_text(split[1])
 
@@ -385,7 +416,24 @@ def create_synthetic_instance(count_dictionary, combo, subdomains, subdomain_des
 
 def create_subdomain_df(df, subdomains, data):
     # Drop all other domains and instances
-    curr_df = df.drop(columns=['Repo Name', 'PR #', 'Pull Request', 'created_at', 'closed_at', 'userlogin', 'author_name', 'most_recent_commit', 'filename', 'file_commit', 'api', 'function_name', 'api_domain', 'subdomain'])
+    curr_df = df.drop(
+        columns=[
+            "Repo Name",
+            "PR #",
+            "Pull Request",
+            "created_at",
+            "closed_at",
+            "userlogin",
+            "author_name",
+            "most_recent_commit",
+            "filename",
+            "file_commit",
+            "api",
+            "function_name",
+            "api_domain",
+            "subdomain",
+        ]
+    )
     curr_df = pd.concat([curr_df.iloc[:, :3], curr_df[subdomains]], axis=1)
 
     # Keep n number of zero instances
@@ -393,13 +441,19 @@ def create_subdomain_df(df, subdomains, data):
     num_zero_instances = len(zero_instances)
     n = 100
     n_to_keep = min(n, num_zero_instances)
-    zero_instances_to_keep = zero_instances.sample(n=n_to_keep, random_state=1)  # Random sample of n
+    zero_instances_to_keep = zero_instances.sample(
+        n=n_to_keep, random_state=1
+    )  # Random sample of n
 
     # Concatenate instances where each domain is zero with instances where any of the subdomains is 1
-    curr_df = pd.concat([
-        curr_df[~curr_df[subdomains].eq(0).all(axis=1)],  # Keep rows where not all are zero
-        zero_instances_to_keep  # Add the kept zero instances
-    ])
+    curr_df = pd.concat(
+        [
+            curr_df[
+                ~curr_df[subdomains].eq(0).all(axis=1)
+            ],  # Keep rows where not all are zero
+            zero_instances_to_keep,  # Add the kept zero instances
+        ]
+    )
 
     # Combine synthetic df with original
     synthetic_df = pd.DataFrame(data=data, columns=curr_df.columns)
@@ -419,10 +473,10 @@ def populate_subdomain_dictionary(formatted_domains, df, client):
             subdomains_list.append(subdomain)
 
     average = df[subdomains_list].sum().mean()
-    index = df['Index'].max()
+    index = df["Index"].max()
     for domain, subdomains in formatted_domains.items():
         print(f"Creating df for: {domain}")
-        if 'df' in subdomain_dictionary[domain]:
+        if "df" in subdomain_dictionary[domain]:
 
             print(f"df exists for domain: {domain}")
 
@@ -430,7 +484,9 @@ def populate_subdomain_dictionary(formatted_domains, df, client):
             if not subdomains:
                 print(f"No subdomains for domain: {domain}")
             else:
-                print('---------------------------------------------------------------------------------')
+                print(
+                    "---------------------------------------------------------------------------------"
+                )
                 print(f"Creating synthetic data for subdomains: {domain}...")
                 subdomain_descriptions = subdomains
                 subdomains = list(subdomains.keys())
@@ -441,50 +497,58 @@ def populate_subdomain_dictionary(formatted_domains, df, client):
 
                 combos = get_combos(subdomains)
 
-                index, synthetic_data = balance_data(combos, count_dictionary, index, subdomains, subdomain_descriptions, average, client)
+                index, synthetic_data = balance_data(
+                    combos,
+                    count_dictionary,
+                    index,
+                    subdomains,
+                    subdomain_descriptions,
+                    average,
+                    client,
+                )
 
-                subdomain_dictionary[domain]['df'] = create_subdomain_df(df, subdomains, synthetic_data)
+                subdomain_dictionary[domain]["df"] = create_subdomain_df(
+                    df, subdomains, synthetic_data
+                )
     return subdomain_dictionary
 
 
 # Function to split dataframes into testing and training sets
 def split_domain_dataframes(dataframe_dictionary):
     for domain, data in dataframe_dictionary.items():
-        curr_df = data['df']
+        curr_df = data["df"]
         # Randomly sample 70% of the rows for the first DataFrame
         training_df = curr_df.sample(frac=0.7, random_state=1)
 
         # The remaining 30% of the rows for the second DataFrame
         testing_df = curr_df.drop(training_df.index)
-        data['training_df'] = training_df
-        data['testing_df'] = testing_df
+        data["training_df"] = training_df
+        data["testing_df"] = testing_df
 
     return dataframe_dictionary
 
 
 def split_subdomain_dataframes(subdomain_dictionary):
     for domain, data in subdomain_dictionary.items():
-        if 'df' not in data:
+        if "df" not in data:
             print(f"Subdomain df not found for Domain: {domain}")
         else:
             print(f"Splitting data for domain: {domain}")
-            curr_df = data['df']
-             # Randomly sample 70% of the rows for the first DataFrame
+            curr_df = data["df"]
+            # Randomly sample 70% of the rows for the first DataFrame
             training_df = curr_df.sample(frac=0.7, random_state=1)
 
             # The remaining 30% of the rows for the second DataFrame
             testing_df = curr_df.drop(training_df.index)
-            data['training_df'] = training_df
-            data['testing_df'] = testing_df
+            data["training_df"] = training_df
+            data["testing_df"] = testing_df
     return subdomain_dictionary
-
-
 
 
 # Function to construct messages and store in a jsonl file
 def generate_domain_messages_json(domain, filepath, training_df):
     # Open the file in write mode
-    with open(filepath, 'w', encoding='utf-8') as f:
+    with open(filepath, "w", encoding="utf-8") as f:
         # Iterate over the rows in the DataFrame
         for index, row in training_df.iterrows():
             # Create the user message by formatting the prompt with the title and body
@@ -501,22 +565,22 @@ def generate_domain_messages_json(domain, filepath, training_df):
                 "messages": [
                     {"role": "system", "content": "Classify GitHub issues"},
                     {"role": "user", "content": user_message},
-                    {"role": "assistant", "content": assistant_message}
+                    {"role": "assistant", "content": assistant_message},
                 ]
             }
 
             # Write the conversation object to one line in the file
-            f.write(json.dumps(conversation_object, ensure_ascii=False) + '\n')
+            f.write(json.dumps(conversation_object, ensure_ascii=False) + "\n")
 
 
 # Function to populate dataframe_dictionary with message filepath
 def generate_domain_messages(dataframe_dictionary):
     # Create messages for each domain
     for domain, data in dataframe_dictionary.items():
-        filepath = "../data/Domain_Messages/" + domain.replace('/', '-') + ".jsonl"
-        training_df = data['training_df']
+        filepath = "../data/Domain_Messages/" + domain.replace("/", "-") + ".jsonl"
+        training_df = data["training_df"]
         generate_domain_messages_json(domain, filepath, training_df)
-        data['gpt_messages'] = filepath
+        data["gpt_messages"] = filepath
 
     return dataframe_dictionary
 
@@ -524,7 +588,7 @@ def generate_domain_messages(dataframe_dictionary):
 def generate_subdomain_messages_json(subdomains, filepath, training_df):
     subdomain_list = training_df.columns[3:]
     # Open the file in write mode
-    with open(filepath, 'w', encoding='utf-8') as f:
+    with open(filepath, "w", encoding="utf-8") as f:
         assistant_message = ""
         # Iterate over the rows in the DataFrame
         for index, row in training_df.iterrows():
@@ -544,27 +608,27 @@ def generate_subdomain_messages_json(subdomains, filepath, training_df):
                 "messages": [
                     {"role": "system", "content": "Classify GitHub issues"},
                     {"role": "user", "content": user_message},
-                    {"role": "assistant", "content": str(assistant_message)}
+                    {"role": "assistant", "content": str(assistant_message)},
                 ]
             }
 
             # Write the conversation object to one line in the file
-            f.write(json.dumps(conversation_object, ensure_ascii=False) + '\n')
+            f.write(json.dumps(conversation_object, ensure_ascii=False) + "\n")
 
 
 def generate_subdomain_messages(subdomain_dictionary, formatted_domains):
     for domain, data in subdomain_dictionary.items():
-        if 'df' not in data:
+        if "df" not in data:
             print(f"Domain {domain} has no df")
         else:
             filepath = "../data/Subdomain_Messages/" + domain + " Subdomains.jsonl"
             subdomains = str(formatted_domains[domain])
-            subdomains = subdomains.replace('{', '')
-            subdomains = subdomains.replace('}', '')
+            subdomains = subdomains.replace("{", "")
+            subdomains = subdomains.replace("}", "")
 
-            training_df = data['training_df']
+            training_df = data["training_df"]
             generate_subdomain_messages_json(subdomains, filepath, training_df)
-            data['gpt_messages'] = filepath
+            data["gpt_messages"] = filepath
     return subdomain_dictionary
 
 
@@ -572,22 +636,19 @@ def generate_subdomain_messages(subdomain_dictionary, formatted_domains):
 def fine_tune_gpt_combined(file, domain, client):
     # Upload training file
     print(f"Uploading file {file.split('/')[-1]}...")
-    training_file = client.files.create(
-        file=open(file, 'rb'),
-        purpose='fine-tune')
+    training_file = client.files.create(file=open(file, "rb"), purpose="fine-tune")
 
     # Start fine tuning job
-    print('Starting fine tuning process...')
+    print("Starting fine tuning process...")
     ft_job = client.fine_tuning.jobs.create(
-        training_file=training_file.id,
-        model="gpt-4o-mini-2024-07-18",
-        suffix=domain)
+        training_file=training_file.id, model="gpt-4o-mini-2024-07-18", suffix=domain
+    )
 
-    print('Waiting for fine tune to finish...')
+    print("Waiting for fine tune to finish...")
     # Return fine tuned model when fine tuning is finished
     tuned_model = client.fine_tuning.jobs.retrieve(ft_job.id).fine_tuned_model
 
-    while (tuned_model == None):
+    while tuned_model == None:
         tuned_model = client.fine_tuning.jobs.retrieve(ft_job.id).fine_tuned_model
 
     return tuned_model
@@ -596,47 +657,56 @@ def fine_tune_gpt_combined(file, domain, client):
 # Function to populate data_frame_dictionary with gpt models
 def get_domain_models(dataframe_dictionary, client):
     for domain, data in dataframe_dictionary.items():
-        if 'tuned_model' in data:
+        if "tuned_model" in data:
             print(f"Model already exists for domain: {domain}, {data['tuned_model']}")
         else:
             print(f"No model found for domain: {domain}, creating one now")
-            filepath = data['gpt_messages']
-            data['tuned_model'] = fine_tune_gpt_combined(filepath, domain, client)
+            filepath = data["gpt_messages"]
+            data["tuned_model"] = fine_tune_gpt_combined(filepath, domain, client)
     return dataframe_dictionary
 
 
 # Function to populate subdomain_dictionary with gpt models
 def get_subdomain_models(subdomain_dictionary, client):
     for domain, data in subdomain_dictionary.items():
-        if 'df' not in data:
+        if "df" not in data:
             print(f"Domain {domain} has no df")
 
-        elif 'tuned_model' in data:
+        elif "tuned_model" in data:
             print(f"Model already exists for domain: {domain}")
 
         else:
             if domain:
-                domain_str = domain + ' Subdomains'
+                domain_str = domain + " Subdomains"
                 print(f"No model found for domain: {domain_str}, creating one now")
-                filepath = data['gpt_messages']
-                data['tuned_model'] = fine_tune_gpt_combined(filepath, domain, client)
+                filepath = data["gpt_messages"]
+                data["tuned_model"] = fine_tune_gpt_combined(filepath, domain, client)
     return subdomain_dictionary
 
 
 # Function to create metrics df
 def create_domain_performance_df(dataframe_dictionary):
     # Data Format: [FP, TP, FN, TN]
-    performance_columns = ['Domain', 'Accuracy', 'Precision (1)', 'Recall (1)', 'F1 (1)', 'Precision (0)', 'Recall (0)',
-                           'F1 (0)', 'Confusion Matrix']
+    performance_columns = [
+        "Domain",
+        "Accuracy",
+        "Precision (1)",
+        "Recall (1)",
+        "F1 (1)",
+        "Precision (0)",
+        "Recall (0)",
+        "F1 (0)",
+        "Confusion Matrix",
+    ]
 
     performance_df = pd.DataFrame(columns=performance_columns)
     sum_list = [0, 0, 0, 0]
 
     for domain, data in dataframe_dictionary.items():
-        if 'scores' not in data:
+        if "scores" not in data:
             print(f"Scores not found for domain {domain}, unable to calculate metrics")
         else:
-            value = data['scores']
+            value = data["scores"]
             sum_list[0] += value[0]
             sum_list[1] += value[1]
             sum_list[2] += value[2]
@@ -646,30 +716,59 @@ def create_domain_performance_df(dataframe_dictionary):
             accuracy = float("{:.2f}".format(accuracy))
 
             # Calculate metrics for positive cases
-            positive_precision = (value[1]) / (value[1] + value[0]) if (value[1] + value[0]) > 0 else 0
+            positive_precision = (
+                (value[1]) / (value[1] + value[0]) if (value[1] + value[0]) > 0 else 0
+            )
             positive_precision = float("{:.2f}".format(positive_precision))
 
-            positive_recall = (value[1]) / (value[1] + value[2]) if (value[1] + value[2]) > 0 else 0
+            positive_recall = (
+                (value[1]) / (value[1] + value[2]) if (value[1] + value[2]) > 0 else 0
+            )
             positive_recall = float("{:.2f}".format(positive_recall))
 
-            positive_F1 = 2 * (positive_precision * positive_recall) / (positive_precision + positive_recall) if (
-                                                                                                                             positive_precision + positive_recall) > 0 else 0
+            positive_F1 = (
+                2
+                * (positive_precision * positive_recall)
+                / (positive_precision + positive_recall)
+                if (positive_precision + positive_recall) > 0
+                else 0
+            )
             positive_F1 = float("{:.2f}".format(positive_F1))
 
             # Calculate metrics for negative cases
-            negative_precision = (value[3]) / (value[3] + value[2]) if (value[3] + value[2]) > 0 else 0
+            negative_precision = (
+                (value[3]) / (value[3] + value[2]) if (value[3] + value[2]) > 0 else 0
+            )
             negative_precision = float("{:.2f}".format(negative_precision))
 
-            negative_recall = (value[3]) / (value[3] + value[0]) if (value[3] + value[0]) > 0 else 0
+            negative_recall = (
+                (value[3]) / (value[3] + value[0]) if (value[3] + value[0]) > 0 else 0
+            )
             negative_recall = float("{:.2f}".format(negative_recall))
 
-            negative_F1 = 2 * (negative_precision * negative_recall) / (negative_precision + negative_recall) if (
-                                                                                                                             negative_precision + negative_recall) > 0 else 0
+            negative_F1 = (
+                2
+                * (negative_precision * negative_recall)
+                / (negative_precision + negative_recall)
+                if (negative_precision + negative_recall) > 0
+                else 0
+            )
             negative_F1 = float("{:.2f}".format(negative_F1))
 
-            confusion_matrix = "0[{}  {}]\n1[{}  {}]\n   0     1".format(value[3], value[0], value[2], value[1])
-            new_row = [domain, accuracy, positive_precision, positive_recall, positive_F1, negative_precision,
-                       negative_recall, negative_F1, confusion_matrix]
+            confusion_matrix = "0[{}  {}]\n1[{}  {}]\n   0     1".format(
+                value[3], value[0], value[2], value[1]
+            )
+            new_row = [
+                domain,
+                accuracy,
+                positive_precision,
+                positive_recall,
+                positive_F1,
+                negative_precision,
+                negative_recall,
+                negative_F1,
+                confusion_matrix,
+            ]
             performance_df.loc[len(performance_df)] = new_row
 
     return performance_df, sum_list
@@ -678,10 +777,10 @@ def create_domain_performance_df(dataframe_dictionary):
 # Function to populate scores (TP, FP TN, FN)
 def populate_domain_scores(scores, testing_df, domain, responses):
     for index, row in testing_df.iterrows():
-        if row['Index'] in responses:
+        if row["Index"] in responses:
             try:
-                curr_response = responses[row['Index']]
-                pred_y = int(curr_response['response'])
+                curr_response = responses[row["Index"]]
+                pred_y = int(curr_response["response"])
                 true_y = int(row[domain])
                 for domain in list(testing_df.columns[17:]):
 
@@ -712,10 +811,10 @@ def populate_domain_scores(scores, testing_df, domain, responses):
 # Function to get scores for each domain
 def get_domain_scores(dataframe_dictionary):
     for domain, data in dataframe_dictionary.items():
-        if 'predictions' not in data:
+        if "predictions" not in data:
             print(f"Predictions not found for domain: {domain}")
         else:
-            testing_df = data['testing_df']
+            testing_df = data["testing_df"]
 
             domains = list(testing_df.columns[17:])
 
@@ -724,8 +823,10 @@ def get_domain_scores(dataframe_dictionary):
             for each in domains:
                 scores[each] = [0, 0, 0, 0]
 
-            scores = populate_domain_scores(scores, testing_df, domain, data['predictions'])
-            data['scores'] = scores
+            scores = populate_domain_scores(
+                scores, testing_df, domain, data["predictions"]
+            )
+            data["scores"] = scores
     return dataframe_dictionary
 
 
@@ -741,7 +842,8 @@ def predict_for_domain(testing_df, tuned_model, openai_key, domain):
             user_message = (
                 f"Classify a GitHub issue by indicating whether the following domain: [{domain}] is relevant to the issue given its title: [{row['issue text']}], "
                 f"body: [{row['issue description']}], and repository [{row['Repo Name']}]. Ensure that you provide ONLY a 0 (negative) or a 1 (positive) to determine whether the domains fits"
-                f"Example: 0")
+                f"Example: 0"
+            )
             system_message = "Refer to these domains" + ""
             print(user_message)
 
@@ -751,18 +853,18 @@ def predict_for_domain(testing_df, tuned_model, openai_key, domain):
             # query fine tuned model
             while valid_response == 0:
                 domain_response = query_gpt(user_message, tuned_model, openai_key)
-                if domain_response == '1' or domain_response == '0':
+                if domain_response == "1" or domain_response == "0":
                     valid_response = 1
                 else:
                     if query_count == 2:
-                        print('failed to get proper response after three attempts')
+                        print("failed to get proper response after three attempts")
                         break
                     print(f"Invalid response: {domain_response} requerying...")
                     query_count += 1
 
             if valid_response == 1:
-                temp_dic['response'] = domain_response
-                all_responses[row['Index']] = temp_dic
+                temp_dic["response"] = domain_response
+                all_responses[row["Index"]] = temp_dic
 
             counter += 1
 
@@ -772,20 +874,24 @@ def predict_for_domain(testing_df, tuned_model, openai_key, domain):
 # Function to generate metrics csv
 def produce_domain_csv(dataframe_dictionary, openai_key):
     for domain, data in dataframe_dictionary.items():
-        if 'tuned_model' in data:
+        if "tuned_model" in data:
 
             print(f"predictions not found for domain: {domain}, predicting now...")
-            tuned_model = data['tuned_model']
-            testing_df = data['testing_df']
-            data['predictions'] = predict_for_domain(testing_df, tuned_model, openai_key, domain)
+            tuned_model = data["tuned_model"]
+            testing_df = data["testing_df"]
+            data["predictions"] = predict_for_domain(
+                testing_df, tuned_model, openai_key, domain
+            )
 
         else:
-            print(f"Tuned model not found for domain: {domain}, can't generate predictions")
-    print(dataframe_dictionary['Application Performance Manager']['predictions'])
+            print(
+                f"Tuned model not found for domain: {domain}, can't generate predictions"
+            )
+    print(dataframe_dictionary["Application Performance Manager"]["predictions"])
 
     dataframe_dictionary = get_domain_scores(dataframe_dictionary)
     performance_df, sum_list = create_domain_performance_df(dataframe_dictionary)
-    performance_df.to_csv('../data/Model_Metrics/domain_performance.csv', index=False)
+    performance_df.to_csv("../data/Model_Metrics/domain_performance.csv", index=False)
 
 
 def predict_for_subdomains(testing_df, tuned_model, subdomains, openai_key):
@@ -798,11 +904,12 @@ def predict_for_subdomains(testing_df, tuned_model, subdomains, openai_key):
             user_message = (
                 f"Classify a GitHub issue by indicating whether each subdomain in the list [{subdomains}] is relevant to the issue given its title: [{row['issue text']}], "
                 f"and body: [{row['issue description']}]. Ensure that you provide ONLY a list of relevant subdomains and that each subdomain is in the list shown before. If none apply to the issue, respond with an empty list (ie [])."
-                f" Example: [Subdomain1, Subdomain2]")
+                f" Example: [Subdomain1, Subdomain2]"
+            )
             domain_response = query_gpt(user_message, tuned_model, openai_key)
 
-            temp_dic['response'] = domain_response
-            all_responses[row['Index']] = temp_dic
+            temp_dic["response"] = domain_response
+            all_responses[row["Index"]] = temp_dic
             counter += 1
 
     return all_responses
@@ -811,10 +918,10 @@ def predict_for_subdomains(testing_df, tuned_model, subdomains, openai_key):
 def populate_subdomain_scores(scores, testing_df, responses):
     columns = testing_df.columns[3:]
     for index, row in testing_df.iterrows():
-        if row['Index'] in responses:
+        if row["Index"] in responses:
             try:
-                curr_response = responses[row['Index']]
-                domains = ast.literal_eval(curr_response['response'])
+                curr_response = responses[row["Index"]]
+                domains = ast.literal_eval(curr_response["response"])
                 curr_response = domains
                 for domain in list(columns):
                     if domain in curr_response:
@@ -843,44 +950,53 @@ def populate_subdomain_scores(scores, testing_df, responses):
                 # Handle the case where the string is not properly formatted
                 print("Index #" + str(row["Index"]) + " response not in json format")
         else:
-            print("Index #" + str(row['Index']) + " Issue not in response json")
+            print("Index #" + str(row["Index"]) + " Issue not in response json")
 
     return scores
 
 
 def get_subdomain_scores(subdomain_dictionary):
     for domain, data in subdomain_dictionary.items():
-        if 'predictions' not in data:
+        if "predictions" not in data:
             print(f"No predictions for domain: {domain}, skipping...")
 
         else:
             print(domain)
-            testing_df = data['testing_df']
+            testing_df = data["testing_df"]
             columns = list(testing_df.columns[3:])
             scores = {}
             for each in columns:
                 scores[each] = [0, 0, 0, 0]
 
-            scores = populate_subdomain_scores(scores, testing_df, data['predictions'])
-            data['scores'] = scores
+            scores = populate_subdomain_scores(scores, testing_df, data["predictions"])
+            data["scores"] = scores
 
     return subdomain_dictionary
 
 
 def create_subdomain_performance_df(subdomain_data):
     # Data Format: [FP, TP, FN, TN]
-    performance_columns = ['Domain', 'Accuracy', 'Precision (1)', 'Recall (1)', 'F1 (1)', 'Precision (0)', 'Recall (0)',
-                           'F1 (0)', 'Confusion Matrix']
+    performance_columns = [
+        "Domain",
+        "Accuracy",
+        "Precision (1)",
+        "Recall (1)",
+        "F1 (1)",
+        "Precision (0)",
+        "Recall (0)",
+        "F1 (0)",
+        "Confusion Matrix",
+    ]
 
     performance_df = pd.DataFrame(columns=performance_columns)
     sum_list = [0, 0, 0, 0]
 
     for domain, data in subdomain_data.items():
-        if 'scores' not in data:
-            print('here')
+        if "scores" not in data:
+            print("here")
 
         else:
-            for subdomain, value in data['scores'].items():
+            for subdomain, value in data["scores"].items():
                 print(f"Domain: {subdomain}")
                 sum_list[0] += value[0]
                 sum_list[1] += value[1]
@@ -891,30 +1007,67 @@ def create_subdomain_performance_df(subdomain_data):
                 accuracy = float("{:.2f}".format(accuracy))
 
                 # Calculate metrics for positive cases
-                positive_precision = (value[1]) / (value[1] + value[0]) if (value[1] + value[0]) > 0 else 0
+                positive_precision = (
+                    (value[1]) / (value[1] + value[0])
+                    if (value[1] + value[0]) > 0
+                    else 0
+                )
                 positive_precision = float("{:.2f}".format(positive_precision))
 
-                positive_recall = (value[1]) / (value[1] + value[2]) if (value[1] + value[2]) > 0 else 0
+                positive_recall = (
+                    (value[1]) / (value[1] + value[2])
+                    if (value[1] + value[2]) > 0
+                    else 0
+                )
                 positive_recall = float("{:.2f}".format(positive_recall))
 
-                positive_F1 = 2 * (positive_precision * positive_recall) / (positive_precision + positive_recall) if (
-                                                                                                                                 positive_precision + positive_recall) > 0 else 0
+                positive_F1 = (
+                    2
+                    * (positive_precision * positive_recall)
+                    / (positive_precision + positive_recall)
+                    if (positive_precision + positive_recall) > 0
+                    else 0
+                )
                 positive_F1 = float("{:.2f}".format(positive_F1))
 
                 # Calculate metrics for negative cases
-                negative_precision = (value[3]) / (value[3] + value[2]) if (value[3] + value[2]) > 0 else 0
+                negative_precision = (
+                    (value[3]) / (value[3] + value[2])
+                    if (value[3] + value[2]) > 0
+                    else 0
+                )
                 negative_precision = float("{:.2f}".format(negative_precision))
 
-                negative_recall = (value[3]) / (value[3] + value[0]) if (value[3] + value[0]) > 0 else 0
+                negative_recall = (
+                    (value[3]) / (value[3] + value[0])
+                    if (value[3] + value[0]) > 0
+                    else 0
+                )
                 negative_recall = float("{:.2f}".format(negative_recall))
 
-                negative_F1 = 2 * (negative_precision * negative_recall) / (negative_precision + negative_recall) if (
-                                                                                                                                 negative_precision + negative_recall) > 0 else 0
+                negative_F1 = (
+                    2
+                    * (negative_precision * negative_recall)
+                    / (negative_precision + negative_recall)
+                    if (negative_precision + negative_recall) > 0
+                    else 0
+                )
                 negative_F1 = float("{:.2f}".format(negative_F1))
 
-                confusion_matrix = "0[{}  {}]\n1[{}  {}]\n   0     1".format(value[3], value[0], value[2], value[1])
-                new_row = [subdomain, accuracy, positive_precision, positive_recall, positive_F1, negative_precision,
-                           negative_recall, negative_F1, confusion_matrix]
+                confusion_matrix = "0[{}  {}]\n1[{}  {}]\n   0     1".format(
+                    value[3], value[0], value[2], value[1]
+                )
+                new_row = [
+                    subdomain,
+                    accuracy,
+                    positive_precision,
+                    positive_recall,
+                    positive_F1,
+                    negative_precision,
+                    negative_recall,
+                    negative_F1,
+                    confusion_matrix,
+                ]
                 performance_df.loc[len(performance_df)] = new_row
 
     return performance_df, sum_list
@@ -922,38 +1075,45 @@ def create_subdomain_performance_df(subdomain_data):
 
 def produce_subdomain_csv(subdomain_dictionary, formatted_domains, openai_key):
     for domain, data in subdomain_dictionary.items():
-        if 'tuned_model' in data:
+        if "tuned_model" in data:
             print(f"predictions not found for {domain} subdomains:, predicting now...")
             subdomains = str(formatted_domains[domain])
-            subdomains = subdomains.replace('{', '')
-            subdomains = subdomains.replace('}', '')
+            subdomains = subdomains.replace("{", "")
+            subdomains = subdomains.replace("}", "")
 
-            tuned_model = data['tuned_model']
-            testing_df = data['testing_df']
-            data['predictions'] = predict_for_subdomains(testing_df, tuned_model, subdomains, openai_key)
+            tuned_model = data["tuned_model"]
+            testing_df = data["testing_df"]
+            data["predictions"] = predict_for_subdomains(
+                testing_df, tuned_model, subdomains, openai_key
+            )
         else:
-            print(f"Tuned model not found for domain: {domain}, can't generate predictions")
-    print(subdomain_dictionary['Application Performance Manager']['predictions'])
+            print(
+                f"Tuned model not found for domain: {domain}, can't generate predictions"
+            )
+    print(subdomain_dictionary["Application Performance Manager"]["predictions"])
     subdomain_dictionary = get_subdomain_scores(subdomain_dictionary)
 
     performance_df, sum_list = create_subdomain_performance_df(subdomain_dictionary)
-    performance_df.to_csv('Model_Metrics/subdomain_performance.csv', index=False) 
+    performance_df.to_csv("Model_Metrics/subdomain_performance.csv", index=False)
 
 
 def get_model_json(domain_dictionary, subdomain_dictionary):
     gpt_models = {}
-    curr_domain_model = ''
-    curr_subdomain_model = ''
+    curr_domain_model = ""
+    curr_subdomain_model = ""
     for domain, data in domain_dictionary.items():
-        if 'tuned_model' not in data:
-            curr_domain_model = 'None'
+        if "tuned_model" not in data:
+            curr_domain_model = "None"
         else:
-            curr_domain_model = data['tuned_model']
-        if 'tuned_model' not in subdomain_dictionary[domain]:
-            curr_subdomain_model = 'None'
+            curr_domain_model = data["tuned_model"]
+        if "tuned_model" not in subdomain_dictionary[domain]:
+            curr_subdomain_model = "None"
         else:
-            curr_subdomain_model = subdomain_dictionary[domain]['tuned_model']
-        gpt_models[domain] = {'domain_model' : curr_domain_model, 'subdomain_model' : curr_subdomain_model}
+            curr_subdomain_model = subdomain_dictionary[domain]["tuned_model"]
+        gpt_models[domain] = {
+            "domain_model": curr_domain_model,
+            "subdomain_model": curr_subdomain_model,
+        }
 
     return gpt_models
 
