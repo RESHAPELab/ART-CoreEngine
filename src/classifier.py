@@ -1,7 +1,10 @@
 import argparse
+import ast
 import concurrent.futures
+import itertools
 import json
 import os
+import pickle
 import random
 import re
 import string
@@ -186,8 +189,7 @@ def populate_dataframe_dictionary(formatted_domains, df, client):
     # Setup variables
     dataframe_dictionary = {}
     domains_list = list(formatted_domains.keys())
-
-    cntr = df["Index"].max() + 1
+    cntr = len(df)
     average_samples = df[domains_list].sum().mean()
     majority_class_sample_size = 500
 
@@ -195,11 +197,11 @@ def populate_dataframe_dictionary(formatted_domains, df, client):
 
         columns_to_keep = [domain]
         # Drop all columns past index 17, except for the ones in `columns_to_keep`
-        temp_df = pd.concat([df.iloc[:, :17], df[columns_to_keep]], axis=1)
+        temp_df = pd.concat([df.iloc[:, :16], df[columns_to_keep]], axis=1)
 
         # Get count of positive and negative instances
-        positive_count = len(temp_df[temp_df[domain] > 0])
-        negative_count = len(temp_df[temp_df[domain] <= 0])
+        positive_count = (df[domain] > 0).sum()
+        negative_count = (df[domain] <= 0).sum()
 
         if positive_count < average_samples:
             print(f"Creating synthetic data for domain: {domain}...")
@@ -473,7 +475,7 @@ def populate_subdomain_dictionary(formatted_domains, df, client):
             subdomains_list.append(subdomain)
 
     average = df[subdomains_list].sum().mean()
-    index = df["Index"].max()
+    index = len(df) - 1
     for domain, subdomains in formatted_domains.items():
         print(f"Creating df for: {domain}")
         if "df" in subdomain_dictionary[domain]:
@@ -777,9 +779,9 @@ def create_domain_performance_df(dataframe_dictionary):
 # Function to populate scores (TP, FP TN, FN)
 def populate_domain_scores(scores, testing_df, domain, responses):
     for index, row in testing_df.iterrows():
-        if row["Index"] in responses:
+        if row.index in responses:
             try:
-                curr_response = responses[row["Index"]]
+                curr_response = responses[row.index]
                 pred_y = int(curr_response["response"])
                 true_y = int(row[domain])
                 for domain in list(testing_df.columns[17:]):
@@ -864,7 +866,7 @@ def predict_for_domain(testing_df, tuned_model, openai_key, domain):
 
             if valid_response == 1:
                 temp_dic["response"] = domain_response
-                all_responses[row["Index"]] = temp_dic
+                all_responses[row.index] = temp_dic
 
             counter += 1
 
@@ -872,7 +874,7 @@ def predict_for_domain(testing_df, tuned_model, openai_key, domain):
 
 
 # Function to generate metrics csv
-def produce_domain_csv(dataframe_dictionary, openai_key):
+def produce_domain_csv(dataframe_dictionary, openai_key, filename):
     for domain, data in dataframe_dictionary.items():
         if "tuned_model" in data:
 
@@ -887,11 +889,10 @@ def produce_domain_csv(dataframe_dictionary, openai_key):
             print(
                 f"Tuned model not found for domain: {domain}, can't generate predictions"
             )
-    print(dataframe_dictionary["Application Performance Manager"]["predictions"])
 
     dataframe_dictionary = get_domain_scores(dataframe_dictionary)
     performance_df, sum_list = create_domain_performance_df(dataframe_dictionary)
-    performance_df.to_csv("../data/Model_Metrics/domain_performance.csv", index=False)
+    performance_df.to_csv(filename, index=False)
 
 
 def predict_for_subdomains(testing_df, tuned_model, subdomains, openai_key):
@@ -909,7 +910,7 @@ def predict_for_subdomains(testing_df, tuned_model, subdomains, openai_key):
             domain_response = query_gpt(user_message, tuned_model, openai_key)
 
             temp_dic["response"] = domain_response
-            all_responses[row["Index"]] = temp_dic
+            all_responses[row.index] = temp_dic
             counter += 1
 
     return all_responses
@@ -918,9 +919,9 @@ def predict_for_subdomains(testing_df, tuned_model, subdomains, openai_key):
 def populate_subdomain_scores(scores, testing_df, responses):
     columns = testing_df.columns[3:]
     for index, row in testing_df.iterrows():
-        if row["Index"] in responses:
+        if row.index in responses:
             try:
-                curr_response = responses[row["Index"]]
+                curr_response = responses[row.index]
                 domains = ast.literal_eval(curr_response["response"])
                 curr_response = domains
                 for domain in list(columns):
@@ -948,9 +949,9 @@ def populate_subdomain_scores(scores, testing_df, responses):
                         scores[domain][3] += 1
             except ValueError:
                 # Handle the case where the string is not properly formatted
-                print("Index #" + str(row["Index"]) + " response not in json format")
+                print("Index #" + str(row.index) + " response not in json format")
         else:
-            print("Index #" + str(row["Index"]) + " Issue not in response json")
+            print("Index #" + str(row.index) + " Issue not in response json")
 
     return scores
 
@@ -1073,7 +1074,9 @@ def create_subdomain_performance_df(subdomain_data):
     return performance_df, sum_list
 
 
-def produce_subdomain_csv(subdomain_dictionary, formatted_domains, openai_key):
+def produce_subdomain_csv(
+    subdomain_dictionary, formatted_domains, openai_key, filename
+):
     for domain, data in subdomain_dictionary.items():
         if "tuned_model" in data:
             print(f"predictions not found for {domain} subdomains:, predicting now...")
@@ -1090,11 +1093,9 @@ def produce_subdomain_csv(subdomain_dictionary, formatted_domains, openai_key):
             print(
                 f"Tuned model not found for domain: {domain}, can't generate predictions"
             )
-    print(subdomain_dictionary["Application Performance Manager"]["predictions"])
     subdomain_dictionary = get_subdomain_scores(subdomain_dictionary)
-
     performance_df, sum_list = create_subdomain_performance_df(subdomain_dictionary)
-    performance_df.to_csv("Model_Metrics/subdomain_performance.csv", index=False)
+    performance_df.to_csv(filename, index=False)
 
 
 def get_model_json(domain_dictionary, subdomain_dictionary):
