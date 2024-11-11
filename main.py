@@ -72,10 +72,10 @@ def main():
     print("Getting data from all extracted repositories:\n")
     repos_processed = db.get_all_repos()
     for repo_process in repos_processed:
-        prs = len(db.get_prs_of_repo(repo_process))
+        prs_num = len(db.get_prs_of_repo(repo_process))
 
         print(
-            f"\tIncluding data for: {repo_process.owner}/{repo_process.name} PRs: {prs}"
+            f"\tIncluding data for: {repo_process.owner}/{repo_process.name} PRs: {prs_num}"
         )
     print()
 
@@ -122,68 +122,121 @@ def main():
         print(
             "Warning: gpt-combined requires lots of data! If you get an error, try using more data!"
         )
+        print(
+            "Delete checkpoint file in output/gpt-combined-checkpoint.pkl on change of dataset"
+        )
         json_open = cfg_obj.get_cfg_val("gpt_jsonl_path")
 
-        # Format labels
-        formatted_domains = CoreEngine.classifier.format_domain_labels(
-            api_labels, sub_labels
-        )
-        formatted_domains, df = CoreEngine.classifier.drop_rare_domains(
-            df, formatted_domains
-        )
-        formatted_domains, df = CoreEngine.classifier.drop_rare_subdomains(
-            df, formatted_domains
-        )
-        if len(df) == 0:
-            print("Too little data! Try more prs!")
-            return
+        check = {"status": []}
+        try:
+            checkpoint_file = open("output/gpt-combined-checkpoint.pkl", "rb")
+            check = pickle.load(checkpoint_file)
+            checkpoint_file.close()
+        except:
+            pass
+
+        if "format_labels" not in check["status"]:
+            # Format labels
+            formatted_domains = CoreEngine.classifier.format_domain_labels(
+                api_labels, sub_labels
+            )
+            formatted_domains, df = CoreEngine.classifier.drop_rare_domains(
+                df, formatted_domains
+            )
+            formatted_domains, df = CoreEngine.classifier.drop_rare_subdomains(
+                df, formatted_domains
+            )
+            if len(df) == 0:
+                print("Too little data! Try more prs!")
+                return
+
+            checkpoint_file = open("output/gpt-combined-checkpoint.pkl", "wb")
+            check = {
+                "status": ["format_labels"],
+                "f_domains": formatted_domains,
+                "df": df,
+            }
+            pickle.dump(check, checkpoint_file)
+            checkpoint_file.close()
+        else:
+            formatted_domains = check["f_domains"]
+            df = check["df"]
 
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-        # Create dataframe for each domain and set of subdomains
-        dataframe_dictionary = CoreEngine.classifier.populate_dataframe_dictionary(
-            formatted_domains, df, client
-        )
-        subdomain_dictionary = CoreEngine.classifier.populate_subdomain_dictionary(
-            formatted_domains, df, client
-        )
+        if "data_pre" not in check["status"]:
+            # Create dataframe for each domain and set of subdomains
+            dataframe_dictionary = CoreEngine.classifier.populate_dataframe_dictionary(
+                formatted_domains, df, client
+            )
+            subdomain_dictionary = CoreEngine.classifier.populate_subdomain_dictionary(
+                formatted_domains, df, client
+            )
 
-        # Split dataframes
-        dataframe_dictionary = CoreEngine.classifier.split_domain_dataframes(
-            dataframe_dictionary
-        )
-        subdomain_dictionary = CoreEngine.classifier.split_subdomain_dataframes(
-            subdomain_dictionary
-        )
+            # Split dataframes
+            dataframe_dictionary = CoreEngine.classifier.split_domain_dataframes(
+                dataframe_dictionary
+            )
+            subdomain_dictionary = CoreEngine.classifier.split_subdomain_dataframes(
+                subdomain_dictionary
+            )
 
-        # Generate messages for finetune
-        dataframe_dictionary = CoreEngine.classifier.generate_domain_messages(
-            dataframe_dictionary
-        )
-        subdomain_dictionary = CoreEngine.classifier.generate_subdomain_messages(
-            subdomain_dictionary, formatted_domains
-        )
+            # Generate messages for finetune
+            dataframe_dictionary = CoreEngine.classifier.generate_domain_messages(
+                dataframe_dictionary
+            )
+            subdomain_dictionary = CoreEngine.classifier.generate_subdomain_messages(
+                subdomain_dictionary, formatted_domains
+            )
 
-        # Fine tune models
-        dataframe_dictionary = CoreEngine.classifier.get_domain_models(
-            dataframe_dictionary, client
-        )
-        subdomain_dictionary = CoreEngine.classifier.get_subdomain_models(
-            subdomain_dictionary, client
-        )
+            checkpoint_file = open("output/gpt-combined-checkpoint.pkl", "wb")
+            check = {
+                "status": ["format_labels", "data_pre"],
+                "f_domains": formatted_domains,
+                "df": df,
+                "df_dict": dataframe_dictionary,
+                "subdomain_dict": subdomain_dictionary,
+            }
+            pickle.dump(check, checkpoint_file)
+            checkpoint_file.close()
+        else:
+            formatted_domains = check["f_domains"]
+            df = check["df"]
+            dataframe_dictionary = check["df_dict"]
+            subdomain_dictionary = check["subdomain_dict"]
 
-        # Evaluate models and produce metrics csv
-        CoreEngine.classifier.produce_domain_csv(
-            dataframe_dictionary,
-            os.getenv("OPENAI_API_KEY"),
-            "output/domain_results.csv",
-        )
-        CoreEngine.classifier.produce_subdomain_csv(
-            subdomain_dictionary,
-            formatted_domains,
-            os.getenv("OPENAI_API_KEY"),
-            "output/subdomain_results.csv",
-        )
+        if "train" not in check["status"]:
+            # Fine tune models - pass checkpoint.
+            dataframe_dictionary = CoreEngine.classifier.get_domain_models(
+                dataframe_dictionary, client, check
+            )
+            subdomain_dictionary = CoreEngine.classifier.get_subdomain_models(
+                subdomain_dictionary, client, check
+            )
+            check["status"].append("train")
+
+            checkpoint_file = open("output/gpt-combined-checkpoint.pkl", "wb")
+            pickle.dump(check, checkpoint_file)
+            checkpoint_file.close()
+
+        if "eval" not in check["status"]:
+            # Evaluate models and produce metrics csv
+            CoreEngine.classifier.produce_domain_csv(
+                dataframe_dictionary,
+                os.getenv("OPENAI_API_KEY"),
+                "output/domain_results.csv",
+            )
+            CoreEngine.classifier.produce_subdomain_csv(
+                subdomain_dictionary,
+                formatted_domains,
+                os.getenv("OPENAI_API_KEY"),
+                "output/subdomain_results.csv",
+            )
+
+            check["status"].append("eval")
+            checkpoint_file = open("output/gpt-combined-checkpoint.pkl", "wb")
+            pickle.dump(check, checkpoint_file)
+            checkpoint_file.close()
 
         model_table = CoreEngine.classifier.get_model_json(
             dataframe_dictionary, subdomain_dictionary

@@ -661,25 +661,36 @@ def fine_tune_gpt_combined(file, domain, client):
 
 
 # Function to populate data_frame_dictionary with gpt models
-def get_domain_models(dataframe_dictionary, client):
+def get_domain_models(dataframe_dictionary, client, checkpoint={}):
     for domain, data in dataframe_dictionary.items():
         if "tuned_model" in data:
             print(f"Model already exists for domain: {domain}, {data['tuned_model']}")
+            continue
         else:
             print(f"No model found for domain: {domain}, creating one now")
             filepath = data["gpt_messages"]
             data["tuned_model"] = fine_tune_gpt_combined(filepath, domain, client)
+
+        # save dictionary.
+        if len(checkpoint) > 0:
+            checkpoint["df_dict"] = dataframe_dictionary
+            checkpoint_file = open("output/gpt-combined-checkpoint.pkl", "wb")
+            pickle.dump(checkpoint, checkpoint_file)
+            checkpoint_file.close()
+
     return dataframe_dictionary
 
 
 # Function to populate subdomain_dictionary with gpt models
-def get_subdomain_models(subdomain_dictionary, client):
+def get_subdomain_models(subdomain_dictionary, client, checkpoint={}):
     for domain, data in subdomain_dictionary.items():
         if "df" not in data:
             print(f"Domain {domain} has no df")
+            continue
 
         elif "tuned_model" in data:
             print(f"Model already exists for domain: {domain}")
+            continue
 
         else:
             if domain:
@@ -687,6 +698,13 @@ def get_subdomain_models(subdomain_dictionary, client):
                 print(f"No model found for domain: {domain_str}, creating one now")
                 filepath = data["gpt_messages"]
                 data["tuned_model"] = fine_tune_gpt_combined(filepath, domain, client)
+
+                if len(checkpoint) > 0:
+                    checkpoint["subdomain_dict"] = subdomain_dictionary
+                    checkpoint_file = open("output/gpt-combined-checkpoint.pkl", "wb")
+                    pickle.dump(checkpoint, checkpoint_file)
+                    checkpoint_file.close()
+
     return subdomain_dictionary
 
 
