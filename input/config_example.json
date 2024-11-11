@@ -5,11 +5,11 @@
     "gpt_jsonl_path" : "output/gpt_jsonl_path.json",
     "api_domain_label_listing" : "data/domain_labels.json",
     "api_subdomain_label_listing" : "data/subdomain_labels.json",
-    "clf_method" : "rf",
-    "clf_model_out_path" : "output/rf_model.pkl", 
+    "clf_method" : "gpt-combined",
+    "clf_model_out_path" : "output/gpt_combined_model.pkl", 
     "range": [
         1,
-        12
+        400
     ],
     "state": "closed",
     "comments": [
