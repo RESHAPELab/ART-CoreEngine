@@ -64,10 +64,10 @@ def main():
     print("\nPreparing data frame")
 
     # this gets data from a specific PR from a specific Repository
-    df = get_prs_df(db, prs, repo)
+    # df = get_prs_df(db, prs, repo)
     # Instead, you can use this below to get ALL data from all PRs and Repos stored
-    # df = get_all_data(db)
-    # df.to_csv("output/all_data.csv")
+    df = get_all_data(db)
+    df.to_csv("output/all_data.csv")
 
     print("Getting data from all extracted repositories:\n")
     repos_processed = db.get_all_repos()

@@ -9,7 +9,7 @@
     "clf_model_out_path" : "output/gpt_combined_model.pkl", 
     "range": [
         1,
-        500
+        400
     ],
     "state": "closed",
     "comments": [

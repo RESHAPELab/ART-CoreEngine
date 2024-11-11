@@ -578,8 +578,10 @@ def generate_domain_messages_json(domain, filepath, training_df):
 # Function to populate dataframe_dictionary with message filepath
 def generate_domain_messages(dataframe_dictionary):
     # Create messages for each domain
+    if not os.path.exists("generatedFiles/domains"):
+        os.makedirs("generatedFiles/domains")
     for domain, data in dataframe_dictionary.items():
-        filepath = "../data/Domain_Messages/" + domain.replace("/", "-") + ".jsonl"
+        filepath = "generatedFiles/domains/" + domain.replace("/", "-") + ".jsonl"
         training_df = data["training_df"]
         generate_domain_messages_json(domain, filepath, training_df)
         data["gpt_messages"] = filepath
@@ -619,11 +621,13 @@ def generate_subdomain_messages_json(subdomains, filepath, training_df):
 
 
 def generate_subdomain_messages(subdomain_dictionary, formatted_domains):
+    if not os.path.exists("generatedFiles/subdomains"):
+        os.makedirs("generatedFiles/subdomains")
     for domain, data in subdomain_dictionary.items():
         if "df" not in data:
             print(f"Domain {domain} has no df")
         else:
-            filepath = "../data/Subdomain_Messages/" + domain + " Subdomains.jsonl"
+            filepath = "generatedFiles/subdomains/" + domain + " Subdomains.jsonl"
             subdomains = str(formatted_domains[domain])
             subdomains = subdomains.replace("{", "")
             subdomains = subdomains.replace("}", "")
