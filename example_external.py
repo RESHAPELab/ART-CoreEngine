@@ -42,12 +42,24 @@ if __name__ == "__main__":
     repo_name = "JabRef"
 
     # Get the model (GPT)
+    external_gpt_combined = CoreEngine.External_Model_Interface(
+        openai_key,
+        db,
+        "./output/gpt_combined_model.pkl",
+        "./data/domain_labels.json",
+        "./data/subdomain_labels.json",
+        "./data/formatted_domain_labels.json",
+        f"example cache key-{repo_name}",
+        "./output/response_cache/",
+    )
+
     external_gpt = CoreEngine.External_Model_Interface(
         openai_key,
         db,
         "./output/gpt_model.pkl",
         "./data/domain_labels.json",
         "./data/subdomain_labels.json",
+        "./data/formatted_domain_labels.json",
         f"example cache key-{repo_name}",
         "./output/response_cache/",
     )
@@ -59,6 +71,7 @@ if __name__ == "__main__":
         "./output/rf_model.pkl",
         "./data/domain_labels.json",
         "./data/subdomain_labels.json",
+        "./data/formatted_domain_labels.json",
         f"example cache key-{repo_name}",
         "./output/response_cache/",
     )
@@ -101,10 +114,18 @@ if __name__ == "__main__":
     #     video transfer, regardless of what other programs are utilizing video ram""",
     # )
 
-    # print(external_gpt.predict_issue(issue))  # Returns top 3 domains.
+    print("gpt: ", external_gpt.predict_issue(issue))  # Returns top 3 domains.
+    print("rf: ", external_rf.predict_issue(issue))  # Returns top 3 domains.
+    print(
+        "gpt-combined: ", external_gpt_combined.predict_issue(issue)
+    )  # Returns top 3 domains.
 
     # It is also possible to download a repository's open issues like this:
     # Below gets at most 100 open issues and at most 200 closed issues and classifies each one.
+
+    exit()
+
+    # Below is for dumping all the issues to a csv.
 
     # Get open issues
     issues = CoreEngine.git_helper_get_issues(
@@ -132,6 +153,7 @@ if __name__ == "__main__":
         try:
             prediction_gpt = external_gpt.predict_issue(issue)
             prediction_rf = external_rf.predict_issue(issue)
+            prediction_gpt_combo = external_gpt_combined.predict_issue(issue)
         except:
             continue
 
@@ -141,6 +163,7 @@ if __name__ == "__main__":
         data_out["Is Open"].append(True)
         data_out["GPT Predictions"].append(prediction_gpt)
         data_out["RF Predictions"].append(prediction_rf)
+        data_out["GPT_COMBINED Predictions"].append(prediction_gpt_combo)
 
     # Get closed issues
     issues = CoreEngine.git_helper_get_issues(
@@ -159,6 +182,7 @@ if __name__ == "__main__":
         try:
             prediction_gpt = external_gpt.predict_issue(issue)
             prediction_rf = external_rf.predict_issue(issue)
+            prediction_gpt_combo = external_gpt_combined.predict_issue(issue)
         except:
             continue
 
@@ -168,7 +192,7 @@ if __name__ == "__main__":
         data_out["Is Open"].append(False)
         data_out["GPT Predictions"].append(prediction_gpt)
         data_out["RF Predictions"].append(prediction_rf)
-
+        data_out["GPT_COMBINED Predictions"].append(prediction_gpt_combo)
     data = pd.DataFrame(data=data_out)
     data["Issue Body"] = data["Issue Body"].apply(CoreEngine.classifier.clean_text)
 
