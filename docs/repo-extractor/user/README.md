@@ -31,7 +31,7 @@ main.py: error: the following arguments are required: extractor_cfg_file
 
 This configuration file must contain a JSON object with certain fields. The extractor uses JSON schema validation to ensure that those fields exist, so it will warn you and stop execution if it finds that one of them is missing.
 
-The user may find an example input in this directory at `./example_io/example_input.json`. Please see the [dedicated configuration options file](./configuration_opts.md) for full details on the options one may pass to the extractor inside of the JSON input object.
+The user may find an example input in this directory at `./input/config_example.json`. Please see the [dedicated configuration options file](./configuration_opts.md) for full details on the options one may pass to the extractor inside of the JSON input object.
 
 ### Execution
 

@@ -1,12 +1,15 @@
 # ART-CoreEngine
 Parser and code understanding engine
 <br>
-By Benjamin Carter, Dylan Johnson, Hunter Jenkins, and Jacob McAuley Penney
+By Anonymous
 
 ## ART Project Overview:
 
 1. A training and prediction engine --> CoreEngine Repository (this Repository)
 2. An interactive UI that utilizes CoreEngine --> Art-UI Repository 
+
+> See the video located in `docs/demo.mp4` to see how this works.
+
 
 **This README covers the training and prediction engine aspect, the CoreEngine**  
 
@@ -21,10 +24,11 @@ The program uses a passed in configuration JSON file (see `/docs/repo-extractor/
 
 The JSON file specifies the repository to extract. It also specifies the range of Issue/PRs to extract.
 In training, the CoreEngine extracts all the PRs as specified in the JSON file and trains
-either a Random Forest model or a GPT model (as specified in the JSON file). After training, it 
+either a Random Forest model, a single GPT model, or a combined binary classification GPT model. The model
+type is specified in the JSON file. After training, it 
 saves the model at the location specified in the JSON configuration.
 
-> Training has been tested from the [`JabRef`](https://github.com/JabRef/JabRef/) repository. Recommended to use that for training.
+> Training was done from 11 repositories. [See dataset document for a list of which ones](/docs/DATASETS.md)
 
 #### Example instructions for training a model:
 > Make sure poetry is installed [See here for instructions](https://python-poetry.org/docs/)
@@ -33,52 +37,11 @@ saves the model at the location specified in the JSON configuration.
 3. Create a GitHub Personal Access Token to use for downloading issues from GitHub and save it in a file
 4. Set up a configuration file for training like below (see [example pre-filled configuration](/input/config_example.json) for default)
 
-``` json
-{
-    "repo": "Your Repository Here",
-    "auth_path": "File to your github auth key created in step 3",
-    "output_path": "Output to extractor json (not currently in use)",
-    "gpt_jsonl_path" : "output/gpt_jsonl_path.json",
-    "api_domain_label_listing" : "File with domain listing",
-    "api_subdomain_label_listing" : "File with domain and subdomain listing",
-    "clf_method" : "Either 'rf' or 'gpt', determines the model to train",
-    "clf_model_out_path" : "Model output file",
-    "range": [
-        1,
-        10   // specify the range of issues to extract. 
-        // Need at least 3 for RF and 10 for GPT, may need more to get valid PRs,
-        // as the range does not take in account non-PR issues and non-processable PRs.
-    ],
-    "state": "closed",
-    "comments": [
-        "userid",
-        "userlogin",
-        "body"
-    ],
-    "commits": [
-        "author_name",
-        "committer",
-        "date",
-        "sha",
-        "message",
-        "files"
-    ],
-    "issues": [
-        "userid",
-        "userlogin",
-        "title",
-        "body",
-        "num_comments",
-        "created_at",
-        "closed_at"
-    ]
-}
-```
 5. Set an environment variable in a `.env` file with the `OPENAI_API_KEY` set to an OpenAI key
+6. Place a GitHub key in a file located at `auth_path` as specified in the `config.json`. (Default: `input/mp_auth.txt`)
 6. Run `poetry run python3 main.py path/to/config.json` where the json is the one set 
 up from step three. This will download, analyze, and train the model. It stores the results in 
-a cache, preventing repeated calls. It is recommended to delete the generated `main.db` file 
-in the output directory when switching between repositories for training.
+a cache, preventing repeated calls.
 
 
 > If you want to see the AI calls in real time, run
@@ -104,30 +67,43 @@ Import `CoreEngine.src.external.External_Model_Interface` and `CoreEngine.src.da
 Set up the database connection:
 ``` python
 # Defaults are set to the ones implemented in the CoreEngine basic conf `config_example.json`
-db = DatabaseManager(
-    dbfile="path/to/main.db",
-    cachefile="path/to/ai_result_backup.db",
-    label_file="path/to/subdomain_labels.json",
+db = CoreEngine.DatabaseManager(
+    dbfile="./output/main.db",
+    cachefile="./ai_result_backup.db",
+    label_file="./data/subdomain_labels.json",
+)
+external_gpt_combined = CoreEngine.External_Model_Interface(
+openai_key,
+db,
+"./output/gpt_combined_model.pkl",
+"./data/domain_labels.json",
+"./data/subdomain_labels.json",
+"./data/formatted_domain_labels.json",
+f"example cache key-{repo_name}",
+"./output/response_cache/",
 )
 
-external_rf = External_Model_Interface(
-    openai_key,
-    db,
-    "path/to/rf_model.pkl",
-    "path/to/domain_labels.json",
-    "path/to/subdomain_labels.json",
-    "Some Cache key, like the repository name", # It caches responses automatically
-    "path/to/response_cache/",
+external_gpt = CoreEngine.External_Model_Interface(
+openai_key,
+db,
+"./output/gpt_model.pkl",
+"./data/domain_labels.json",
+"./data/subdomain_labels.json",
+"./data/formatted_domain_labels.json",
+f"example cache key-{repo_name}",
+"./output/response_cache/",
 )
 
-external_gpt = External_Model_Interface(
-    openai_key,
-    db,
-    "path/to/gpt_model.pkl",
-    "path/to/domain_labels.json",
-    "path/to/subdomain_labels.json",
-    "Some Cache key, like the repository name", # It caches responses automatically
-    "path/to/output/response_cache/",
+# Get the model (RF)  The model is automatically detected by the model file.
+external_rf = CoreEngine.External_Model_Interface(
+openai_key,
+db,
+"./output/rf_model.pkl",
+"./data/domain_labels.json",
+"./data/subdomain_labels.json",
+"./data/formatted_domain_labels.json",
+f"example cache key-{repo_name}",
+"./output/response_cache/",
 )
 ```
 
@@ -141,5 +117,8 @@ issue = CoreEngine.Issue(
 print(external_rf.predict_issue(issue))
 ```
 See an example in `example_external.py`
+
+> Note, gpt_combined outputs in a slightly different format: a dictionary with the key of the domain and the value being a list of the 
+> subdomains.
 
 

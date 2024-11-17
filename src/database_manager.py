@@ -1,5 +1,5 @@
 #  DatabaseManager.py
-#  Benjamin Carter
+#  Anonymous
 #  5/22/2024
 #
 #  This file holds the DatabaseManager class, which holds all the main procedures to enact on the databases.

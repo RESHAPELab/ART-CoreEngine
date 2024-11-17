@@ -6,7 +6,7 @@ To do this, it uses the tree_sitter library which in turn
 calls a java parser. This approach means that it is configured to
 accept any and all java programs and syntaxes.
 
-By Benjamin Carter, TJ Potter, and Brent McLennan
+Anonymous
 2/13/2024
 """
 

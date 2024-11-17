@@ -1,4 +1,3 @@
-# Hunter Jenkins
 # Taxonomy Tests Version 1
 # AI function calls
 

@@ -1,7 +1,7 @@
 """
 main.py
 
-By Benjamin Carter, Dylan Johnson, and Hunter Jenkins
+By Anonymous
 
 This program constitutes the main of the CoreEngine
 """

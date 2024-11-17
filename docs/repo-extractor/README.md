@@ -1,6 +1,5 @@
-# OSL Repo Extractor
 ## Introduction
-The OSL Repo Extractor ("extractor") is a tool used to mine GitHub repositories for information relevant to the total SkillScope project under the supervision and direction of [Dr. Marco Gerosa](https://www.ime.usp.br/~gerosa/career.html). It is the first stage of the pipeline of the project, providing the pipeline the data that it requires.
+The repo-extractor is a tool used to mine GitHub repositories for information relevant to the total SkillScope project under the supervision and direction of XXXXX. It is the first stage of the pipeline of the project, providing the pipeline the data that it requires.
 
 
 ## Context and Purpose
