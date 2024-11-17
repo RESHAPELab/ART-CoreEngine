@@ -1,6 +1,6 @@
 # from .src import *
 # from . import src
-__version__ = "1.3.1"
+__version__ = "2.0.0"
 
 import os
 
