@@ -2,7 +2,7 @@
 # You will need:
 # the path to `main.db`. Default: ./output/main.db`
 # the path to `ai_result_backup.db`. Default: ./output/ai_result_backup.db
-# the path to a trained model file. Default: `./output/rf_model.pkl` (and) `./output/gpt_model.pkl`
+# the path to a trained model file. Default: `./output/rf_model.pkl` (and) `./output/gpt_model.pkl` (and) `./output/gpt_combined_model.pkl`
 # the path to the domain_labels.json file. Default: `./data/subdomain_labels.json`
 # the path to the response_cache. This will get automatically generated if not existent.
 #   This stores responses to the predict_issue() so it avoids rerunning from GPT.
