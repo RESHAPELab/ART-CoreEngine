@@ -23,3 +23,4 @@ from .classifier import git_helper_get_open_issues
 from .classifier import git_helper_get_issues
 from .repo_extractor import conf
 from .repo_extractor import schema
+from .get_developer_stats import get_developer_stats
